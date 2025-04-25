@@ -1,0 +1,40 @@
+{
+  "name": "tag-migration-tool",
+  "version": "1.0.0",
+  "description": "工具用于在不同租户间复制标签分组和标签",
+  "main": "index.js",
+  "scripts": {
+    "start": "echo '正在启动开发服务器...\n同时支持本地和网络访问...' && vite",
+    "build": "echo '正在构建生产版本...' && vite build",
+    "serve": "echo '正在预览生产版本...' && vite preview",
+    "prod": "echo '正在启动生产服务器...' && node server.js"
+  },
+  "dependencies": {
+    "@types/uuid": "^10.0.0",
+    "antd": "^5.12.5",
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "file-saver": "^2.0.5",
+    "http-proxy-middleware": "^2.0.9",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "uuid": "^11.1.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^22.14.1",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8"
+  },
+  "keywords": [
+    "标签",
+    "迁移"
+  ],
+  "author": "",
+  "license": "ISC"
+}

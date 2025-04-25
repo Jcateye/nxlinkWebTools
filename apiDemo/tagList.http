@@ -1,0 +1,130 @@
+curl 'https://nxlink.nxcloud.com/admin/nx_flow_manager/mgrPlatform/tag?page_number=1&page_size=10&name=&group_id=0&nxCloudUserID=9622&tenantId=1' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjgxNywidXVJZCI6IjY4MDlmYTU3ZTRiMDllYzQ1Njc2MTk1NSJ9.cA46D0i3d0dEwKfmvprVh0wy5ldqtLpm6YchqoXnwcg' \
+  -H 'cache-control: no-cache' \
+  -H 'dnt: 1' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/manager/' \
+  -H 'sec-ch-ua: "Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 4' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+
+
+
+  # response：
+  {
+    "code": 0,
+    "message": "success",
+    "traceId": "bcd57fecab614b56b210d8b18131386e",
+    "data": {
+        "code": 0,
+        "message": null,
+        "traceId": null,
+        "total": 202,
+        "page_number": 1,
+        "page_size": 10,
+        "list": [
+            {
+                "id": 1041,
+                "name": "是本人Correct person",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Indicates that the person confirmed is the correct individual associated with the account or loan.",
+                "created_at": "2025-04-24T17:49:06",
+                "updated_at": "2025-04-24T17:49:06"
+            },
+            {
+                "id": 1040,
+                "name": "不是本人Wrong person",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Indicates that the person confirmed is not the correct individual associated with the account or loan.",
+                "created_at": "2025-04-24T17:48:51",
+                "updated_at": "2025-04-24T17:48:51"
+            },
+            {
+                "id": 1039,
+                "name": "其他语言Other languages",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Customer try to speak other language rather thanRussia (e.g. Don't speak Russia/no Russia/please speak English, Chinese or any other languages/Я не говорю по-русски).\nDo not output this tag when the customer is confirming customer service identification information.",
+                "created_at": "2025-04-24T17:48:30",
+                "updated_at": "2025-04-24T17:48:30"
+            },
+            {
+                "id": 1038,
+                "name": "不愿意还款Unwilling to pay",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Customer is unwilling to repay the loan",
+                "created_at": "2025-04-24T17:48:10",
+                "updated_at": "2025-04-24T17:48:10"
+            },
+            {
+                "id": 1037,
+                "name": "愿意还款Willing to pay",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Customer is willing to repay the loan",
+                "created_at": "2025-04-24T17:47:49",
+                "updated_at": "2025-04-24T17:47:49"
+            },
+            {
+                "id": 1036,
+                "name": "申请延期Extension",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Customer wants to apply for an extension",
+                "created_at": "2025-04-24T17:47:33",
+                "updated_at": "2025-04-24T17:47:33"
+            },
+            {
+                "id": 1035,
+                "name": "无力偿还No money",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Customer says they can't afford to repay the loan. And says there's no money/bankruptcy/has suffered a misfortune",
+                "created_at": "2025-04-24T17:47:18",
+                "updated_at": "2025-04-24T17:47:18"
+            },
+            {
+                "id": 1033,
+                "name": "其他情况Meaningless",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Customer answers irrelevant content, meaningless content.",
+                "created_at": "2025-04-24T17:47:00",
+                "updated_at": "2025-04-24T17:47:00"
+            },
+            {
+                "id": 1032,
+                "name": "投诉Complaint",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": "Customer want to make a complaint or says stop calling me again or customer make negative comment such as curse",
+                "created_at": "2025-04-24T17:46:39",
+                "updated_at": "2025-04-24T17:46:39"
+            },
+            {
+                "id": 498,
+                "name": "不喜欢",
+                "group_id": 0,
+                "group_name": "未分类",
+                "describes": null,
+                "created_at": "2025-03-12T21:04:38",
+                "updated_at": "2025-03-12T21:04:38"
+            }
+        ],
+        "ext": null,
+        "notEmpty": true,
+        "totalPages": 202,
+        "empty": false
+    }
+}

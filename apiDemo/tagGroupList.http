@@ -1,0 +1,105 @@
+curl 'https://nxlink.nxcloud.com/admin/nx_flow_manager/mgrPlatform/tag/typeDetails?nxCloudUserID=9622&tenantId=1' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjgxNywidXVJZCI6IjY4MDlmYTU3ZTRiMDllYzQ1Njc2MTk1NSJ9.cA46D0i3d0dEwKfmvprVh0wy5ldqtLpm6YchqoXnwcg' \
+  -H 'system_id: 4' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+
+# response
+  {
+    "code": 0,
+    "message": "success",
+    "traceId": "b6fd21a9d35a4fdfaa125f01ec49bb67",
+    "data": [
+        {
+            "id": 0,
+            "group_name": "未分类",
+            "count": 202
+        },
+        {
+            "id": 4571,
+            "group_name": "Degen测试分组",
+            "count": 0
+        },
+        {
+            "id": 4564,
+            "group_name": "KTA KILAT-印尼",
+            "count": 8
+        },
+        {
+            "id": 4526,
+            "group_name": "印尼测试",
+            "count": 0
+        },
+        {
+            "id": 4405,
+            "group_name": "Scopely客户测试",
+            "count": 8
+        },
+        {
+            "id": 4104,
+            "group_name": "QP-PHL-EN",
+            "count": 6
+        },
+        {
+            "id": 4100,
+            "group_name": "转人工",
+            "count": 2
+        },
+        {
+            "id": 4065,
+            "group_name": "Educational outbound (Arabic)",
+            "count": 3
+        },
+        {
+            "id": 4054,
+            "group_name": "zh_lingo",
+            "count": 1
+        },
+        {
+            "id": 4053,
+            "group_name": "New_lingo",
+            "count": 14
+        },
+        {
+            "id": 3978,
+            "group_name": "地理",
+            "count": 3
+        },
+        {
+            "id": 3931,
+            "group_name": "领格卓越-教育营销-新加坡中文",
+            "count": 13
+        },
+        {
+            "id": 3855,
+            "group_name": "Sea_Debt_Collection_SG(RN)",
+            "count": 21
+        },
+        {
+            "id": 3874,
+            "group_name": "快递机器人",
+            "count": 2
+        },
+        {
+            "id": 3861,
+            "group_name": "Br Portuguese - IVR-V3",
+            "count": 1
+        },
+        {
+            "id": 3619,
+            "group_name": "外卖",
+            "count": 2
+        },
+        {
+            "id": 3573,
+            "group_name": "test",
+            "count": 0
+        },
+        {
+            "id": 3563,
+            "group_name": "叫醒机器人",
+            "count": 9
+        }
+    ]
+}

@@ -17,8 +17,7 @@
   padding: 24px;
   background: #fff;
   min-height: calc(100vh - 190px);
-  max-width: 1200px;
-  margin: 0 auto;
+  margin: 0 20px;
   border-radius: 4px;
 }
 

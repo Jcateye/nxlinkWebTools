@@ -1,0 +1,13 @@
+curl 'https://nxlink.nxcloud.com/home/api/faqTenantLanguage' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'cache-control: no-cache' \
+  -H 'lang: zh_CN' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36' \
+  --data-raw '{"language_id":2}'
+
+  #response
+{"code":0,"message":"","data":null,"traceId":"d31217522d514e499aa95bd5e280ae29"}

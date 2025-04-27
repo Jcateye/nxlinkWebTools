@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Table, Typography, Spin, Empty, Tag, Descriptions, Card, Button, message, Input, Space, Tooltip, Popconfirm, Modal } from 'antd';
 import { CopyOutlined, SearchOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { getTagList, deleteTag } from '../services/api';
@@ -16,7 +16,7 @@ interface TagListProps {
 }
 
 const TagList: React.FC<TagListProps> = ({ groupId, groupName, onTagsChange }) => {
-  const { userParams } = useUserContext();
+  const { tagUserParams } = useUserContext();
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<Record<number, boolean>>({});
   const [tags, setTags] = useState<TagType[]>([]);
@@ -28,33 +28,15 @@ const TagList: React.FC<TagListProps> = ({ groupId, groupName, onTagsChange }) =
   const [isDescriptionModalVisible, setIsDescriptionModalVisible] = useState(false);
   const pageSize = 10;
 
-  useEffect(() => {
-    if (userParams && groupId !== undefined) {
-      fetchTags();
-    }
-  }, [groupId, currentPage, userParams]);
-
-  // 当搜索文本变化时，过滤标签
-  useEffect(() => {
-    if (searchText) {
-      const filtered = tags.filter(tag => 
-        tag.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        (tag.describes && tag.describes.toLowerCase().includes(searchText.toLowerCase()))
-      );
-      setFilteredTags(filtered);
-    } else {
-      setFilteredTags(tags);
-    }
-  }, [searchText, tags]);
-
-  const fetchTags = async () => {
-    if (!userParams) return;
+  // 使用useCallback包装fetchTags函数
+  const fetchTags = useCallback(async () => {
+    if (!tagUserParams || groupId === undefined) return;
 
     setLoading(true);
     try {
       const response = await getTagList(
-        userParams.nxCloudUserID,
-        userParams.sourceTenantID,
+        tagUserParams.nxCloudUserID,
+        tagUserParams.sourceTenantID,
         groupId,
         currentPage,
         pageSize
@@ -68,7 +50,26 @@ const TagList: React.FC<TagListProps> = ({ groupId, groupName, onTagsChange }) =
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId, currentPage, pageSize, tagUserParams]);
+
+  // 优化useEffect依赖项，避免不必要的重新渲染
+  useEffect(() => {
+    fetchTags();
+    // 注意：我们直接依赖fetchTags这个回调函数,它已经依赖了必要的变量
+  }, [fetchTags]);
+
+  // 当搜索文本变化时，过滤标签
+  useEffect(() => {
+    if (searchText) {
+      const filtered = tags.filter(tag => 
+        tag.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        (tag.describes && tag.describes.toLowerCase().includes(searchText.toLowerCase()))
+      );
+      setFilteredTags(filtered);
+    } else {
+      setFilteredTags(tags);
+    }
+  }, [searchText, tags]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -92,15 +93,15 @@ const TagList: React.FC<TagListProps> = ({ groupId, groupName, onTagsChange }) =
 
   // 删除标签
   const handleDeleteTag = async (tagId: number) => {
-    if (!userParams) return;
+    if (!tagUserParams) return;
     
     setDeleteLoading(prev => ({ ...prev, [tagId]: true }));
     
     try {
       const success = await deleteTag(
         tagId, 
-        userParams.nxCloudUserID, 
-        userParams.sourceTenantID
+        tagUserParams.nxCloudUserID, 
+        tagUserParams.sourceTenantID
       );
       
       if (success) {

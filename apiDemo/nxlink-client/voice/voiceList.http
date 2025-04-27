@@ -1,0 +1,79 @@
+curl 'https://nxlink.nxcloud.com/admin/nx_flow/voiceConfig?page_number=1&page_size=16' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'lang: zh_CN' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'createTs: 1745684150372' \
+  -H 'DNT: 1'
+
+  #response
+
+  {
+    "code": 0,
+    "message": "success",
+    "traceId": null,
+    "data": {
+        "code": 0,
+        "message": null,
+        "traceId": null,
+        "total": 3,
+        "page_number": 1,
+        "page_size": 16,
+        "list": [
+            {
+                "id": 35,
+                "tenantId": 4,
+                "name": "Sea",
+                "gender": 2,
+                "language": "en-SG",
+                "vendor": "13",
+                "prompt": "{\"id\": \"6qpxBH5KUSDb40bij36w\", \"age\": \"young\", \"model\": \"eleven_turbo_v2_5\", \"pitch\": 0, \"speed\": 1, \"accent\": \"singaporean\", \"gender\": \"female\", \"volume\": 100, \"emotion\": [], \"category\": \"professional\", \"use_case\": \"conversational\", \"languages\": [\"en\", \"en\"], \"stability\": 0.5, \"description\": null, \"descriptive\": \"casual\", \"languageVoice\": null, \"speakingSpeed\": 0, \"similarityBoost\": 0.35}",
+                "des": null,
+                "content": "Hello - Hi I'm Alice from SPayLater. Is this Tommy speaking?",
+                "url": "https://nxai-us-1259196162.cos.na-siliconvalley.myqcloud.com/20250313/one_sentence_13_e7791fa4e3aebee9509d095ad18422fde46403d3fe105ddd3436095c32642228.wav",
+                "bgTimbreId": 1,
+                "createTs": null,
+                "updateTs": 1741846254555
+            },
+            {
+                "id": 39,
+                "tenantId": 4,
+                "name": "MX Spanish - IVR",
+                "gender": 2,
+                "language": "es-ES",
+                "vendor": "12",
+                "prompt": "{\"id\": \"db832ebd-3cb6-42e7-9d47-912b425adbaa\", \"model\": \"sonic\", \"pitch\": 0, \"speed\": 0, \"volume\": 100, \"emotion\": [\"positivity:high\"], \"languageVoice\": null, \"speakingSpeed\": 0}",
+                "des": null,
+                "content": "realice su pago lo antes posible. Esto evitará que se tomen medidas adicionales.",
+                "url": "https://nxai-gz-1259196162.cos.ap-guangzhou.myqcloud.com/20250123/one_sentence_12_6e77b97f440d4ab001846ab542919abfd524221ab8a8db14a0ccb0001735c6d3.wav",
+                "bgTimbreId": 1,
+                "createTs": null,
+                "updateTs": null
+            },
+            {
+                "id": 36,
+                "tenantId": 4,
+                "name": "Test",
+                "gender": 2,
+                "language": "en-SG",
+                "vendor": "13",
+                "prompt": "{\"id\": \"6qpxBH5KUSDb40bij36w\", \"age\": \"young\", \"model\": null, \"pitch\": 0, \"speed\": 0, \"accent\": \"singaporean\", \"gender\": \"female\", \"volume\": 100, \"emotion\": [], \"category\": \"professional\", \"use_case\": \"conversational\", \"languages\": [\"en\"], \"stability\": 0.5, \"description\": null, \"descriptive\": \"casual\", \"languageVoice\": null, \"speakingSpeed\": 0, \"similarityBoost\": 0.35}",
+                "des": null,
+                "content": "Hello - Hi I'm Alice from SPayLater. Is this SPayLater speaking?",
+                "url": "https://nxai-us-1259196162.cos.na-siliconvalley.myqcloud.com/20250310/one_sentence_13_e70803bd3def5798cc985f905c91b8285f0f821b9b8417d56765dab67ffc7ee4.wav",
+                "bgTimbreId": 1,
+                "createTs": null,
+                "updateTs": null
+            }
+        ],
+        "ext": null,
+        "notEmpty": true,
+        "totalPages": 3,
+        "empty": false
+    }
+}

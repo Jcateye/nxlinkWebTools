@@ -1,0 +1,204 @@
+curl 'https://nxlink.nxcloud.com/home/api/language' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+
+  #response
+  {
+    "code": 0,
+    "message": "",
+    "data": [
+        {
+            "id": 41,
+            "name": "阿尔巴尼亚语"
+        },
+        {
+            "id": 4,
+            "name": "阿拉伯语"
+        },
+        {
+            "id": 47,
+            "name": "白俄罗斯语"
+        },
+        {
+            "id": 14,
+            "name": "孟加拉语"
+        },
+        {
+            "id": 32,
+            "name": "保加利亚语"
+        },
+        {
+            "id": 2,
+            "name": "中文"
+        },
+        {
+            "id": 30,
+            "name": "克罗地亚语"
+        },
+        {
+            "id": 23,
+            "name": "捷克语"
+        },
+        {
+            "id": 26,
+            "name": "丹麦语"
+        },
+        {
+            "id": 21,
+            "name": "荷兰语"
+        },
+        {
+            "id": 1,
+            "name": "英语"
+        },
+        {
+            "id": 39,
+            "name": "爱沙尼亚语"
+        },
+        {
+            "id": 28,
+            "name": "芬兰语"
+        },
+        {
+            "id": 5,
+            "name": "法语"
+        },
+        {
+            "id": 45,
+            "name": "格鲁吉亚语"
+        },
+        {
+            "id": 8,
+            "name": "德语"
+        },
+        {
+            "id": 22,
+            "name": "希腊语"
+        },
+        {
+            "id": 13,
+            "name": "印地语"
+        },
+        {
+            "id": 25,
+            "name": "匈牙利语"
+        },
+        {
+            "id": 40,
+            "name": "冰岛语"
+        },
+        {
+            "id": 15,
+            "name": "印度尼西亚语"
+        },
+        {
+            "id": 9,
+            "name": "意大利语"
+        },
+        {
+            "id": 10,
+            "name": "日语"
+        },
+        {
+            "id": 35,
+            "name": "爪哇语"
+        },
+        {
+            "id": 11,
+            "name": "韩语"
+        },
+        {
+            "id": 42,
+            "name": "拉脱维亚语"
+        },
+        {
+            "id": 38,
+            "name": "立陶宛语"
+        },
+        {
+            "id": 34,
+            "name": "马来语"
+        },
+        {
+            "id": 46,
+            "name": "马耳他语"
+        },
+        {
+            "id": 27,
+            "name": "挪威语"
+        },
+        {
+            "id": 31,
+            "name": "波斯语"
+        },
+        {
+            "id": 18,
+            "name": "波兰语"
+        },
+        {
+            "id": 7,
+            "name": "葡萄牙语"
+        },
+        {
+            "id": 20,
+            "name": "罗马尼亚语"
+        },
+        {
+            "id": 6,
+            "name": "俄语"
+        },
+        {
+            "id": 33,
+            "name": "塞尔维亚语"
+        },
+        {
+            "id": 43,
+            "name": "塞尔维亚-克罗地亚语"
+        },
+        {
+            "id": 29,
+            "name": "斯洛伐克语"
+        },
+        {
+            "id": 36,
+            "name": "斯洛文尼亚语"
+        },
+        {
+            "id": 3,
+            "name": "西班牙语"
+        },
+        {
+            "id": 44,
+            "name": "斯瓦希里语"
+        },
+        {
+            "id": 24,
+            "name": "瑞典语"
+        },
+        {
+            "id": 37,
+            "name": "泰米尔语"
+        },
+        {
+            "id": 12,
+            "name": "泰语"
+        },
+        {
+            "id": 16,
+            "name": "土耳其语"
+        },
+        {
+            "id": 19,
+            "name": "乌克兰语"
+        },
+        {
+            "id": 17,
+            "name": "越南语"
+        }
+    ],
+    "traceId": "fe55d8a4405940ada42947809a369026"
+}

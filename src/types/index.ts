@@ -39,12 +39,18 @@ export interface Tag {
   updated_at: string;
 }
 
-// 用户参数类型
-export interface UserParams {
+// 标签用户参数类型
+export interface TagUserParams {
   nxCloudUserID: string;
   sourceTenantID: string;
   targetTenantID: string;
   authorization: string;
+}
+
+// FAQ用户参数类型
+export interface FaqUserParams {
+  sourceAuthorization: string;
+  targetAuthorization: string;
 }
 
 // 标签分组添加请求类型
@@ -63,4 +69,69 @@ export interface TagAddRequest {
   describes: string | null;
   nxCloudUserID: string;
   tenantId: string;
+}
+
+// FAQ项类型
+export interface Faq {
+  id: number;
+  question: string;
+  answer: string;
+  similar_questions: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+// FAQ列表响应类型
+export interface FaqResponse {
+  list: Faq[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// FAQ添加请求类型
+export interface FaqAddRequest {
+  question: string;
+  answer: string;
+  similar_questions: string[];
+  nxCloudUserID: string;
+  tenantId: string;
+}
+
+// FAQ更新请求类型
+export interface FaqUpdateRequest {
+  question: string;
+  answer: string;
+  similar_questions: string[];
+  nxCloudUserID: string;
+  tenantId: string;
+}
+
+// FAQ项类型详细版
+export interface FaqItemDetailed {
+  id: number;
+  type: number;
+  content: string;
+  question: string;
+  language: string;
+  user_name: string;
+  faq_status: boolean;
+  group_type: string;
+  group_id: number;
+  update_time: string;
+  media_infos: any[];
+  language_id: number;
+  ai_desc: string | null;
+}
+
+// FAQ列表详细响应类型
+export interface FaqListData {
+  total: number;
+  page_number: number;
+  page_size: number;
+  list: FaqItemDetailed[];
+  ext: any;
+  notEmpty: boolean;
+  totalPages: number;
+  empty: boolean;
 } 

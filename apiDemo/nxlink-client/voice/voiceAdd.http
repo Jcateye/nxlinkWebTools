@@ -1,0 +1,20 @@
+curl 'https://nxlink.nxcloud.com/admin/nx_flow/voiceConfig' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'lang: zh_CN' \
+  -H 'Referer: https://nxlink.nxcloud.com/admin/' \
+  -H 'sec-ch-ua: "Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'createTs: 1745684301545' \
+  -H 'Content-Type: application/json;charset=UTF-8' \
+  -H 'DNT: 1' \
+  --data-raw '{"name":"Test2","gender":1,"language":"en-US","vendor":"13","des":"55","content":"hello","url":"https://nxai-us-1259196162.cos.na-siliconvalley.myqcloud.com/tts/cache/74f6622a61a89a5fa5062fb826cbd525.wav","bgTimbreId":1,"emotionArr":[],"label":{"category":null,"accent":null,"age":null},"prompt":"{\"languageVoice\":null,\"speakingSpeed\":0,\"similarityBoost\":0.35,\"stability\":0.5,\"volume\":100,\"pitch\":0,\"speed\":1,\"model\":\"eleven_turbo_v2_5\",\"id\":\"9BWtsMINqrJLrRacOk9x\",\"emotion\":[],\"category\":\"premade\",\"accent\":\"American\",\"age\":\"middle-aged\",\"gender\":\"female\",\"description\":\"expressive\",\"languages\":[\"en\"],\"use_case\":\"social media\"}"}'
+
+
+  #response
+  {"code":0,"message":"success","traceId":null,"data":null}

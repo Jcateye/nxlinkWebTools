@@ -1,12 +1,17 @@
-curl 'https://nxlink.nxcloud.com/admin/saas_plat/tagGroup' \
+curl 'https://nxlink.nxcloud.com/admin/nx_flow_manager/mgrPlatform/tagGroup' \
   -H 'accept: application/json, text/plain, */*' \
   -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
-  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
-  -H 'system_id: 5' \
-  -H 'time_zone: UTC+08:00' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjgxNywidXVJZCI6IjY4MDlmYTU3ZTRiMDllYzQ1Njc2MTk1NSJ9.cA46D0i3d0dEwKfmvprVh0wy5ldqtLpm6YchqoXnwcg' \
+  -H 'content-type: application/json' \
+  -H 'system_id: 4' \
   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36' \
-  --data-raw '{"group_name":"Degen测试分组","group_type":0,"type":7}'
+  --data-raw '{"group_name":"Degen分组2","group_type":0,"type":7,"nxCloudUserID":"9622","tenantId":"1"}'
 
 
   # response:  data是分组的新增后的groupId
-  {"code":0,"message":"","data":4571,"traceId":"656e78b5ec7848c88e271885a35913ed"}
+{
+    "code": 0,
+    "message": "success",
+    "traceId": "7ccbedae4ca74103942b716a24f60ffd",
+    "data": 4574
+}

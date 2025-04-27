@@ -11,7 +11,8 @@ import {
   Empty,
   Tag,
   Tooltip,
-  Input
+  Input,
+  Alert
 } from 'antd';
 import { EyeOutlined, SearchOutlined, ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
@@ -35,7 +36,7 @@ export interface TagGroupMigrationHandle {
 }
 
 const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationProps>((props, ref) => {
-  const { userParams } = useUserContext();
+  const { tagUserParams } = useUserContext();
   const [tagGroups, setTagGroups] = useState<TagGroup[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<TagGroup[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -48,13 +49,14 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
   const [currentGroupName, setCurrentGroupName] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
   const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // 当用户参数变化时，加载标签分组
   useEffect(() => {
-    if (userParams?.nxCloudUserID && userParams?.sourceTenantID) {
+    if (tagUserParams?.nxCloudUserID && tagUserParams?.sourceTenantID) {
       fetchTagGroups();
     }
-  }, [userParams]);
+  }, [tagUserParams]);
 
   // 过滤标签分组
   useEffect(() => {
@@ -71,19 +73,57 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
 
   // 获取标签分组列表
   const fetchTagGroups = async () => {
-    if (!userParams) return;
+    if (!tagUserParams) return;
     
     setLoading(true);
+    setError(null);
     try {
+      // 检查必要参数
+      if (!tagUserParams.nxCloudUserID || !tagUserParams.sourceTenantID || !tagUserParams.authorization) {
+        throw new Error('必要参数不完整，请检查您的标签参数设置');
+      }
+      
+      console.log(`📑 [TagGroupMigration] 获取标签分组列表 -> userID: ${tagUserParams.nxCloudUserID}, sourceTenantID: ${tagUserParams.sourceTenantID}`);
+      
       const groups = await getTagGroupList(
-        userParams.nxCloudUserID,
-        userParams.sourceTenantID
+        tagUserParams.nxCloudUserID,
+        tagUserParams.sourceTenantID
       );
       setTagGroups(groups);
       setFilteredGroups(groups);
-    } catch (error) {
-      message.error('获取标签分组失败');
-      console.error(error);
+      console.log(`✅ [TagGroupMigration] 已获取标签分组，共 ${groups.length} 条`);
+    } catch (error: any) {
+      let errorMsg = '获取标签分组失败';
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        errorMsg = `获取标签分组失败 (状态码: ${status})`;
+        
+        if (data) {
+          if (data.message) {
+            errorMsg += `: ${data.message}`;
+          } else if (typeof data === 'string') {
+            errorMsg += `: ${data}`;
+          }
+        }
+        
+        // 针对特定错误码提供更具体的提示
+        if (status === 401) {
+          errorMsg = 'API令牌无效或已过期，请重新设置API令牌';
+        } else if (status === 403) {
+          errorMsg = '没有权限访问标签分组，请检查您的账号权限';
+        } else if (status === 404) {
+          errorMsg = 'API接口不存在，请确认服务是否正确部署';
+        }
+      } else if (error.request) {
+        errorMsg = '服务器未响应，请检查您的网络连接和API服务状态';
+      } else {
+        errorMsg = `请求错误: ${error.message}`;
+      }
+      
+      message.error(errorMsg);
+      setError(errorMsg);
+      console.error('❌ [TagGroupMigration] 获取标签分组失败:', error);
     } finally {
       setLoading(false);
     }
@@ -112,8 +152,8 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
 
   // 开始迁移
   const handleMigrate = async () => {
-    if (!userParams) {
-      message.error('请先设置用户参数');
+    if (!tagUserParams) {
+      message.error('请先设置Tag参数');
       return;
     }
 
@@ -121,16 +161,32 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
       message.error('请选择要迁移的标签分组');
       return;
     }
+    
+    // 检查必要参数
+    if (!tagUserParams.targetTenantID) {
+      message.error('请设置目标租户ID');
+      return;
+    }
 
     setMigrating(true);
     setModalVisible(true);
+    setError(null);
     
     try {
       // 转换selectedRowKeys为数字数组
       const selectedIds = selectedRowKeys.map((key: React.Key) => Number(key));
       
+      console.log('开始迁移标签分组:', {
+        selectedIds,
+        nxCloudUserID: tagUserParams.nxCloudUserID,
+        sourceTenantID: tagUserParams.sourceTenantID,
+        targetTenantID: tagUserParams.targetTenantID
+      });
+      
+      message.info('正在迁移标签分组，已优化API调用减少服务器压力...');
+      
       // 执行迁移
-      const migratedGroups = await migrateTagGroups(userParams, selectedIds);
+      const migratedGroups = await migrateTagGroups(tagUserParams, selectedIds);
       
       // 更新成功迁移的分组
       setSuccessGroups(migratedGroups);
@@ -140,9 +196,29 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
       } else {
         message.warning('没有成功迁移的标签分组');
       }
-    } catch (error) {
-      message.error('迁移过程中发生错误');
-      console.error(error);
+    } catch (error: any) {
+      let errorMsg = '迁移过程中发生错误';
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        errorMsg = `迁移失败 (状态码: ${status})`;
+        
+        if (data && data.message) {
+          errorMsg += `: ${data.message}`;
+        }
+        
+        if (status === 401) {
+          errorMsg = 'API令牌无效或已过期，请重新设置API令牌';
+        }
+      } else if (error.request) {
+        errorMsg = '服务器未响应，请检查您的网络连接';
+      } else {
+        errorMsg = `迁移错误: ${error.message}`;
+      }
+      
+      message.error(errorMsg);
+      setError(errorMsg);
+      console.error('迁移标签分组详细错误:', error);
     } finally {
       setMigrating(false);
     }
@@ -152,6 +228,7 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
   const handleCloseModal = () => {
     setModalVisible(false);
     setSuccessGroups([]);
+    setError(null);
   };
 
   // 打开标签列表模态框
@@ -163,15 +240,25 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
 
   // 关闭标签列表模态框
   const handleCloseTagListModal = () => {
-    // 关闭模态框后刷新分组列表，以获取最新数据
+    // 关闭模态框即可，不需要每次关闭都刷新分组列表
+    // 只有在标签有变化时，TagList组件会通过onTagsChange回调通知父组件
     setTagListModalVisible(false);
-    fetchTagGroups();
+  };
+
+  // 处理标签变化通知，只在真正需要时才刷新分组列表
+  const handleTagsChange = () => {
+    // 获取当前显示的分组
+    const currentGroup = tagGroups.find(g => g.id === currentGroupId);
+    if (currentGroup) {
+      // 更新这个分组的标签计数，而不是刷新整个列表
+      fetchTagGroups();
+    }
   };
 
   // 导出标签
   const handleExportTags = async () => {
-    if (!userParams) {
-      message.error('请先设置用户参数');
+    if (!tagUserParams) {
+      message.error('请先设置Tag参数');
       return;
     }
 
@@ -190,8 +277,8 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
       // 获取标签数据
       const tagsData = await exportTagsFromGroups(
         selectedIds,
-        userParams.nxCloudUserID,
-        userParams.sourceTenantID
+        tagUserParams.nxCloudUserID,
+        tagUserParams.sourceTenantID
       );
       
       if (tagsData.length === 0) {
@@ -275,11 +362,11 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
   ];
 
   // 如果用户参数未设置，显示提示
-  if (!userParams?.nxCloudUserID || !userParams?.sourceTenantID) {
+  if (!tagUserParams?.nxCloudUserID || !tagUserParams?.sourceTenantID) {
     return (
       <Card title="标签分组迁移">
         <Empty
-          description="请先设置通用参数"
+          description="请先设置Tag参数"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
       </Card>
@@ -321,8 +408,8 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
         <Space direction="vertical" style={{ width: '100%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
             <Text>
-              源租户: <Tag color="blue">{userParams.sourceTenantID}</Tag> 
-              目标租户: <Tag color="green">{userParams.targetTenantID}</Tag>
+              源租户: <Tag color="blue">{tagUserParams.sourceTenantID}</Tag> 
+              目标租户: <Tag color="green">{tagUserParams.targetTenantID}</Tag>
             </Text>
             <Search
               placeholder="搜索分组名称或ID"
@@ -334,6 +421,18 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
             />
           </div>
           
+          {error && (
+            <Alert
+              message="错误信息"
+              description={error}
+              type="error"
+              showIcon
+              closable
+              style={{ marginBottom: 16 }}
+              onClose={() => setError(null)}
+            />
+          )}
+          
           <Spin spinning={loading}>
             <Table
               rowSelection={rowSelection}
@@ -341,7 +440,17 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
               dataSource={filteredGroups}
               rowKey="id"
               pagination={{ pageSize: 10 }}
-              locale={{ emptyText: searchText ? '没有找到匹配的分组' : '没有标签分组' }}
+              locale={{ 
+                emptyText: loading ? (
+                  <Spin size="small" />
+                ) : error ? (
+                  <Empty description="加载数据出错，请点击刷新按钮重试" />
+                ) : searchText ? (
+                  <Empty description="没有找到匹配的分组" />
+                ) : (
+                  <Empty description="没有标签分组" />
+                )
+              }}
             />
           </Spin>
         </Space>
@@ -359,13 +468,20 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
         ]}
         width={600}
       >
-        <Spin spinning={migrating}>
-          {migrating ? (
-            <Loading tip="正在迁移标签分组和标签，请稍候..." />
-          ) : (
-            <MigrationResult successGroups={successGroups} />
-          )}
-        </Spin>
+        {error && (
+          <Alert
+            message="迁移过程中发生错误"
+            description={error}
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        <MigrationResult 
+          loading={migrating}
+          successItems={successGroups}
+          itemType="标签分组"
+        />
       </Modal>
 
       {/* 标签列表模态框 */}
@@ -384,7 +500,7 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
         <TagList 
           groupId={currentGroupId} 
           groupName={currentGroupName} 
-          onTagsChange={fetchTagGroups}
+          onTagsChange={handleTagsChange}
         />
       </Modal>
     </>

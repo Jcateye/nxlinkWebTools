@@ -1,0 +1,37 @@
+curl 'https://nxlink.nxcloud.com/home/api/faqGroup?language_id=1' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'cache-control: no-cache' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+
+  #response
+{
+    "code": 0,
+    "message": "",
+    "data": [
+        {
+            "id": null,
+            "group_name": "所有分类",
+            "group_size": 3
+        },
+        {
+            "id": 0,
+            "group_name": "未分类",
+            "group_size": 1
+        },
+        {
+            "id": 1043,
+            "group_name": "test",
+            "group_size": 2
+        },
+        {
+            "id": 3292,
+            "group_name": "回流用户接待",
+            "group_size": 0
+        }
+    ],
+    "traceId": "46c25143030e49288c00344de536c33d"
+}

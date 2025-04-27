@@ -110,17 +110,35 @@ const UserParamsForm: React.FC = () => {
           name="authorization"
           label={
             <>
-              Authorization
+              源租户Authorization
               <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
                 获取路径: 运营平台-开发者工具(F12)-应用（Application）-左边目录的Cookies-nxlink域名下Name是"plat_token"的Value
               </Text>
             </>
           }
-          rules={[{ required: true, message: '请输入Authorization令牌' }]}
+          rules={[{ required: true, message: '请输入源租户Authorization令牌' }]}
         >
           <Input.TextArea 
             rows={3} 
-            placeholder="请输入Authorization令牌" 
+            placeholder="请输入源租户Authorization令牌" 
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="targetAuthorization"
+          label={
+            <>
+              目标租户Authorization
+              <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                获取路径: 使用目标租户账号登录后，运营平台-开发者工具(F12)-应用（Application）-左边目录的Cookies-nxlink域名下Name是"plat_token"的Value
+              </Text>
+            </>
+          }
+          rules={[{ required: true, message: '请输入目标租户Authorization令牌' }]}
+        >
+          <Input.TextArea 
+            rows={3} 
+            placeholder="请输入目标租户Authorization令牌" 
           />
         </Form.Item>
 

@@ -1,0 +1,17 @@
+curl 'https://nxlink.nxcloud.com/home/api/faq' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'dnt: 1' \
+  -H 'lang: zh_CN' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36' \
+  --data-raw '{"question":"怎么点JD外卖","type":0,"group_id":0,"content":"Appstore 搜索京东再下载","ai_desc":"如果客户最后询问关于“怎么点JD外卖”","language_id":1,"faq_medias":[],"faq_status":true}'
+
+  #response
+  {"code":0,"message":"","data":null,"traceId":"12f9ee5a65dd4052b808bb76d8949073"}

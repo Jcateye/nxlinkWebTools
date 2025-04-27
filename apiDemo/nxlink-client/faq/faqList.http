@@ -1,0 +1,175 @@
+curl 'https://nxlink.nxcloud.com/home/api/faq?page_number=1&page_size=10&content=&language_id=1' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'cache-control: no-cache' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+
+  #response
+
+  {
+    "code": 0,
+    "message": null,
+    "traceId": "e8648381b86343f69ac6c12549e09296",
+    "total": 20,
+    "page_number": 1,
+    "page_size": 10,
+    "list": [
+        {
+            "id": 647,
+            "type": 0,
+            "content": "I'm {{Bot_Name}}, calling from SPayLater, a company that provides consumers with 'buy now, pay later' financial products and services.",
+            "question": "Who are you / Where are you calling from?",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:03:45",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"Who are you / Where are you calling from?\""
+        },
+        {
+            "id": 650,
+            "type": 0,
+            "content": "I am a virtual representative from SPayLater calling to remind you of your overdue payment with us.",
+            "question": "Are you a robot？",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:03:36",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"Are you a robot？ \""
+        },
+        {
+            "id": 654,
+            "type": 0,
+            "content": "Your bill is already subject to a 5 Singapore Dollars late fee. For more details, please check the Shopee app. We will escalate the matter if you do not make a payment immediately.",
+            "question": "Penalty for non payment",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:03:22",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"Penalty for non payment\""
+        },
+        {
+            "id": 655,
+            "type": 0,
+            "content": "Would it be possible to get assistance on this repayment from a family member or a friend? As late repayment may lead to your Shopee account being suspended, we sincerely advise you to make payment in order to continue enjoying the benefits offered on Shopee.",
+            "question": "Financial Difficulties/Income Changes",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "未分类",
+            "group_id": 0,
+            "update_time": "2025-04-11 17:03:09",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"Financial Difficulties/Income Changes\""
+        },
+        {
+            "id": 653,
+            "type": 0,
+            "content": "I'm sorry, but for now, we are unable to provide waiver. Please pay the full bill so it doesn't affect your credit score.",
+            "question": "Waive/Discount/Negotiating",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:02:49",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"Waive/Discount/Negotiating\""
+        },
+        {
+            "id": 664,
+            "type": 0,
+            "content": "I'm calling from Shopee regarding your SPayLater product, and we just need to make sure that we are speaking to the right person before we proceed.",
+            "question": "User Deny/ Dont have loan/ Didnt borrow",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:02:28",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"User Deny/ Dont have loan/ Didnt borrow\""
+        },
+        {
+            "id": 663,
+            "type": 0,
+            "content": "Yes, we understand that the auto deduction payment didn't go through; kindly check with your bank on the auto deduction failure and make the payment manually to Spaylater",
+            "question": "Auto deduction failed",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:02:12",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"Auto deduction failed \""
+        },
+        {
+            "id": 661,
+            "type": 0,
+            "content": "You can check your billing details via the Shopee app, at the SPayLater menu, or contact our customer service through the Shopee App - Help Centre or live chat on the Shopee App.",
+            "question": "Different amount",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:01:51",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"Different amount\""
+        },
+        {
+            "id": 652,
+            "type": 0,
+            "content": "Actually, your SPayLater is {{no_of_DPD}} days overdue.",
+            "question": "Due date",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:01:30",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"Due date\""
+        },
+        {
+            "id": 660,
+            "type": 0,
+            "content": "If you have further questions, please contact our customer service through the Shopee App - Help Centre or live chat on the Shopee App.",
+            "question": "More Question",
+            "language": "英语",
+            "user_name": "杨兴霞",
+            "faq_status": true,
+            "group_type": "SEA_M1 DPD 8-30_SG_EN",
+            "group_id": 4463,
+            "update_time": "2025-04-11 17:01:05",
+            "media_infos": [],
+            "language_id": 1,
+            "ai_desc": "if the client's last response is \"More Question\""
+        }
+    ],
+    "ext": null,
+    "notEmpty": true,
+    "totalPages": 20,
+    "empty": false
+}

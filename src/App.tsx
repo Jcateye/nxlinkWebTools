@@ -63,11 +63,12 @@ const App: React.FC = () => {
             <Row gutter={24} style={{ width: '100%' }}>
               {/* 左侧：源租户面板 */}
               <Col span={11}>
-                <Card title="源租户" style={{ height: '100%', marginBottom: 16 }}>
+                <Card title="源租户" style={{ height: '100%' }}>
                   <FaqParamsForm formType="source" />
                   <FaqGroupMigration ref={faqGroupMigrationRef} />
+                  <Divider style={{ margin: '12px 0' }}/>
+                  <FaqImport onImportComplete={refreshFaqGroups} formType="source" />
                 </Card>
-                <FaqImport onImportComplete={refreshFaqGroups} formType="source" />
               </Col>
               {/* 中间：双向迁移按钮 */}
               <Col span={2} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
@@ -86,11 +87,12 @@ const App: React.FC = () => {
               </Col>
               {/* 右侧：目标租户面板 */}
               <Col span={11}>
-                <Card title="目标租户" style={{ height: '100%', marginBottom: 16 }}>
+                <Card title="目标租户" style={{ height: '100%' }}>
                   <FaqParamsForm formType="target" />
                   <TargetFaqGroupMigration ref={targetFaqGroupMigrationRef} />
+                  <Divider style={{ margin: '12px 0' }}/>
+                  <FaqImport onImportComplete={refreshTargetFaqGroups} formType="target" />
                 </Card>
-                <FaqImport onImportComplete={refreshTargetFaqGroups} formType="target" />
               </Col>
             </Row>
           </>

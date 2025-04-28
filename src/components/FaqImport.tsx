@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Button, message, Card, Space, Progress, Modal, Typography, List, Spin, Empty, Tag, Alert, Select } from 'antd';
-import { UploadOutlined, FileExcelOutlined, DownloadOutlined } from '@ant-design/icons';
+import { UploadOutlined, FileExcelOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { RcFile } from 'antd/es/upload';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -726,83 +726,82 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
   };
 
   return (
-    <Card 
-      title={`FAQ批量导入 - ${formType === 'source' ? '源租户' : '目标租户'}`}
-      extra={
-        <Space>
-          <Button 
-            icon={<DownloadOutlined />} 
-            onClick={downloadTemplate}
-          >
-            下载模板
-          </Button>
-          <Button
-            type="primary"
-            onClick={handleImport}
-            disabled={importedFaqs.length === 0 || importing || !faqUserParams}
-            loading={importing}
-          >
-            开始导入
-          </Button>
-        </Space>
-      }
-    >
-      <div style={{ marginBottom: 16 }}>
-        <Alert 
-          type="info" 
-          message={
-            <div>
-              <p>Excel文件中必须包含以下列：</p>
-              <ul>
-                <li><strong>问题</strong>：FAQ问题内容</li>
-                <li><strong>答案</strong>：FAQ回答内容</li>
-                <li><strong>语言</strong>：FAQ的语言，如"中文"、"英语"</li>
-                <li><strong>分类</strong>：FAQ所属分组名称(可选，默认为"未分类")</li>
-                <li><strong>AI理解描述</strong>：AI理解描述(可选)</li>
-              </ul>
-              <p>导入过程将自动检查并创建Excel中指定的语言和分组，无需提前选择。</p>
-            </div>
-          }
-          style={{ marginBottom: 16 }}
-        />
-      </div>
-
-      {!importedFaqs.length ? (
-        <Dragger
-          name="file"
-          multiple={false}
-          beforeUpload={handleFileUpload}
-          showUploadList={false}
-          disabled={uploading || !faqUserParams}
-        >
-          <p className="ant-upload-drag-icon">
-            <FileExcelOutlined />
-          </p>
-          <p className="ant-upload-text">点击或拖拽Excel/CSV文件到此区域上传</p>
-          <p className="ant-upload-hint">
-            支持Excel(.xlsx/.xls)或CSV文件，文件必须包含"问题"、"答案"和"语言"列
-          </p>
-        </Dragger>
-      ) : (
-        <div>
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text strong>已解析 {importedFaqs.length} 条FAQ</Text>
-              <Space>
-                <Button onClick={() => setPreviewModalVisible(true)}>预览数据</Button>
-                <Button danger onClick={handleClear}>清空</Button>
-              </Space>
-            </div>
-            <Paragraph>
-              <ul>
-                <li>将导入到<Text strong>{formType === 'source' ? '源' : '目标'}</Text>租户</li>
-                <li>系统将自动检查Excel中的语言和分组，如不存在将自动创建</li>
-                <li>点击右上角"开始导入"按钮开始导入数据</li>
-              </ul>
-            </Paragraph>
+    <>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            FAQ批量导入 - {formType === 'source' ? '源租户' : '目标租户'}
+          </Typography.Title>
+          <Space>
+            <Button 
+              icon={<DownloadOutlined />} 
+              onClick={downloadTemplate}
+              size="small"
+            >
+              下载模板
+            </Button>
+            {importedFaqs.length > 0 && (
+              <Button
+                type="primary"
+                onClick={handleImport}
+                disabled={importing || !faqUserParams}
+                loading={importing}
+                size="small"
+              >
+                开始导入
+              </Button>
+            )}
           </Space>
         </div>
-      )}
+
+        {!importedFaqs.length ? (
+          <>
+            <Alert 
+              type="info" 
+              message={
+                <div style={{ fontSize: '13px' }}>
+                  Excel文件必须包含: <strong>问题</strong>、<strong>答案</strong>、<strong>语言</strong>(如"中文"、"英语")、
+                  <strong>分类</strong>(可选)、<strong>AI理解描述</strong>(可选)
+                </div>
+              }
+              style={{ marginBottom: 12 }}
+            />
+            <Dragger
+              name="file"
+              multiple={false}
+              beforeUpload={handleFileUpload}
+              showUploadList={false}
+              disabled={uploading || !faqUserParams}
+              style={{ padding: '8px 0', height: '120px' }}
+            >
+              <p className="ant-upload-drag-icon" style={{ marginTop: 0 }}>
+                <FileExcelOutlined style={{ fontSize: '28px', color: '#1890ff' }} />
+              </p>
+              <p className="ant-upload-text" style={{ marginTop: 8, marginBottom: 4 }}>点击或拖拽Excel/CSV文件到此区域上传</p>
+              <p className="ant-upload-hint" style={{ fontSize: '12px', marginTop: 0 }}>
+                支持Excel(.xlsx/.xls)或CSV文件
+              </p>
+            </Dragger>
+          </>
+        ) : (
+          <div style={{ background: '#f9f9f9', padding: '12px', borderRadius: '4px', border: '1px solid #f0f0f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Text strong>已解析 {importedFaqs.length} 条FAQ数据</Text>
+              <Space>
+                <Button onClick={() => setPreviewModalVisible(true)} size="small">预览</Button>
+                <Button onClick={handleImport} type="primary" size="small" disabled={importing || !faqUserParams} loading={importing}>开始导入</Button>
+                <Button danger onClick={handleClear} size="small" icon={<DeleteOutlined />} />
+              </Space>
+            </div>
+            <div style={{ fontSize: '13px', color: '#666' }}>
+              <ul style={{ margin: 0, paddingLeft: 16 }}>
+                <li>将导入到<Text strong>{formType === 'source' ? '源' : '目标'}</Text>租户，系统将自动处理语言和分组</li>
+                <li>点击"预览"可查看导入的数据，点击"开始导入"执行导入操作</li>
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 预览模态框 */}
       <Modal
@@ -826,48 +825,45 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
             开始导入
           </Button>
         ]}
-        width={800}
+        width={700}
         className="preview-modal"
       >
+        <Alert
+          type="info"
+          message={`共 ${importedFaqs.length} 条数据${importedFaqs.length > 100 ? '，下方仅显示前100条' : ''}`}
+          style={{ marginBottom: 12 }}
+        />
         <List
           className="import-preview-list"
           dataSource={importedFaqs.slice(0, 100)}
+          size="small"
           renderItem={(item, index) => (
-            <List.Item>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text strong>{index + 1}. {item.question}</Text>
+            <List.Item style={{ padding: '8px 12px' }}>
+              <div style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text strong style={{ fontSize: '14px' }}>{index + 1}. {item.question}</Text>
                   <div>
+                    {item.language && <Tag color="green" style={{ marginRight: 4 }}>{item.language}</Tag>}
                     <Tag color="blue">{item.group_name || '未分类'}</Tag>
-                    {item.language && <Tag color="green">{item.language}</Tag>}
                   </div>
                 </div>
-                <div>
-                  <Text type="secondary">答案: </Text>
-                  <Text ellipsis style={{ maxWidth: '100%' }}>
-                    {item.answer.length > 100 ? item.answer.substring(0, 100) + '...' : item.answer}
-                  </Text>
+                <div style={{ fontSize: '13px', color: '#666' }}>
+                  <Text type="secondary" style={{ fontSize: '13px' }}>答案: </Text>
+                  {item.answer.length > 80 ? item.answer.substring(0, 80) + '...' : item.answer}
                 </div>
                 {item.ai_desc && (
-                  <div>
-                    <Text type="secondary">AI理解: </Text>
-                    <Text ellipsis style={{ maxWidth: '100%' }}>
-                      {item.ai_desc}
-                    </Text>
+                  <div style={{ fontSize: '12px', color: '#999', marginTop: 2 }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>AI描述: </Text>
+                    {item.ai_desc}
                   </div>
                 )}
-              </Space>
+              </div>
             </List.Item>
           )}
           bordered
-          pagination={importedFaqs.length > 100 ? { pageSize: 10 } : false}
-          locale={{ emptyText: <Empty description="没有FAQ数据" /> }}
+          pagination={importedFaqs.length > 10 ? { pageSize: 10, size: 'small' } : false}
+          locale={{ emptyText: <Empty description="没有FAQ数据" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
         />
-        {importedFaqs.length > 100 && (
-          <div style={{ marginTop: 16, textAlign: 'center' }}>
-            <Text type="secondary">仅显示前100条数据</Text>
-          </div>
-        )}
       </Modal>
 
       {/* 导入结果模态框 */}
@@ -880,35 +876,46 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
             关闭
           </Button>
         ]}
-        width={500}
+        width={400}
       >
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           {importing ? (
             <>
-              <Spin />
-              <Progress percent={importProgress} status="active" style={{ marginTop: 16 }} />
+              <Spin size="large" />
+              <Progress percent={importProgress} status="active" style={{ marginTop: 20 }} />
               <Paragraph style={{ marginTop: 16 }}>
-                正在导入FAQ数据到{formType === 'source' ? '源' : '目标'}租户，请稍候...
+                正在导入FAQ数据到{formType === 'source' ? '源' : '目标'}租户...
               </Paragraph>
             </>
           ) : importResult ? (
             <>
-              <div style={{ fontSize: 72, lineHeight: 1, marginBottom: 16 }}>
+              <div style={{ fontSize: 64, lineHeight: 1, marginBottom: 16, color: importResult.success > 0 ? '#52c41a' : '#faad14' }}>
                 {importResult.success > 0 ? '✅' : '⚠️'}
               </div>
-              <Title level={4}>
+              <Title level={4} style={{ margin: '0 0 16px 0' }}>
                 导入完成
               </Title>
-              <Paragraph>
-                成功导入: <Text strong>{importResult.success}</Text> 条
-              </Paragraph>
-              <Paragraph>
-                导入失败: <Text type="danger" strong>{importResult.failed}</Text> 条
-              </Paragraph>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                gap: '32px',
+                marginBottom: importResult.failed > 0 ? '16px' : '0' 
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '24px', color: '#52c41a', fontWeight: 'bold' }}>{importResult.success}</div>
+                  <div style={{ fontSize: '14px', color: '#666' }}>成功导入</div>
+                </div>
+                {importResult.failed > 0 && (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', color: '#ff4d4f', fontWeight: 'bold' }}>{importResult.failed}</div>
+                    <div style={{ fontSize: '14px', color: '#666' }}>导入失败</div>
+                  </div>
+                )}
+              </div>
               {importResult.failed > 0 && (
                 <Alert
                   message="部分FAQ导入失败"
-                  description="失败的原因可能是内容格式不兼容、重复数据或系统限制。请检查后重新导入。"
+                  description="失败原因可能是内容格式不兼容、重复数据或系统限制。"
                   type="warning"
                   showIcon
                   style={{ marginTop: 16, textAlign: 'left' }}
@@ -918,7 +925,7 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
           ) : null}
         </div>
       </Modal>
-    </Card>
+    </>
   );
 };
 

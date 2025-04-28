@@ -1172,6 +1172,7 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
         </Space>
       }
       extra={null}
+      bodyStyle={{ padding: '12px', paddingBottom: '8px' }}
     >
       {/* 语言选择区域放到上方 */}
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1268,7 +1269,8 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
         columns={columns}
         dataSource={filteredFaqs}
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{ pageSize: 15 }}
+        size="middle"
         locale={{
           emptyText: (
             <Empty
@@ -1386,4 +1388,4 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
   );
 });
 
-export default FaqGroupMigration; 
+export default FaqGroupMigration;

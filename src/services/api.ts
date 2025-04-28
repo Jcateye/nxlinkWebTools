@@ -8,6 +8,7 @@ import {
   FaqAddRequest,
   FaqUpdateRequest,
   FaqListData,
+  FaqItemDetailed,
   VoiceResponse,
   TagGroupAddRequest,
   TagAddRequest,
@@ -38,7 +39,7 @@ const faqApi = axios.create({
 
 // 创建用于Voice API请求的axios实例
 const voiceApi = axios.create({
-  baseURL: process.env.NODE_ENV === 'development' ? '/api' : 'https://nxlink.nxcloud.com',
+  baseURL: '/api',
   timeout: 30000,
   headers: {
     'Accept': 'application/json, text/plain, */*',
@@ -86,6 +87,9 @@ tagApi.interceptors.request.use(
       console.log('[Tag API 请求]', config.method?.toUpperCase(), config.url);
       console.log('[Tag API 请求参数]', config.params || {});
       console.log('[Tag API 请求头]', config.headers || {});
+      if (config.data) {
+        console.log('[Tag API 请求体]', config.data);
+      }
     }
     
     return config;
@@ -530,6 +534,83 @@ export const exportTagsFromGroups = async (
   });
 };
 
+// 标签分组迁移
+export const migrateTagGroups = async (
+  tagUserParams: TagUserParams,
+  groupIds: number[]
+): Promise<string[]> => {
+  return createRateLimitedRequest('migrateTagGroups', async () => {
+    try {
+      console.log(`[migrateTagGroups] 开始迁移标签分组，目标租户ID: ${tagUserParams.targetTenantID}`);
+      
+      // 成功迁移的分组名称列表
+      const successGroups: string[] = [];
+      
+      // 获取选中的分组详情
+      const sourceGroups = await getTagGroupList(tagUserParams.nxCloudUserID, tagUserParams.sourceTenantID);
+      const selectedGroups = sourceGroups.filter(group => groupIds.includes(group.id));
+      
+      if (selectedGroups.length === 0) {
+        console.log(`[migrateTagGroups] 未找到有效的分组`);
+        return successGroups;
+      }
+      
+      // 一个一个处理分组迁移
+      for (const group of selectedGroups) {
+        try {
+          console.log(`[migrateTagGroups] 处理分组 "${group.group_name}" (ID: ${group.id})`);
+          
+          // 1. 创建目标租户中的分组
+          const targetGroupId = await createTagGroup({
+            group_name: group.group_name,
+            group_type: 0,
+            type: 7,
+            nxCloudUserID: tagUserParams.nxCloudUserID,
+            tenantId: tagUserParams.targetTenantID
+          });
+          
+          // 2. 获取源分组中的所有标签
+          const sourceTags = await getTagList(
+            tagUserParams.nxCloudUserID,
+            tagUserParams.sourceTenantID,
+            group.id,
+            1,
+            10000 // 一次性获取足够多的标签
+          );
+          
+          if (sourceTags.list.length === 0) {
+            console.log(`[migrateTagGroups] 分组 "${group.group_name}" 中没有标签`);
+            successGroups.push(group.group_name);
+            continue;
+          }
+          
+          // 3. 逐个复制标签到目标分组
+          for (const tag of sourceTags.list) {
+            await createTag({
+              group_id: targetGroupId,
+              name: tag.name,
+              describes: tag.describes,
+              nxCloudUserID: tagUserParams.nxCloudUserID,
+              tenantId: tagUserParams.targetTenantID
+            });
+          }
+          
+          console.log(`[migrateTagGroups] 成功迁移分组 "${group.group_name}" 的 ${sourceTags.list.length} 个标签`);
+          successGroups.push(group.group_name);
+        } catch (error: any) {
+          console.error(`[migrateTagGroups] 迁移分组 "${group.group_name}" 失败:`, error);
+          // 继续处理下一个分组
+        }
+      }
+      
+      return successGroups;
+    } catch (error: any) {
+      console.error('[migrateTagGroups] 迁移过程发生错误:', error);
+      throw error;
+    }
+  });
+};
+
 // ==================== FAQ相关API ====================
 
 // FAQ 相关接口 - 获取语言列表
@@ -651,95 +732,6 @@ export const deleteFaqOld = async (id: number): Promise<void> => {
     console.error('删除FAQ失败', error);
     throw error;
   }
-};
-
-// 迁移FAQ
-export const migrateFaqs = async (
-  faqUserParams: FaqUserParams,
-  selectedFaqs: any[],
-  targetLanguageId: number,
-  headers?: Record<string, string>
-): Promise<string[]> => {
-  const successFaqs: string[] = [];
-  
-  try {
-    // 使用自定义headers或默认headers
-    const requestHeaders = headers || {
-      authorization: faqUserParams.targetAuthorization,
-      system_id: '5'
-    };
-    
-    // 如果提供了自定义headers，记录日志
-    if (headers) {
-      console.log(`ℹ️ [API] 使用自定义headers进行FAQ迁移: ${JSON.stringify(headers)}`);
-    } else {
-      console.log(`ℹ️ [API] 使用默认目标系统授权Token: ${faqUserParams.targetAuthorization?.substring(0, 20)}...`);
-    }
-    
-    // 循环迁移每个FAQ
-    for (const faq of selectedFaqs) {
-      try {
-        console.log(`🔄 [API] 正在迁移FAQ "${faq.question}"，目标语言ID: ${targetLanguageId}，目标分组ID: ${faq.group_id}`);
-        
-        const resp = await axios.post<ApiResponse<null>>(
-          '/api/home/api/faq',
-          {
-            question: faq.question,
-            type: faq.type,
-            group_id: faq.group_id,
-            content: faq.content,
-            ai_desc: faq.ai_desc,
-            language_id: targetLanguageId,
-            faq_medias: faq.media_infos || [],
-            faq_status: faq.faq_status
-          },
-          {
-            headers: requestHeaders
-          }
-        );
-        const data = resp.data;
-        // 统一处理业务错误
-        if (data.code !== 0) {
-          const errMsg = data.message || '迁移FAQ失败';
-          (typeof window !== 'undefined') && require('antd').message.error(errMsg, 3);
-          console.error(`❌ [API] 迁移FAQ "${faq.question}" 失败:`, data);
-          throw new Error(errMsg);
-        }
-        // 标记迁移成功
-        successFaqs.push(faq.question);
-        console.log(`✅ [API] FAQ "${faq.question}" 迁移成功`);
-      } catch (error: any) {
-        console.error(`❌ [API] 迁移FAQ "${faq.question}" 失败:`, error);
-        if (axios.isAxiosError(error) && error.response) {
-          console.error(`❌ [API] 服务器响应:`, error.response.status, error.response.data);
-        }
-      }
-    }
-    
-    return successFaqs;
-  } catch (error) {
-    console.error('❌ [API] 迁移FAQ失败:', error);
-    throw error;
-  }
-};
-
-// 导出FAQ (旧版接口)
-export const exportFaqsOld = async (
-  faqs: any[]
-): Promise<{
-  question: string;
-  content: string;
-  ai_desc: string;
-  group_type: string;
-  language: string;
-}[]> => {
-  return faqs.map(faq => ({
-    question: faq.question,
-    content: faq.content,
-    ai_desc: faq.ai_desc || '',
-    group_type: faq.group_type,
-    language: faq.language
-  }));
 };
 
 // FAQ相关API
@@ -1067,26 +1059,63 @@ export const exportFaqs = async (
   });
 };
 
-// 迁移标签分组
-export const migrateTagGroups = (
-  nxCloudUserID: string,
-  groupIds: string[],
-  targetNxCloudUserID: string,
-  targetLanguageId: string,
-  headers?: Record<string, string>
-): Promise<ApiResponse<void>> => {
-  return createRateLimitedRequest('migrateTagGroups', async () => {
-    console.log(`[migrateTagGroups] 迁移标签分组，参数: nxCloudUserID=${nxCloudUserID}, groupIds=${groupIds}, targetNxCloudUserID=${targetNxCloudUserID}, targetLanguageId=${targetLanguageId}`);
-    const result = await tagApi.post<ApiResponse<void>>(
-      '/admin/nx_flow_manager/mgrPlatform/tagGroup/migrate',
-      { groupIds, targetNxCloudUserID, targetLanguageId },
-      { 
-        params: { nxCloudUserID },
-        headers
+// FAQ分组迁移
+export const migrateFaqs = async (
+  faqUserParams: FaqUserParams,
+  faqsToMigrate: FaqItemDetailed[],
+  targetLanguageId: number
+): Promise<string[]> => {
+  return createRateLimitedRequest('migrateFaqs', async () => {
+    try {
+      console.log(`[migrateFaqs] 开始迁移FAQ到目标语言ID: ${targetLanguageId}`);
+      
+      // 成功迁移的FAQ问题列表
+      const successFaqs: string[] = [];
+      
+      // 检查是否有FAQ需要迁移
+      if (!faqsToMigrate || faqsToMigrate.length === 0) {
+        console.log(`[migrateFaqs] 没有FAQ需要迁移`);
+        return successFaqs;
       }
-    );
-    console.log(`[migrateTagGroups] 迁移标签分组成功，结果:`, result.data);
-    return result.data;
+      
+      console.log(`[migrateFaqs] 需要迁移 ${faqsToMigrate.length} 条FAQ`);
+      
+      // 一个一个处理FAQ迁移
+      for (const faq of faqsToMigrate) {
+        try {
+          console.log(`[migrateFaqs] 处理FAQ "${faq.question}" (ID: ${faq.id})`);
+          
+          // 创建目标租户请求头
+          const headers = {
+            'authorization': faqUserParams.targetAuthorization,
+            'system_id': '5'
+          };
+          
+          // 调用addFaq API添加FAQ到目标租户
+          await addFaq({
+            question: faq.question,
+            type: faq.type,
+            group_id: faq.group_id,
+            content: faq.content,
+            ai_desc: faq.ai_desc || '',
+            language_id: targetLanguageId,
+            faq_medias: [],
+            faq_status: faq.faq_status
+          }, headers);
+          
+          console.log(`[migrateFaqs] 成功迁移FAQ "${faq.question}"`);
+          successFaqs.push(faq.question);
+        } catch (error: any) {
+          console.error(`[migrateFaqs] 迁移FAQ "${faq.question}" 失败:`, error);
+          // 继续处理下一个FAQ
+        }
+      }
+      
+      return successFaqs;
+    } catch (error: any) {
+      console.error('[migrateFaqs] 迁移过程发生错误:', error);
+      throw error;
+    }
   });
 };
 
@@ -1254,4 +1283,76 @@ export const playVoiceSample = async (url: string): Promise<void> => {
     console.error('播放声音样本失败', error);
     throw error;
   }
+};
+
+// 获取租户列表
+export const getTenantList = async (token: string): Promise<any[]> => {
+  return createRateLimitedRequest('getTenantList', async () => {
+    try {
+      console.log(`[getTenantList] 获取租户列表`);
+      
+      const response = await axios({
+        method: 'get',
+        url: '/api/admin/saas_plat/tenant/tenantsInSwitch',
+        headers: {
+          'authorization': token,
+          'system_id': '5',
+          'time_zone': 'UTC+08:00'
+        }
+      });
+      
+      if (response.data.code !== 0) {
+        throw new Error(`获取租户列表失败: ${response.data.message}`);
+      }
+      
+      return response.data.data || [];
+    } catch (error: any) {
+      console.error('获取租户列表失败', error);
+      if (error.response) {
+        console.error('服务器响应:', error.response.status, error.response.data);
+      } else if (error.request) {
+        console.error('未收到服务器响应，请检查网络连接');
+      } else {
+        console.error('请求配置错误:', error.message);
+      }
+      throw error;
+    }
+  });
+};
+
+// 切换租户
+export const switchTenant = async (token: string, tenantId: number): Promise<boolean> => {
+  return createRateLimitedRequest('switchTenant', async () => {
+    try {
+      console.log(`[switchTenant] 切换租户，tenantId=${tenantId}`);
+      
+      const response = await axios({
+        method: 'put',
+        url: '/api/admin/saas_plat/user/switch_tenant',
+        headers: {
+          'authorization': token,
+          'system_id': '5',
+          'time_zone': 'UTC+08:00',
+          'Content-Type': 'application/json;charset=UTF-8'
+        },
+        data: { tenant_id: tenantId }
+      });
+      
+      if (response.data.code !== 0) {
+        throw new Error(`切换租户失败: ${response.data.message}`);
+      }
+      
+      return true;
+    } catch (error: any) {
+      console.error('切换租户失败', error);
+      if (error.response) {
+        console.error('服务器响应:', error.response.status, error.response.data);
+      } else if (error.request) {
+        console.error('未收到服务器响应，请检查网络连接');
+      } else {
+        console.error('请求配置错误:', error.message);
+      }
+      throw error;
+    }
+  });
 }; 

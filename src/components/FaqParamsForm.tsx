@@ -63,8 +63,8 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
   const { faqUserParams, setFaqUserParams, sessionId } = useUserContext();
   
   // 添加状态用于存储公司和团队信息
-  const [sourceCompanyInfo, setSourceCompanyInfo] = useState<{company?: string, tenantName?: string} | null>(null);
-  const [targetCompanyInfo, setTargetCompanyInfo] = useState<{company?: string, tenantName?: string} | null>(null);
+  const [sourceCompanyInfo, setSourceCompanyInfo] = useState<{company?: string, tenantName?: string, customerCode?: string, defaultTenantId?: number, email?: string, phone?: string} | null>(null);
+  const [targetCompanyInfo, setTargetCompanyInfo] = useState<{company?: string, tenantName?: string, customerCode?: string, defaultTenantId?: number, email?: string, phone?: string} | null>(null);
 
   // 组件加载时从本地存储加载参数
   useEffect(() => {
@@ -126,9 +126,24 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
         
         const info = response.data?.data?.userInfo;
         if (info) {
-          const { company, tenantName } = info;
-          // 保存公司和团队信息到状态
-          const companyInfo = { company, tenantName };
+          // 打印API响应的用户信息，以便调试
+          console.log('API响应用户信息:', info);
+          console.log('defaultTenantId:', info.defaultTenantId);
+          
+          const { company, tenantName, email, phone } = info;
+          // 获取customerCode (tenantID)和defaultTenantId
+          const customerCode = info.customerCode || '未知';
+          const tenantId = info.defaultTenantId || info.id || null;
+          
+          // 保存公司和团队信息到状态，增加email和phone
+          const companyInfo = { 
+            company, 
+            tenantName, 
+            customerCode, 
+            defaultTenantId: tenantId,
+            email,
+            phone
+          };
           if (isSource) {
             setSourceCompanyInfo(companyInfo);
             // 缓存信息
@@ -166,9 +181,24 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
             
             const fetchInfo = data?.data?.userInfo;
             if (fetchInfo) {
-              const { company, tenantName } = fetchInfo;
-              // 保存公司和团队信息到状态
-              const companyInfo = { company, tenantName };
+              // 打印fetch请求返回的用户信息
+              console.log('Fetch响应用户信息:', fetchInfo);
+              console.log('Fetch defaultTenantId:', fetchInfo.defaultTenantId);
+              
+              const { company, tenantName, email, phone } = fetchInfo;
+              // 获取customerCode (tenantID)和defaultTenantId
+              const customerCode = fetchInfo.customerCode || '未知';
+              const tenantId = fetchInfo.defaultTenantId || fetchInfo.id || null;
+              
+              // 保存公司和团队信息到状态，增加email和phone
+              const companyInfo = { 
+                company, 
+                tenantName, 
+                customerCode, 
+                defaultTenantId: tenantId,
+                email,
+                phone
+              };
               if (isSource) {
                 setSourceCompanyInfo(companyInfo);
                 // 缓存信息
@@ -212,9 +242,24 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
             
             const proxyInfo = proxyResponse.data?.data?.userInfo;
             if (proxyInfo) {
-              const { company, tenantName } = proxyInfo;
-              // 保存公司和团队信息到状态
-              const companyInfo = { company, tenantName };
+              // 打印代理请求返回的用户信息
+              console.log('代理响应用户信息:', proxyInfo);
+              console.log('代理 defaultTenantId:', proxyInfo.defaultTenantId);
+              
+              const { company, tenantName, email, phone } = proxyInfo;
+              // 获取customerCode (tenantID)和defaultTenantId
+              const customerCode = proxyInfo.customerCode || '未知';
+              const tenantId = proxyInfo.defaultTenantId || proxyInfo.id || null;
+              
+              // 保存公司和团队信息到状态，增加email和phone
+              const companyInfo = { 
+                company, 
+                tenantName, 
+                customerCode, 
+                defaultTenantId: tenantId,
+                email,
+                phone
+              };
               if (isSource) {
                 setSourceCompanyInfo(companyInfo);
                 // 缓存信息
@@ -297,18 +342,36 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
   };
 
   // 渲染公司和团队信息标签
-  const renderCompanyInfo = (info: {company?: string, tenantName?: string} | null) => {
+  const renderCompanyInfo = (info: {company?: string, tenantName?: string, customerCode?: string, defaultTenantId?: number, email?: string, phone?: string} | null) => {
     if (!info) return null;
     
+    console.log('渲染公司信息:', info);
+    
     return (
-      <Space size={4} style={{ marginLeft: 8 }}>
-        {info.company && (
-          <Tag color="blue">公司: {info.company}</Tag>
-        )}
-        {info.tenantName && (
-          <Tag color="green">团队: {info.tenantName}</Tag>
-        )}
-      </Space>
+      <div>
+        <div style={{ marginBottom: 8 }}>
+          <Space size={4} wrap>
+            {info.company && (
+              <Tag color="blue">公司: {info.company}</Tag>
+            )}
+            {info.tenantName && (
+              <Tag color="green">团队: {info.tenantName}</Tag>
+            )}
+            {/* 当defaultTenantId存在时显示租户ID，否则使用customerCode */}
+            <Tag color="red">租户ID: {info.defaultTenantId || info.customerCode}</Tag>
+          </Space>
+        </div>
+        <div>
+          <Space size={4} wrap>
+            {info.email && (
+              <Tag color="purple">邮箱: {info.email}</Tag>
+            )}
+            {info.phone && (
+              <Tag color="orange">电话: {info.phone}</Tag>
+            )}
+          </Space>
+        </div>
+      </div>
     );
   };
 

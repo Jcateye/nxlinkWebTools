@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Layout, Typography, Menu, Row, Col, Button, Card, Divider } from 'antd';
+import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs } from 'antd';
 import { ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import TagParamsForm from './components/TagParamsForm';
 import FaqParamsForm from './components/FaqParamsForm';
@@ -9,10 +9,13 @@ import TargetFaqGroupMigration, { TargetFaqGroupMigrationHandle } from './compon
 import TagImport from './components/TagImport';
 import FaqImport from './components/FaqImport';
 import { UserProvider } from './context/UserContext';
+import VoiceList from './components/VoiceList';
+import VoiceMigration from './components/VoiceMigration';
 import './App.css';
 
 const { Header, Content, Footer } = Layout;
 const { Title } = Typography;
+const { TabPane } = Tabs;
 
 const App: React.FC = () => {
   const tagGroupMigrationRef = useRef<TagGroupMigrationHandle>(null);
@@ -97,6 +100,43 @@ const App: React.FC = () => {
             </Row>
           </>
         );
+      case 'voice':
+        return (
+          <>
+            <Row gutter={24} style={{ width: '100%' }}>
+              {/* 左侧：源租户面板 */}
+              <Col span={11}>
+                <Card title="源租户" style={{ height: '100%' }}>
+                  <FaqParamsForm formType="source" />
+                </Card>
+              </Col>
+              {/* 中间：空白占位 */}
+              <Col span={2}></Col>
+              {/* 右侧：目标租户面板 */}
+              <Col span={11}>
+                <Card title="目标租户" style={{ height: '100%' }}>
+                  <FaqParamsForm formType="target" />
+                </Card>
+              </Col>
+            </Row>
+
+            <Tabs defaultActiveKey="list" type="card" style={{ marginTop: 16 }}>
+              <TabPane tab="声音列表" key="list">
+                <Row gutter={24} style={{ width: '100%' }}>
+                  <Col span={12}>
+                    <VoiceList formType="source" />
+                  </Col>
+                  <Col span={12}>
+                    <VoiceList formType="target" />
+                  </Col>
+                </Row>
+              </TabPane>
+              <TabPane tab="声音迁移" key="migrate">
+                <VoiceMigration />
+              </TabPane>
+            </Tabs>
+          </>
+        );
       default:
         return null;
     }
@@ -106,10 +146,12 @@ const App: React.FC = () => {
     <UserProvider>
       <Layout className="layout">
         <Header className="header">
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Title level={4} style={{ color: 'white', margin: '16px 24px 16px 0' }}>
-              NxLink 工具箱
-            </Title>
+          <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <div style={{ marginRight: 24, whiteSpace: 'nowrap' }}>
+              <Title level={4} style={{ color: 'white', margin: '16px 0' }}>
+                NxLink 管理工具
+              </Title>
+            </div>
             <Menu
               theme="dark"
               mode="horizontal"
@@ -117,9 +159,10 @@ const App: React.FC = () => {
               onClick={({key}) => handleMenuClick(key)}
               items={[
                 { key: 'tag', label: '标签迁移工具' },
-                { key: 'faq', label: 'FAQ迁移工具' }
+                { key: 'faq', label: 'FAQ管理' },
+                { key: 'voice', label: '声音管理' }
               ]}
-              style={{ flex: 1 }}
+              style={{ flex: 1, whiteSpace: 'nowrap' }}
             />
           </div>
         </Header>
@@ -131,7 +174,7 @@ const App: React.FC = () => {
         </Content>
         
         <Footer className="footer">
-          NxLink 工具箱 ©{new Date().getFullYear()}
+          NxLink 工具箱 ©{new Date().getFullYear()} By Degen
         </Footer>
       </Layout>
     </UserProvider>

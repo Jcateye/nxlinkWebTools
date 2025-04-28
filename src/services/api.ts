@@ -1,17 +1,18 @@
 import axios, { InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 import { 
   ApiResponse, 
-  PaginatedResponse, 
-  Tag, 
   TagGroup, 
-  TagGroupAddRequest, 
-  TagAddRequest,
-  TagUserParams,
-  FaqUserParams,
-  FaqResponse,
+  Tag, 
+  PaginatedResponse, 
+  FaqResponse, 
   FaqAddRequest,
   FaqUpdateRequest,
-  FaqListData
+  FaqListData,
+  VoiceResponse,
+  TagGroupAddRequest,
+  TagAddRequest,
+  TagUserParams,
+  FaqUserParams
 } from '../types';
 import requestLimiter from '../utils/requestLimiter';
 import { API_LIMIT_CONFIG, API_CONFIG } from '../config/apiConfig';
@@ -33,6 +34,18 @@ const faqApi = axios.create({
   baseURL: API_CONFIG.baseURL,
   timeout: API_CONFIG.timeout,
   withCredentials: true,
+});
+
+// 创建用于Voice API请求的axios实例
+const voiceApi = axios.create({
+  baseURL: process.env.NODE_ENV === 'development' ? '/api' : 'https://nxlink.nxcloud.com',
+  timeout: 30000,
+  headers: {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json;charset=UTF-8',
+    'system_id': '5',
+    'time_zone': 'UTC+08:00',
+  }
 });
 
 // 打印详细的请求错误信息
@@ -1188,4 +1201,57 @@ export const renameTagGroup = (
     
     return result.data;
   });
+};
+
+// 获取Voice列表
+export const getVoiceList = async (
+  token: string,
+  pageNumber: number = 1,
+  pageSize: number = 16
+): Promise<VoiceResponse> => {
+  return createRateLimitedRequest('getVoiceList', async () => {
+    try {
+      console.log(`[getVoiceList] 获取声音列表`);
+      
+      const response = await voiceApi.get<ApiResponse<VoiceResponse>>(
+        '/admin/nx_flow/voiceConfig',
+        {
+          params: {
+            page_number: pageNumber,
+            page_size: pageSize
+          },
+          headers: {
+            'authorization': token
+          }
+        }
+      );
+      
+      if (response.data.code !== 0) {
+        throw new Error(`获取声音列表失败: ${response.data.message}`);
+      }
+      
+      return response.data.data;
+    } catch (error: any) {
+      console.error('获取声音列表失败', error);
+      if (error.response) {
+        console.error('服务器响应:', error.response.status, error.response.data);
+      } else if (error.request) {
+        console.error('未收到服务器响应，请检查网络连接');
+      } else {
+        console.error('请求配置错误:', error.message);
+      }
+      throw error;
+    }
+  });
+};
+
+// 播放声音样本
+export const playVoiceSample = async (url: string): Promise<void> => {
+  try {
+    const audio = new Audio(url);
+    await audio.play();
+  } catch (error) {
+    console.error('播放声音样本失败', error);
+    throw error;
+  }
 }; 

@@ -8,6 +8,19 @@
   background-color: #001529;
 }
 
+/* 标题和菜单宽度问题修复 */
+.header .ant-typography {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.ant-menu-overflow {
+  display: flex;
+  flex-wrap: nowrap;
+  min-width: 400px;
+}
+
 .content {
   padding: 24px;
   background-color: #f0f2f5;
@@ -132,4 +145,33 @@
 
 .import-progress {
   margin: 16px 0;
+}
+
+/* 修复菜单宽度问题 */
+.ant-menu-item {
+  min-width: 120px;
+  padding: 0 24px !important;
+  white-space: nowrap;
+  text-overflow: clip;
+}
+
+.header .ant-menu {
+  line-height: 64px;
+  flex: 1;
+}
+
+.header .ant-menu-overflow-item {
+  min-width: 120px;
+  padding: 0 16px;
+}
+
+.header .ant-menu-title-content {
+  white-space: nowrap;
+  display: block;
+  font-size: 14px;
+}
+
+/* NXAI管理工具菜单项特定样式 */
+.ant-menu-item:nth-child(2) {
+  min-width: 160px;
 } 

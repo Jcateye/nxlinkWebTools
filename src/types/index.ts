@@ -134,4 +134,28 @@ export interface FaqListData {
   notEmpty: boolean;
   totalPages: number;
   empty: boolean;
+}
+
+// Voice类型定义
+export interface Voice {
+  id: number;
+  tenantId: number;
+  name: string;
+  gender: number;
+  language: string;
+  vendor: string;
+  prompt: string;
+  des: string | null;
+  content: string;
+  url: string;
+  bgTimbreId: number;
+  createTs: number | null;
+  updateTs: number | null;
+}
+
+export interface VoiceResponse {
+  total: number;
+  page_number: number;
+  page_size: number;
+  list: Voice[];
 } 

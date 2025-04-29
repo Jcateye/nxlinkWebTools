@@ -273,8 +273,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
     
     // 记录迁移方向和授权信息
     console.log('🔄 [TargetFaqGroupMigration] 开始从【目标租户】迁移FAQ到【源租户】');
-    console.log(`🔑 目标租户Token(迁移源): ${faqUserParams.targetAuthorization.substring(0, 20)}...`);
-    console.log(`🔑 源租户Token(迁移目标): ${faqUserParams.sourceAuthorization.substring(0, 20)}...`);
+    console.log(`🔑 目标租户Token(迁移源)前20位: ${faqUserParams.targetAuthorization.substring(0, 20)}...`);
+    console.log(`🔑 源租户Token(迁移目标)前20位: ${faqUserParams.sourceAuthorization.substring(0, 20)}...`);
     
     const successFaqs: string[] = [];
     try {
@@ -324,8 +324,53 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
           };
           
           console.log(`📤 [TargetFaqGroupMigration] 从目标租户迁移分组 "${group.group_name}" 下的FAQ到源租户`);
-          const migrated = await migrateFaqs(userParams, modifiedFaqs, targetLanguageId);
-          successFaqs.push(...migrated);
+          console.log(`📤 [TargetFaqGroupMigration] 交换后 - 源租户Token(数据源)前20位: ${userParams.sourceAuthorization.substring(0, 20)}...`);
+          console.log(`📤 [TargetFaqGroupMigration] 交换后 - 目标租户Token(迁移目标)前20位: ${userParams.targetAuthorization.substring(0, 20)}...`);
+          
+          // 使用migrateFaqs或直接使用axios
+          // 方式一：使用migrateFaqs
+          //const migrated = await migrateFaqs(userParams, modifiedFaqs, targetLanguageId);
+          
+          // 方式二：尝试直接使用axios确保token正确
+          const migratedFaqs: string[] = [];
+          for (const faq of modifiedFaqs) {
+            try {
+              const requestParams = {
+                question: faq.question,
+                type: faq.type,
+                group_id: faq.group_id,
+                content: faq.content,
+                ai_desc: faq.ai_desc || '',
+                language_id: targetLanguageId,
+                faq_medias: faq.media_infos || [],
+                faq_status: faq.faq_status
+              };
+              
+              console.log(`📝 [TargetFaqGroupMigration] 添加FAQ "${faq.question}" 到源租户, 使用源租户Token`);
+              
+              // 使用源租户token(userParams.targetAuthorization)直接调用API
+              const response = await axios.post('/api/home/api/faq', requestParams, {
+                headers: {
+                  authorization: userParams.targetAuthorization,
+                  system_id: '5'
+                }
+              });
+              
+              if (response.data.code === 0) {
+                console.log(`✅ [TargetFaqGroupMigration] 成功添加FAQ "${faq.question}" 到源租户`);
+                migratedFaqs.push(faq.question);
+              } else {
+                console.error(`❌ [TargetFaqGroupMigration] 添加FAQ失败: ${response.data.message}`);
+              }
+            } catch (faqError: any) {
+              console.error(`❌ [TargetFaqGroupMigration] 添加FAQ "${faq.question}" 失败:`, faqError.message);
+              if (faqError.response) {
+                console.error(`服务器响应:`, faqError.response.status, faqError.response.data);
+              }
+            }
+          }
+          
+          successFaqs.push(...migratedFaqs);
         } catch (err) {
           console.error('❌ [TargetFaqGroupMigration] 迁移分组失败:', err);
         }

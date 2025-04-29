@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Upload, Button, message, Card, Space, Progress, Modal, Typography, List, Spin, Empty, Tag } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, Button, message, Card, Space, Progress, Modal, Typography, List, Spin, Empty, Tag, Alert } from 'antd';
 import { UploadOutlined, FileExcelOutlined, DownloadOutlined } from '@ant-design/icons';
 import { RcFile } from 'antd/es/upload';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { batchImportTags } from '../services/api';
+import { batchImportTags, getTagGroupList } from '../services/api';
 import { useUserContext } from '../context/UserContext';
 
 const { Dragger } = Upload;
@@ -27,7 +27,7 @@ interface TagImportProps {
 }
 
 const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
-  const { userParams } = useUserContext();
+  const { tagUserParams } = useUserContext();
   const [importedTags, setImportedTags] = useState<ImportedTag[]>([]);
   const [uploading, setUploading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -35,6 +35,30 @@ const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [resultModalVisible, setResultModalVisible] = useState(false);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 检查API服务器状态
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      if (tagUserParams) {
+        try {
+          // 尝试获取标签分组列表以检查API是否可用
+          await getTagGroupList(tagUserParams.nxCloudUserID, tagUserParams.sourceTenantID);
+          setApiError(null);
+        } catch (error: any) {
+          console.error('API连接错误', error);
+          if (error.response && error.response.status === 502) {
+            setApiError('标签服务暂时不可用，请稍后重试 (502 Bad Gateway)');
+          } else {
+            setApiError(`标签服务连接错误: ${error.message || '未知错误'}`);
+          }
+        }
+      }
+    };
+    
+    checkApiStatus();
+  }, [tagUserParams]);
 
   // 解析Excel/CSV文件
   const parseFile = (file: RcFile): Promise<ImportedTag[]> => {
@@ -102,7 +126,7 @@ const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
 
   // 导入标签
   const handleImport = async () => {
-    if (!userParams || !importedTags.length) {
+    if (!tagUserParams || !importedTags.length) {
       message.error('参数不完整或没有导入数据');
       return;
     }
@@ -111,12 +135,32 @@ const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
     setImportProgress(0);
     setResultModalVisible(true);
 
+    // 开始模拟进度增长
+    let currentProgress = 0;
+    progressTimerRef.current = setInterval(() => {
+      // 模拟进度，最多到95%，剩余5%在实际完成时设置
+      currentProgress += Math.random() * 3;
+      if (currentProgress > 95) {
+        currentProgress = 95;
+        if (progressTimerRef.current) {
+          clearInterval(progressTimerRef.current);
+        }
+      }
+      setImportProgress(Math.floor(currentProgress));
+    }, 300);
+
     try {
       const result = await batchImportTags(
         importedTags,
-        userParams.nxCloudUserID,
-        userParams.sourceTenantID
+        tagUserParams.nxCloudUserID,
+        tagUserParams.sourceTenantID
       );
+
+      // 清除进度模拟定时器
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
 
       setImportResult(result);
       setImportProgress(100);
@@ -129,15 +173,32 @@ const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
     } catch (error) {
       console.error('导入标签失败', error);
       message.error('导入过程中发生错误');
+      
+      // 清除进度模拟定时器
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+      
       setImportResult({
         success: 0,
         failed: importedTags.length,
         groupsCreated: []
       });
+      setImportProgress(0); // 重置进度条
     } finally {
       setImporting(false);
     }
   };
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+      }
+    };
+  }, []);
 
   // 下载模板
   const downloadTemplate = () => {
@@ -187,7 +248,7 @@ const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
           <Button
             type="primary"
             onClick={handleImport}
-            disabled={importedTags.length === 0 || importing || !userParams}
+            disabled={importedTags.length === 0 || importing || !tagUserParams || apiError !== null}
             loading={importing}
           >
             开始导入
@@ -195,13 +256,23 @@ const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
         </Space>
       }
     >
+      {apiError && (
+        <Alert 
+          message="服务连接错误" 
+          description={apiError}
+          type="error" 
+          showIcon 
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
       {!importedTags.length ? (
         <Dragger
           name="file"
           multiple={false}
           beforeUpload={handleFileUpload}
           showUploadList={false}
-          disabled={uploading || !userParams}
+          disabled={uploading || !tagUserParams || apiError !== null}
         >
           <p className="ant-upload-drag-icon">
             <FileExcelOutlined />
@@ -210,6 +281,15 @@ const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
           <p className="ant-upload-hint">
             支持Excel(.xlsx/.xls)或CSV文件，文件必须包含"标签名称"和"分组名称"两列
           </p>
+          {!tagUserParams && (
+            <Alert 
+              message="用户参数缺失" 
+              description="请先在上方设置标签参数"
+              type="warning" 
+              showIcon 
+              style={{ marginTop: 16, width: '80%', margin: '16px auto' }}
+            />
+          )}
         </Dragger>
       ) : (
         <div>
@@ -248,7 +328,7 @@ const TagImport: React.FC<TagImportProps> = ({ onImportComplete }) => {
               setPreviewModalVisible(false);
               handleImport();
             }}
-            disabled={importing || !userParams}
+            disabled={importing || !tagUserParams}
             loading={importing}
           >
             开始导入

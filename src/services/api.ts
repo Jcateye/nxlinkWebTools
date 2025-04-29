@@ -1,4 +1,5 @@
 import axios, { InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
+import { message } from 'antd';
 import { 
   ApiResponse, 
   TagGroup, 
@@ -82,6 +83,20 @@ tagApi.interceptors.request.use(
       }
     }
     
+    // 处理特殊请求URL的Content-Type
+    if (config.url) {
+      // 标签分组迁移请求特殊处理
+      if (config.url.includes('/mgrPlatform/tagGroup/migrate')) {
+        config.headers['Content-Type'] = 'application/json, text/plain, */*';
+        console.log('[Tag API 请求] 检测到迁移请求，设置特殊Content-Type头');
+      } else {
+        // 对于其他请求，确保设置标准的Content-Type
+        if (!config.headers['Content-Type']) {
+          config.headers['Content-Type'] = 'application/json';
+        }
+      }
+    }
+    
     // 开发模式下输出请求信息
     if (process.env.NODE_ENV === 'development' && API_CONFIG.verboseLogging) {
       console.log('[Tag API 请求]', config.method?.toUpperCase(), config.url);
@@ -153,12 +168,15 @@ faqApi.interceptors.response.use(
       console.log('[FAQ API 响应数据]', response.data);
     }
     const resData = response.data as ApiResponse<any>;
-    // 统一处理业务错误: code != 0
+    // 超过code不为0的请求，并返回友好提示
     if (resData.code !== 0) {
-      // 优先使用后端返回的 message
-      const errMsg = resData.message || '请求失败';
-      // 使用 antd message 提示
-      (typeof window !== 'undefined' && window.document) && require('antd').message.error(errMsg, 3);
+      const errMsg = resData.message || '服务器返回错误';
+      console.error(`❌ [API] 请求失败: ${errMsg}`);
+      
+      // 使用 antd message 提示，不再使用require
+      if (typeof window !== 'undefined' && window.document) {
+        message.error(errMsg, 3);
+      }
       return Promise.reject(new Error(errMsg));
     }
     return response;
@@ -702,22 +720,42 @@ export const addFaq = async (params: {
   faq_status: boolean;
 }, headers?: Record<string, string>): Promise<void> => {
   try {
-    // 如果提供了自定义headers，则使用它们
-    if (headers) {
-      await faqApi.post<ApiResponse<null>>(
-        '/home/api/faq',
-        params,
-        { headers }
-      );
-    } else {
-      // 否则使用默认拦截器中的headers
-      await faqApi.post<ApiResponse<null>>(
-        '/home/api/faq',
-        params
-      );
+    // 打印日志，帮助调试
+    console.log(`[addFaq] 添加FAQ: "${params.question}" 到分组ID: ${params.group_id}, 语言ID: ${params.language_id}`);
+    
+    // 构造完整的headers，确保包含Content-Type
+    const fullHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(headers || {})
+    };
+    
+    // 打印完整的headers信息(隐藏敏感部分)
+    console.log(`[addFaq] 使用headers:`, {
+      authorization: fullHeaders.authorization?.substring(0, 20) + '...' || '未设置',
+      system_id: fullHeaders.system_id || '未设置',
+      'Content-Type': fullHeaders['Content-Type']
+    });
+    
+    // 使用faqApi发送请求，并确保headers正确传递
+    console.log(`[addFaq] 正在发送POST请求到 '/home/api/faq'，请稍候...`);
+    
+    // 使用直接的axios请求确保headers正确传递
+    const response = await axios.post('/api/home/api/faq', params, { 
+      headers: fullHeaders 
+    });
+    
+    // 检查响应
+    if (response.data.code !== 0) {
+      console.error(`[addFaq] 服务器返回错误:`, response.data);
+      throw new Error(`添加FAQ失败: ${response.data.message || '未知错误'}`);
     }
-  } catch (error) {
-    console.error('添加FAQ失败', error);
+    
+    console.log(`[addFaq] 成功添加FAQ: "${params.question}", 服务器响应:`, response.data);
+  } catch (error: any) {
+    console.error(`[addFaq] 添加FAQ "${params.question}" 失败:`, error);
+    if (error.response) {
+      console.error(`[addFaq] 服务器响应:`, error.response.status, error.response.data);
+    }
     throw error;
   }
 };
@@ -1068,6 +1106,8 @@ export const migrateFaqs = async (
   return createRateLimitedRequest('migrateFaqs', async () => {
     try {
       console.log(`[migrateFaqs] 开始迁移FAQ到目标语言ID: ${targetLanguageId}`);
+      console.log(`[migrateFaqs] 源租户token前20位: ${faqUserParams.sourceAuthorization?.substring(0, 20) || '未设置'}`);
+      console.log(`[migrateFaqs] 目标租户token前20位: ${faqUserParams.targetAuthorization?.substring(0, 20) || '未设置'}`);
       
       // 成功迁移的FAQ问题列表
       const successFaqs: string[] = [];
@@ -1080,33 +1120,57 @@ export const migrateFaqs = async (
       
       console.log(`[migrateFaqs] 需要迁移 ${faqsToMigrate.length} 条FAQ`);
       
+      // 检查授权是否存在
+      if (!faqUserParams.targetAuthorization) {
+        console.error(`[migrateFaqs] 目标租户授权缺失，无法迁移FAQ`);
+        throw new Error('目标租户授权Token缺失，请重新设置身份认证');
+      }
+      
       // 一个一个处理FAQ迁移
       for (const faq of faqsToMigrate) {
         try {
           console.log(`[migrateFaqs] 处理FAQ "${faq.question}" (ID: ${faq.id})`);
           
-          // 创建目标租户请求头
+          // 创建目标租户请求头 - 使用targetAuthorization，因为目标是将FAQ添加到目标租户
+          // 不管是从源租户迁移到目标租户还是从目标租户迁移到源租户，这里的targetAuthorization都是真正的目标租户token
           const headers = {
             'authorization': faqUserParams.targetAuthorization,
             'system_id': '5'
           };
           
-          // 调用addFaq API添加FAQ到目标租户
-          await addFaq({
+          console.log(`[migrateFaqs] 使用目标租户Token前20位: ${headers.authorization.substring(0, 20)}`);
+          
+          // 处理media_infos到faq_medias的转换
+          const faq_medias = faq.media_infos || [];
+          
+          // 记录请求参数
+          const requestParams = {
             question: faq.question,
             type: faq.type,
             group_id: faq.group_id,
             content: faq.content,
             ai_desc: faq.ai_desc || '',
             language_id: targetLanguageId,
-            faq_medias: [],
+            faq_medias,
             faq_status: faq.faq_status
-          }, headers);
+          };
+          
+          console.log(`[migrateFaqs] 请求参数:`, JSON.stringify(requestParams));
+          console.log(`[migrateFaqs] 请求headers:`, { 
+            authorization: `${headers.authorization.substring(0, 20)}...`, 
+            system_id: headers.system_id 
+          });
+          
+          // 调用addFaq API添加FAQ到目标租户
+          await addFaq(requestParams, headers);
           
           console.log(`[migrateFaqs] 成功迁移FAQ "${faq.question}"`);
           successFaqs.push(faq.question);
         } catch (error: any) {
           console.error(`[migrateFaqs] 迁移FAQ "${faq.question}" 失败:`, error);
+          if (error.response) {
+            console.error(`[migrateFaqs] 服务器响应:`, error.response.status, error.response.data);
+          }
           // 继续处理下一个FAQ
         }
       }
@@ -1191,15 +1255,74 @@ export const getFaqsByGroupId = async (
     params.group_id = groupId;
   }
   try {
-    const resp = await faqApi.get<ApiResponse<FaqListData>>(
+    // 使用参数名和参数值一一匹配，确保正确性
+    console.log(`[getFaqsByGroupId] 调用参数: groupId=${groupId}, languageId=${languageId}, pageSize=${pageSize}, pageNum=${pageNum}`);
+    console.log(`[getFaqsByGroupId] API参数: ${JSON.stringify(params)}`);
+    
+    const resp = await faqApi.get<FaqListData>(
       '/home/api/faq',
       { params, headers }
     );
-    // 拦截器已校验 code===0
-    return resp.data.data;
+    
+    // 打印响应结构，帮助调试
+    console.log(`[getFaqsByGroupId] 响应结构:`, JSON.stringify(resp.data).substring(0, 100) + '...');
+    
+    // 检查响应结构，API直接返回了响应数据而不是包装在data.data中
+    if (!resp.data) {
+      console.log(`[getFaqsByGroupId] 响应为空，创建默认空结果`);
+      return {
+        list: [],
+        total: 0,
+        page_number: pageNum,
+        page_size: pageSize,
+        empty: true,
+        notEmpty: false,
+        totalPages: 0,
+        ext: null
+      };
+    }
+    
+    // 检查是否有list属性
+    if (!resp.data.list) {
+      console.log(`[getFaqsByGroupId] 响应中无list属性，创建默认空结果`);
+      return {
+        ...resp.data,
+        list: [],
+        empty: true,
+        notEmpty: false,
+        total: 0,
+        totalPages: 0
+      };
+    }
+    
+    // 确保list是数组
+    if (!Array.isArray(resp.data.list)) {
+      console.log(`[getFaqsByGroupId] 响应中list属性不是数组，创建默认空结果`);
+      return {
+        ...resp.data,
+        list: [],
+        empty: true,
+        notEmpty: false,
+        total: 0,
+        totalPages: 0
+      };
+    }
+    
+    // 如果一切正常，直接返回响应数据
+    return resp.data;
   } catch (error) {
     console.error(`❌ [API] 获取分组 ${groupId} 的FAQ失败:`, error);
-    throw error;
+    // 返回空结果而不是抛出异常，避免中断调用方的流程
+    return {
+      list: [],
+      total: 0,
+      page_number: pageNum,
+      page_size: pageSize,
+      empty: true,
+      notEmpty: false,
+      totalPages: 0,
+      ext: null
+    };
   }
 };
 

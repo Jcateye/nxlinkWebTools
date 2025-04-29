@@ -1,0 +1,121 @@
+curl 'https://nxlink.nxcloud.com/admin/saas_plat/tenant/tenantsInSwitch' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'cache-control: no-cache' \
+  -H 'createts: 1745830049552' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'dnt: 1' \
+  -H 'lang: zh_CN' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/' \
+  -H 'sec-ch-ua: "Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+
+
+  # response
+  {
+    "code": 0,
+    "message": "",
+    "data": [
+        {
+            "tenant_id": 1198,
+            "tenant_name": "Default",
+            "role_name": "管理员",
+            "role_id": 7339,
+            "company_name": "NX65105101086-腾讯科技（深圳）有限公司",
+            "tenant_type": 1,
+            "one_owner": false
+        },
+        {
+            "tenant_id": 725,
+            "tenant_name": "售前演示环境（勿删）",
+            "role_name": "管理员",
+            "role_id": 4350,
+            "company_name": "NX77777178086-牛信产研部-深圳",
+            "tenant_type": 0,
+            "one_owner": false
+        },
+        {
+            "tenant_id": 2341,
+            "tenant_name": "Degen Team",
+            "role_name": "企业所有者",
+            "role_id": 12269,
+            "company_name": "NX10411-牛信产研部-深圳",
+            "tenant_type": 1,
+            "one_owner": true
+        },
+        {
+            "tenant_id": 2358,
+            "tenant_name": "默认团队",
+            "role_name": "管理员",
+            "role_id": 12338,
+            "company_name": "NX69262101086-上海智爱善思智能科技有限公司",
+            "tenant_type": 1,
+            "one_owner": false
+        },
+        {
+            "tenant_id": 2422,
+            "tenant_name": "默认团队",
+            "role_name": "管理员",
+            "role_id": 12567,
+            "company_name": "NX69458101061-Vantage Global Limited",
+            "tenant_type": 1,
+            "one_owner": false
+        },
+        {
+            "tenant_id": 1,
+            "tenant_name": "营销云租户（内部使用）",
+            "role_name": "管理员",
+            "role_id": 36,
+            "company_name": "NX77777178086-牛信产研部-深圳",
+            "tenant_type": 1,
+            "one_owner": false
+        },
+        {
+            "tenant_id": 4,
+            "tenant_name": "客户测试环境（勿删）",
+            "role_name": "管理员",
+            "role_id": 57,
+            "company_name": "NX777777001086-WhatsApp内部测试用",
+            "tenant_type": 1,
+            "one_owner": false
+        },
+        {
+            "tenant_id": 2789,
+            "tenant_name": "默认团队",
+            "role_name": "管理员",
+            "role_id": 13927,
+            "company_name": "NX62224036001-OrangeHR-Birch Tree Limited",
+            "tenant_type": 1,
+            "one_owner": false
+        },
+        {
+            "tenant_id": 2859,
+            "tenant_name": "Prompt 交付验证环境(内部勿删)",
+            "role_name": "管理员",
+            "role_id": 14182,
+            "company_name": "NX77777178086-牛信产研部-深圳",
+            "tenant_type": 0,
+            "one_owner": false
+        },
+        {
+            "tenant_id": 2874,
+            "tenant_name": "默认团队",
+            "role_name": "管理员",
+            "role_id": 14250,
+            "company_name": "NX68726006701-广州闲邮国际旅行社有限公司",
+            "tenant_type": 1,
+            "one_owner": false
+        }
+    ],
+    "traceId": "dad0677726934f44bb7884f31bf348da"
+}

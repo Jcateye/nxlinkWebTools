@@ -326,8 +326,8 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
 
     // 记录迁移方向和授权信息
     console.log('🔄 [FaqGroupMigration] 开始从【源租户】迁移FAQ到【目标租户】');
-    console.log(`🔑 源租户Token(迁移源): ${faqUserParams.sourceAuthorization.substring(0, 20)}...`);
-    console.log(`🔑 目标租户Token(迁移目标): ${faqUserParams.targetAuthorization.substring(0, 20)}...`);
+    console.log(`🔑 源租户Token(迁移源)前20位: ${faqUserParams.sourceAuthorization.substring(0, 20)}...`);
+    console.log(`🔑 目标租户Token(迁移目标)前20位: ${faqUserParams.targetAuthorization.substring(0, 20)}...`);
 
     setMigrating(true);
     setModalVisible(true);
@@ -363,32 +363,19 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
       // 分组名称与目标系统中对应的分组ID映射
       const groupMappings: Record<string, number> = {};
       
-      // 首先，确保目标系统中存在对应的分组
+      // 先在目标系统中创建分组
       for (const group of selectedGroups) {
         try {
-          // 检查目标系统中是否存在同名分组
-          console.log(`🔍 [FaqGroupMigration] 检查目标系统中是否存在分组 "${group.group_name}"`);
+          console.log(`🔍 [FaqGroupMigration] 确保目标系统中存在分组 "${group.group_name}"`);
           const targetGroupId = await ensureGroupExistsInTarget(group.group_name, targetLanguageId);
-          
           if (targetGroupId) {
-            console.log(`✅ [FaqGroupMigration] 目标系统中找到或创建了分组 "${group.group_name}", ID: ${targetGroupId}`);
+            console.log(`✅ [FaqGroupMigration] 目标系统中存在或已创建分组 "${group.group_name}", ID: ${targetGroupId}`);
             groupMappings[group.group_name] = targetGroupId;
           } else {
             console.error(`❌ [FaqGroupMigration] 无法在目标系统中创建分组 "${group.group_name}"`);
-            // 记录整个分组迁移失败
-            failedFaqDetails.push({
-              groupName: group.group_name,
-              question: '(整个分组)',
-              reason: '无法在目标系统中创建或找到对应分组'
-            });
           }
-        } catch (error) {
-          console.error(`❌ [FaqGroupMigration] 检查目标系统分组时出错:`, error);
-          failedFaqDetails.push({
-            groupName: group.group_name,
-            question: '(整个分组)',
-            reason: error instanceof Error ? error.message : '未知错误'
-          });
+        } catch (error: any) {
+          console.error(`❌ [FaqGroupMigration] 处理目标系统分组失败:`, error);
         }
       }
       
@@ -402,9 +389,9 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
             authorization: faqUserParams.sourceAuthorization,
             system_id: '5'
           };
-          console.log(`🔑 [FaqGroupMigration] 使用源租户Token获取分组FAQ数据: ${faqUserParams.sourceAuthorization.substring(0, 20)}...`);
+          console.log(`🔑 [FaqGroupMigration] 使用源租户Token获取分组FAQ数据前20位: ${faqUserParams.sourceAuthorization.substring(0, 20)}...`);
           
-          const faqData = await getFaqsByGroupId(group.id, selectedLanguageId, 1, 1000, headers);
+          const faqData = await getFaqsByGroupId(group.id, selectedLanguageId, 1000, 1, headers);
           if (!faqData.list || faqData.list.length === 0) {
             console.log(`ℹ️ [FaqGroupMigration] 分组 "${group.group_name}" 内没有FAQ数据`);
             continue;
@@ -425,54 +412,79 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
           
           // 调用迁移API进行实际迁移
           console.log(`🔄 [FaqGroupMigration] 开始迁移分组 "${group.group_name}" 下的FAQ数据到目标语言ID: ${targetLanguageId}, 目标分组ID: ${targetGroupId}`);
-          try {
-            const migratedResults = await migrateFaqs(
-              faqUserParams, 
-              faqsToMigrate, 
-              targetLanguageId
-            );
-            
-            // 检查迁移结果
-            if (migratedResults.length < faqsToMigrate.length) {
-              // 部分FAQ迁移失败，记录失败的FAQ
-              const successQuestions = new Set(migratedResults);
+          
+          // 方式一：使用migrateFaqs函数迁移
+          // const migratedResults = await migrateFaqs(faqUserParams, faqsToMigrate, targetLanguageId);
+          
+          // 方式二：直接使用axios调用API，确保使用正确的token
+          const migratedResults: string[] = [];
+          for (const faq of faqsToMigrate) {
+            try {
+              const requestParams = {
+                question: faq.question,
+                type: faq.type,
+                group_id: faq.group_id,
+                content: faq.content,
+                ai_desc: faq.ai_desc || '',
+                language_id: targetLanguageId,
+                faq_medias: faq.media_infos || [],
+                faq_status: faq.faq_status
+              };
               
-              // 找出失败的FAQ
-              for (const faq of faqsToMigrate) {
-                if (!successQuestions.has(faq.question)) {
-                  failedFaqDetails.push({
-                    groupName: group.group_name,
-                    question: faq.question,
-                    reason: '迁移过程中失败，可能是内容格式不兼容或目标系统已存在相同FAQ'
-                  });
+              console.log(`📝 [FaqGroupMigration] 添加FAQ "${faq.question}" 到目标租户`);
+              
+              // 使用目标租户token直接调用API，绕过拦截器
+              const response = await axios.post('/api/home/api/faq', requestParams, {
+                headers: {
+                  authorization: faqUserParams.targetAuthorization,
+                  system_id: '5'
                 }
+              });
+              
+              if (response.data.code === 0) {
+                console.log(`✅ [FaqGroupMigration] 成功添加FAQ "${faq.question}" 到目标租户`);
+                migratedResults.push(faq.question);
+              } else {
+                console.error(`❌ [FaqGroupMigration] 添加FAQ失败: ${response.data.message}`);
+                failedFaqDetails.push({
+                  groupName: group.group_name,
+                  question: faq.question,
+                  reason: `添加失败: ${response.data.message || '服务器返回错误'}`
+                });
               }
-            }
-            
-            // 添加到成功列表中，包含详细信息
-            for (const result of migratedResults) {
-              successFaqDetails.push({
+            } catch (faqError: any) {
+              console.error(`❌ [FaqGroupMigration] 添加FAQ "${faq.question}" 失败:`, faqError.message);
+              if (faqError.response) {
+                console.error(`服务器响应:`, faqError.response.status, faqError.response.data);
+              }
+              
+              failedFaqDetails.push({
                 groupName: group.group_name,
-                question: result,
-                sourceId: group.id,
-                targetId: targetGroupId
+                question: faq.question,
+                reason: faqError.message || '未知错误'
               });
             }
+          }
+          
+          // 检查迁移结果
+          if (migratedResults.length < faqsToMigrate.length) {
+            // 部分FAQ迁移失败，记录失败的FAQ
+            const successQuestions = new Set(migratedResults);
             
-            console.log(`✅ [FaqGroupMigration] 分组 "${group.group_name}" 迁移完成，成功迁移 ${migratedResults.length} 条FAQ`);
-          } catch (error: any) {
-            console.error(`❌ [FaqGroupMigration] 迁移分组 "${group.group_name}" 下的FAQ失败:`, error);
-            
-            // 记录整个分组的FAQ迁移失败
-            const errorMessage = error.response?.data?.message || error.message || '未知错误';
-            
-            // 对于整个分组的迁移错误
-            failedFaqDetails.push({
+            // 找出失败的FAQ（已在上面直接添加了，这里可以省略）
+          }
+          
+          // 添加到成功列表中，包含详细信息
+          for (const result of migratedResults) {
+            successFaqDetails.push({
               groupName: group.group_name,
-              question: '(所有FAQ)',
-              reason: `迁移失败: ${errorMessage}`
+              question: result,
+              sourceId: group.id,
+              targetId: targetGroupId
             });
           }
+          
+          console.log(`✅ [FaqGroupMigration] 分组 "${group.group_name}" 迁移完成，成功迁移 ${migratedResults.length} 条FAQ`);
         } catch (error: any) {
           console.error(`❌ [FaqGroupMigration] 处理分组 "${group.group_name}" 时出错:`, error);
           failedFaqDetails.push({

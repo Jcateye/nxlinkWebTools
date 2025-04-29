@@ -1,14 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, message, Typography, Tag, Space } from 'antd';
+import { Form, Input, Button, Card, message, Typography, Tag, Space, Dropdown, Menu, Spin } from 'antd';
+import { DownOutlined, SwapOutlined } from '@ant-design/icons';
 import { FaqUserParams } from '../types';
 import { useUserContext } from '../context/UserContext';
 import axios from 'axios';
+import { getTenantList, switchTenant } from '../services/api';
 
 const { Text } = Typography;
 
 // 定义组件属性
 interface FaqParamsFormProps {
   formType?: 'source' | 'target';
+}
+
+// 定义租户类型
+interface Tenant {
+  tenant_id: number;
+  tenant_name: string;
+  company_name: string;
+  role_name: string;
 }
 
 // 创建特定的axios实例用于is_login请求
@@ -65,6 +75,11 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
   // 添加状态用于存储公司和团队信息
   const [sourceCompanyInfo, setSourceCompanyInfo] = useState<{company?: string, tenantName?: string, customerCode?: string, defaultTenantId?: number, email?: string, phone?: string} | null>(null);
   const [targetCompanyInfo, setTargetCompanyInfo] = useState<{company?: string, tenantName?: string, customerCode?: string, defaultTenantId?: number, email?: string, phone?: string} | null>(null);
+  
+  // 添加租户列表状态
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [loadingTenants, setLoadingTenants] = useState(false);
+  const [tenantDropdownVisible, setTenantDropdownVisible] = useState(false);
 
   // 组件加载时从本地存储加载参数
   useEffect(() => {
@@ -375,6 +390,110 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
     );
   };
 
+  // 获取租户列表
+  const fetchTenants = async () => {
+    try {
+      setLoadingTenants(true);
+      const token = formType === 'source' 
+        ? faqUserParams?.sourceAuthorization 
+        : faqUserParams?.targetAuthorization;
+      
+      if (!token) {
+        message.warning(`请先完成${formType === 'source' ? '源' : '目标'}租户身份认证`);
+        return;
+      }
+      
+      const tenantList = await getTenantList(token);
+      setTenants(tenantList);
+    } catch (error) {
+      console.error('获取租户列表失败:', error);
+      message.error('获取租户列表失败');
+    } finally {
+      setLoadingTenants(false);
+    }
+  };
+
+  // 处理租户切换
+  const handleSwitchTenant = async (tenant: Tenant) => {
+    try {
+      setLoading(true);
+      const token = formType === 'source' 
+        ? faqUserParams?.sourceAuthorization 
+        : faqUserParams?.targetAuthorization;
+      
+      if (!token) {
+        message.warning(`请先完成${formType === 'source' ? '源' : '目标'}租户身份认证`);
+        return;
+      }
+      
+      const success = await switchTenant(token, tenant.tenant_id);
+      if (success) {
+        message.success(`已切换到租户: ${tenant.tenant_name} (${tenant.company_name})`);
+        
+        // 更新当前的公司信息
+        const companyInfo = { 
+          company: tenant.company_name, 
+          tenantName: tenant.tenant_name, 
+          customerCode: String(tenant.tenant_id), 
+          defaultTenantId: tenant.tenant_id
+        };
+        
+        if (formType === 'source') {
+          setSourceCompanyInfo(companyInfo as any);
+          localStorage.setItem(`sourceCompanyInfo_${sessionId}`, JSON.stringify(companyInfo));
+        } else {
+          setTargetCompanyInfo(companyInfo as any);
+          localStorage.setItem(`targetCompanyInfo_${sessionId}`, JSON.stringify(companyInfo));
+        }
+        
+        // 重新验证token，获取完整的用户信息
+        await verifyToken(token, formType === 'source');
+      }
+    } catch (error) {
+      console.error('切换租户失败:', error);
+      message.error('切换租户失败');
+    } finally {
+      setLoading(false);
+      setTenantDropdownVisible(false);
+    }
+  };
+
+  // 创建租户下拉菜单
+  const tenantMenu = (
+    <Menu 
+      onClick={({ key }) => {
+        const tenant = tenants.find(t => t.tenant_id === parseInt(key));
+        if (tenant) {
+          handleSwitchTenant(tenant);
+        }
+      }}
+    >
+      {loadingTenants ? (
+        <Menu.Item key="loading" disabled>
+          <Spin size="small" /> 加载中...
+        </Menu.Item>
+      ) : tenants.length === 0 ? (
+        <Menu.Item key="empty" disabled>
+          无可用租户
+        </Menu.Item>
+      ) : (
+        tenants.map(tenant => (
+          <Menu.Item key={tenant.tenant_id}>
+            <div style={{ maxWidth: 280 }}>
+              <div style={{ fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {tenant.company_name}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#666' }}>
+                <span>{tenant.tenant_name}</span>
+                <span>{tenant.role_name}</span>
+              </div>
+            </div>
+          </Menu.Item>
+        ))
+      )}
+    </Menu>
+  );
+
   return (
     <Card 
       title={`${formType === 'source' ? '源' : '目标'}租户身份认证`}
@@ -385,6 +504,9 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
           : renderCompanyInfo(targetCompanyInfo)
       }
     >
+      <div style={{ marginBottom: 12, color: '#f5222d', fontWeight: 'bold' }}>
+        注意：必须使用两个不同的账号登录
+      </div>
       <Form
         form={form}
         layout="vertical"
@@ -430,11 +552,31 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
           </Form.Item>
         )}
 
-        <Form.Item>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button type="primary" htmlType="submit" loading={loading}>
             保存身份信息
           </Button>
-        </Form.Item>
+          
+          {/* 切换租户按钮 - 放在红色区域 */}
+          {(formType === 'source' ? !!faqUserParams?.sourceAuthorization : !!faqUserParams?.targetAuthorization) && (
+            <Dropdown 
+              overlay={tenantMenu} 
+              onVisibleChange={(visible) => {
+                if (visible) fetchTenants();
+                setTenantDropdownVisible(visible);
+              }}
+              visible={tenantDropdownVisible}
+              trigger={['click']}
+            >
+              <Button 
+                icon={<SwapOutlined />} 
+                style={{ marginLeft: 16 }}
+              >
+                切换租户
+              </Button>
+            </Dropdown>
+          )}
+        </div>
       </Form>
     </Card>
   );

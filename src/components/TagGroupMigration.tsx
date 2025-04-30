@@ -12,7 +12,8 @@ import {
   Tag,
   Tooltip,
   Input,
-  Alert
+  Alert,
+  Checkbox
 } from 'antd';
 import { EyeOutlined, SearchOutlined, ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
@@ -50,6 +51,11 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
   const [searchText, setSearchText] = useState<string>('');
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 前缀处理相关状态
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [prefixProcessing, setPrefixProcessing] = useState(false);
+  const [prefixAdd, setPrefixAdd] = useState<string>(`${tagUserParams?.sourceTenantID}-`);
+  const [prefixRemove, setPrefixRemove] = useState<string>('');
   
   // 当用户参数变化时，加载标签分组
   useEffect(() => {
@@ -150,75 +156,61 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
     onChange: onSelectChange,
   };
 
-  // 开始迁移
-  const handleMigrate = async () => {
+  // 显示迁移选项模态框
+  const handleMigrateOptions = () => {
     if (!tagUserParams) {
       message.error('请先设置Tag参数');
       return;
     }
 
-    if (selectedRowKeys.length === 0) {
-      message.error('请选择要迁移的标签分组');
-      return;
-    }
-    
-    // 检查必要参数
     if (!tagUserParams.targetTenantID) {
       message.error('请设置目标租户ID');
       return;
     }
 
+    // 打开选项模态框
+    setOptionsModalVisible(true);
+    return;
+  };
+
+  // 确认迁移，调用原迁移逻辑，并传入前缀处理选项（暂未实现具体逻辑）
+  const confirmMigrate = async () => {
+    // 关闭选项模态
+    setOptionsModalVisible(false);
+    console.log('执行迁移，前缀处理:', { prefixProcessing, prefixAdd, prefixRemove });
+    // 准备迁移
+    if (!tagUserParams) {
+      message.error('请先设置Tag参数');
+      return;
+    }
+    if (selectedRowKeys.length === 0) {
+      message.error('请选择要迁移的标签分组');
+      return;
+    }
     setMigrating(true);
     setModalVisible(true);
     setError(null);
-    
     try {
-      // 转换selectedRowKeys为数字数组
+      // 组装要迁移的分组ID数组
       const selectedIds = selectedRowKeys.map((key: React.Key) => Number(key));
-      
-      console.log('开始迁移标签分组:', {
+      // 调用带前缀选项的服务
+      // @ts-ignore: migrateTagGroups supports options parameter
+      const migratedGroups = await migrateTagGroups(
+        tagUserParams,
         selectedIds,
-        nxCloudUserID: tagUserParams.nxCloudUserID,
-        sourceTenantID: tagUserParams.sourceTenantID,
-        targetTenantID: tagUserParams.targetTenantID
-      });
-      
-      message.info('正在迁移标签分组，已优化API调用减少服务器压力...');
-      
-      // 执行迁移
-      const migratedGroups = await migrateTagGroups(tagUserParams, selectedIds);
-      
-      // 更新成功迁移的分组
+        { prefixProcessing, prefixAdd, prefixRemove }
+      );
       setSuccessGroups(migratedGroups);
-      
       if (migratedGroups.length > 0) {
         message.success(`成功迁移 ${migratedGroups.length} 个标签分组`);
       } else {
         message.warning('没有成功迁移的标签分组');
       }
-    } catch (error: any) {
-      let errorMsg = '迁移过程中发生错误';
-      
-      if (error.response) {
-        const { status, data } = error.response;
-        errorMsg = `迁移失败 (状态码: ${status})`;
-        
-        if (data && data.message) {
-          errorMsg += `: ${data.message}`;
-        }
-        
-        if (status === 401) {
-          errorMsg = 'API令牌无效或已过期，请重新设置API令牌';
-        }
-      } else if (error.request) {
-        errorMsg = '服务器未响应，请检查您的网络连接';
-      } else {
-        errorMsg = `迁移错误: ${error.message}`;
-      }
-      
-      message.error(errorMsg);
-      setError(errorMsg);
-      console.error('迁移标签分组详细错误:', error);
+    } catch (err: any) {
+      let errMsg = '迁移过程中发生错误';
+      message.error(errMsg);
+      console.error('❌ [TagGroupMigration] 迁移失败:', err);
+      setError(errMsg);
     } finally {
       setMigrating(false);
     }
@@ -396,7 +388,7 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
             </Button>
             <Button 
               type="primary" 
-              onClick={handleMigrate} 
+              onClick={handleMigrateOptions} 
               disabled={selectedRowKeys.length === 0 || migrating}
               loading={migrating}
             >
@@ -502,6 +494,39 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
           groupName={currentGroupName} 
           onTagsChange={handleTagsChange}
         />
+      </Modal>
+
+      {/* 迁移选项模态框 - 前缀处理 */}
+      <Modal
+        title="迁移设置"
+        open={optionsModalVisible}
+        onCancel={() => setOptionsModalVisible(false)}
+        onOk={confirmMigrate}
+        okText="确认"
+        cancelText="取消"
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Checkbox
+            checked={prefixProcessing}
+            onChange={e => setPrefixProcessing(e.target.checked)}
+          >
+            前缀处理
+          </Checkbox>
+          {prefixProcessing && (
+            <>
+              <Input
+                addonBefore="添加前缀"
+                value={prefixAdd}
+                onChange={e => setPrefixAdd(e.target.value)}
+              />
+              <Input
+                addonBefore="去掉前缀"
+                value={prefixRemove}
+                onChange={e => setPrefixRemove(e.target.value)}
+              />
+            </>
+          )}
+        </Space>
       </Modal>
     </>
   );

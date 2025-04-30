@@ -92,4 +92,9 @@ export const API_CONFIG = {
   enableRateLimiting: true,
   // 是否在开发模式下输出详细日志
   verboseLogging: true
-}; 
+};
+
+/**
+ * 协作模式API配置
+ */
+export const COLLABORATION_API_BASE_URL = 'http://localhost:3020'; 

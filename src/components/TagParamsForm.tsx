@@ -10,6 +10,15 @@ const TagParamsForm: React.FC = () => {
   const { tagUserParams, setTagUserParams, sessionId } = useUserContext();
   const [form] = Form.useForm();
 
+  // 尝试自动保存，只在所有字段都有值时执行
+  const tryAutoSave = () => {
+    const values = form.getFieldsValue() as TagUserParams;
+    const { nxCloudUserID, sourceTenantID, targetTenantID, authorization } = values;
+    if (nxCloudUserID && sourceTenantID && targetTenantID && authorization) {
+      handleSubmit(values);
+    }
+  };
+
   // 从本地存储加载已保存的参数（只执行一次）
   useEffect(() => {
     if (sessionId) {
@@ -67,7 +76,7 @@ const TagParamsForm: React.FC = () => {
       <Form
         form={form}
         layout="vertical"
-        onFinish={handleSubmit}
+        onBlurCapture={tryAutoSave}
         initialValues={tagUserParams || undefined}
       >
         <Form.Item
@@ -121,12 +130,6 @@ const TagParamsForm: React.FC = () => {
         <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
           注意：所有参数在NxLink控制台可以找到。如有疑问，请联系技术支持。
         </Text>
-
-        <Form.Item>
-          <Button type="primary" htmlType="submit">
-            保存身份信息
-          </Button>
-        </Form.Item>
       </Form>
     </Card>
   );

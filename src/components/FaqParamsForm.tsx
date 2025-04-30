@@ -70,7 +70,7 @@ loginApi.interceptors.response.use(
 const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const { faqUserParams, setFaqUserParams, sessionId } = useUserContext();
+  const { faqUserParams, setFaqUserParams, sessionId, isCollaborationMode, activeCollaborationSession } = useUserContext();
   
   // 添加状态用于存储公司和团队信息
   const [sourceCompanyInfo, setSourceCompanyInfo] = useState<{company?: string, tenantName?: string, customerCode?: string, defaultTenantId?: number, email?: string, phone?: string} | null>(null);
@@ -83,31 +83,45 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
 
   // 组件加载时从本地存储加载参数
   useEffect(() => {
-    const storageKey = `faqUserParams_${sessionId}`;
-    const savedParams: Partial<FaqUserParams> = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    if (formType === 'source' && savedParams.sourceAuthorization) {
-      form.setFieldsValue({ sourceAuthorization: savedParams.sourceAuthorization });
-      // 加载源租户公司信息缓存
-      const sourceInfoKey = `sourceCompanyInfo_${sessionId}`;
-      try {
-        const savedSourceInfo = JSON.parse(localStorage.getItem(sourceInfoKey) || 'null');
-        if (savedSourceInfo) setSourceCompanyInfo(savedSourceInfo);
-      } catch (e) {
-        console.error('加载源租户公司信息失败', e);
+    if (isCollaborationMode && activeCollaborationSession) {
+      // 协作模式下从会话中读取
+      const params = activeCollaborationSession.faqUserParams;
+      if (params) {
+        if (formType === 'source' && params.sourceAuthorization) {
+          form.setFieldsValue({ sourceAuthorization: params.sourceAuthorization });
+          setSourceCompanyInfo(activeCollaborationSession.companyInfo?.source || null);
+        }
+        if (formType === 'target' && params.targetAuthorization) {
+          form.setFieldsValue({ targetAuthorization: params.targetAuthorization });
+          setTargetCompanyInfo(activeCollaborationSession.companyInfo?.target || null);
+        }
+      }
+    } else {
+      // 非协作模式下使用本地存储
+      const storageKey = `faqUserParams_${sessionId}`;
+      const savedParams: Partial<FaqUserParams> = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (formType === 'source' && savedParams.sourceAuthorization) {
+        form.setFieldsValue({ sourceAuthorization: savedParams.sourceAuthorization });
+        const sourceInfoKey = `sourceCompanyInfo_${sessionId}`;
+        try {
+          const savedSourceInfo = JSON.parse(localStorage.getItem(sourceInfoKey) || 'null');
+          if (savedSourceInfo) setSourceCompanyInfo(savedSourceInfo);
+        } catch (e) {
+          console.error('加载源租户公司信息失败', e);
+        }
+      }
+      if (formType === 'target' && savedParams.targetAuthorization) {
+        form.setFieldsValue({ targetAuthorization: savedParams.targetAuthorization });
+        const targetInfoKey = `targetCompanyInfo_${sessionId}`;
+        try {
+          const savedTargetInfo = JSON.parse(localStorage.getItem(targetInfoKey) || 'null');
+          if (savedTargetInfo) setTargetCompanyInfo(savedTargetInfo);
+        } catch (e) {
+          console.error('加载目标租户公司信息失败', e);
+        }
       }
     }
-    if (formType === 'target' && savedParams.targetAuthorization) {
-      form.setFieldsValue({ targetAuthorization: savedParams.targetAuthorization });
-      // 加载目标租户公司信息缓存
-      const targetInfoKey = `targetCompanyInfo_${sessionId}`;
-      try {
-        const savedTargetInfo = JSON.parse(localStorage.getItem(targetInfoKey) || 'null');
-        if (savedTargetInfo) setTargetCompanyInfo(savedTargetInfo);
-      } catch (e) {
-        console.error('加载目标租户公司信息失败', e);
-      }
-    }
-  }, [form, sessionId, formType]);
+  }, [form, sessionId, formType, isCollaborationMode, activeCollaborationSession]);
 
   // 验证用户token
   const verifyToken = async (token: string, isSource: boolean) => {
@@ -343,8 +357,10 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
         targetAuthorization: values.targetAuthorization ?? faqUserParams?.targetAuthorization ?? ''
       };
       setFaqUserParams(newParams);
-      if (sessionId) {
-        localStorage.setItem(`faqUserParams_${sessionId}`, JSON.stringify(newParams));
+      if (!isCollaborationMode) {
+        // 非协作模式下才写本地存储
+        const storageKey = `faqUserParams_${sessionId}`;
+        localStorage.setItem(storageKey, JSON.stringify(newParams));
       }
 
       message.success('身份信息保存成功');
@@ -353,6 +369,18 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 尝试自动保存，只在必填字段有值时执行
+  const tryAutoSave = () => {
+    const values = form.getFieldsValue() as FaqUserParams;
+    const { sourceAuthorization, targetAuthorization } = values;
+    if (
+      (formType === 'source' && sourceAuthorization) ||
+      (formType === 'target' && targetAuthorization)
+    ) {
+      handleSubmit(values);
     }
   };
 
@@ -511,6 +539,7 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
+        onBlurCapture={tryAutoSave}
       >
         {formType === 'source' && (
           <Form.Item

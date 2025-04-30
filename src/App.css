@@ -1,44 +1,146 @@
-.layout {
+/* 清除可能干扰的老旧样式 */
+.app-container {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
-.header {
+/* 顶部导航栏样式 */
+.main-header {
+  background-color: #1a365d !important;
+  padding: 0;
+  height: 64px;
+  line-height: 64px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header-content {
   display: flex;
   align-items: center;
-  background-color: #001529;
+  padding: 0 24px;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-/* 标题和菜单宽度问题修复 */
-.header .ant-typography {
-  overflow: visible;
-  text-overflow: clip;
+.main-header .ant-typography {
+  flex-shrink: 0;
+  margin-right: 48px !important;
   white-space: nowrap;
+  color: white !important;
+  font-weight: 500;
 }
 
-.ant-menu-overflow {
-  display: flex;
-  flex-wrap: nowrap;
-  min-width: 400px;
+.main-menu {
+  background: transparent !important;
+  border-bottom: none !important;
+  line-height: 64px;
+  flex: 1;
 }
 
-.content {
+.main-menu .ant-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+  padding: 0 20px !important;
+  margin: 0 4px !important;
+  height: 64px !important;
+  line-height: 64px !important;
+  border-bottom: 2px solid transparent !important;
+}
+
+.main-menu .ant-menu-item:hover {
+  color: #fff !important;
+  border-bottom: 2px solid #1890ff !important;
+}
+
+.main-menu .ant-menu-item-selected {
+  color: #fff !important;
+  background-color: #1890ff !important;
+  border-bottom: 2px solid #1890ff !important;
+}
+
+.main-menu .ant-menu-title-content {
+  font-size: 15px;
+}
+
+/* 内容区域样式 */
+.ant-layout-content {
   padding: 24px;
   background-color: #f0f2f5;
 }
 
-.container {
-  padding: 24px;
-  background: #fff;
-  min-height: calc(100vh - 190px);
-  margin: 0 20px;
-  border-radius: 4px;
+/* 确保卡片有适当的间距 */
+.ant-card {
+  position: relative;
+  z-index: 5;
 }
 
-.footer {
-  text-align: center;
-  padding: 16px;
-  background-color: #001529;
-  color: white;
+/* 确保折叠面板有良好的视觉效果 */
+.ant-collapse-header {
+  padding: 8px 16px !important;
+  background-color: #f5f5f5;
+}
+
+.ant-collapse-content {
+  overflow: visible !important;
+}
+
+/* 添加协作管理器相关样式 */
+.ant-collapse {
+  margin-bottom: 20px !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* 修复响应式问题 */
+@media (max-width: 768px) {
+  .ant-row {
+    flex-direction: column;
+  }
+  
+  .ant-col {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    margin-bottom: 16px;
+  }
+  
+  /* 在小屏幕上调整双向箭头按钮的方向 */
+  .ant-col[style*="display: flex; flex-direction: column;"] {
+    flex-direction: row !important;
+    justify-content: center;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 15px;
+  }
+  
+  .main-header {
+    height: auto;
+    line-height: normal;
+  }
+  
+  .main-menu {
+    width: 100%;
+    line-height: normal;
+  }
+}
+
+/* 修复标签样式 */
+.ant-tabs-card .ant-tabs-nav .ant-tabs-tab {
+  padding: 6px 16px;
+}
+
+/* 确保表单与其他元素不重叠 */
+form {
+  position: relative;
+  z-index: 1;
 }
 
 /* 标签列表样式 */

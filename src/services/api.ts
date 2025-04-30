@@ -555,11 +555,12 @@ export const exportTagsFromGroups = async (
 // 标签分组迁移
 export const migrateTagGroups = async (
   tagUserParams: TagUserParams,
-  groupIds: number[]
+  groupIds: number[],
+  options?: { prefixProcessing: boolean; prefixAdd: string; prefixRemove: string }
 ): Promise<string[]> => {
   return createRateLimitedRequest('migrateTagGroups', async () => {
     try {
-      console.log(`[migrateTagGroups] 开始迁移标签分组，目标租户ID: ${tagUserParams.targetTenantID}`);
+      console.log(`[migrateTagGroups] 开始迁移标签分组，目标租户ID: ${tagUserParams.targetTenantID}`, 'options:', options);
       
       // 成功迁移的分组名称列表
       const successGroups: string[] = [];
@@ -577,10 +578,19 @@ export const migrateTagGroups = async (
       for (const group of selectedGroups) {
         try {
           console.log(`[migrateTagGroups] 处理分组 "${group.group_name}" (ID: ${group.id})`);
-          
+          // 处理前缀
+          let newGroupName = group.group_name;
+          if (options?.prefixProcessing) {
+            // 去掉前缀
+            if (options.prefixRemove) {
+              newGroupName = newGroupName.replace(new RegExp(options.prefixRemove, 'g'), '');
+            }
+            // 添加前缀
+            newGroupName = `${options.prefixAdd}${newGroupName}`;
+          }
           // 1. 创建目标租户中的分组
           const targetGroupId = await createTagGroup({
-            group_name: group.group_name,
+            group_name: newGroupName,
             group_type: 0,
             type: 7,
             nxCloudUserID: tagUserParams.nxCloudUserID,
@@ -598,23 +608,29 @@ export const migrateTagGroups = async (
           
           if (sourceTags.list.length === 0) {
             console.log(`[migrateTagGroups] 分组 "${group.group_name}" 中没有标签`);
-            successGroups.push(group.group_name);
+            successGroups.push(newGroupName);
             continue;
           }
           
-          // 3. 逐个复制标签到目标分组
-          for (const tag of sourceTags.list) {
+          // 3. 逐个复制标签到目标分组，并处理前缀
+          for (const tagItem of sourceTags.list) {
+            let newTagName = tagItem.name;
+            if (options?.prefixProcessing) {
+              if (options.prefixRemove) {
+                newTagName = newTagName.replace(new RegExp(options.prefixRemove, 'g'), '');
+              }
+              newTagName = `${options.prefixAdd}${newTagName}`;
+            }
             await createTag({
               group_id: targetGroupId,
-              name: tag.name,
-              describes: tag.describes,
+              name: newTagName,
+              describes: tagItem.describes,
               nxCloudUserID: tagUserParams.nxCloudUserID,
               tenantId: tagUserParams.targetTenantID
             });
           }
-          
-          console.log(`[migrateTagGroups] 成功迁移分组 "${group.group_name}" 的 ${sourceTags.list.length} 个标签`);
-          successGroups.push(group.group_name);
+          console.log(`[migrateTagGroups] 成功迁移分组 "${newGroupName}" 的 ${sourceTags.list.length} 个标签`);
+          successGroups.push(newGroupName);
         } catch (error: any) {
           console.error(`[migrateTagGroups] 迁移分组 "${group.group_name}" 失败:`, error);
           // 继续处理下一个分组
@@ -1101,11 +1117,12 @@ export const exportFaqs = async (
 export const migrateFaqs = async (
   faqUserParams: FaqUserParams,
   faqsToMigrate: FaqItemDetailed[],
-  targetLanguageId: number
+  targetLanguageId: number,
+  options?: { prefixProcessing: boolean; prefixAdd: string; prefixRemove: string }
 ): Promise<string[]> => {
   return createRateLimitedRequest('migrateFaqs', async () => {
     try {
-      console.log(`[migrateFaqs] 开始迁移FAQ到目标语言ID: ${targetLanguageId}`);
+      console.log(`[migrateFaqs] 开始迁移FAQ到目标语言ID: ${targetLanguageId}`, 'options:', options);
       console.log(`[migrateFaqs] 源租户token前20位: ${faqUserParams.sourceAuthorization?.substring(0, 20) || '未设置'}`);
       console.log(`[migrateFaqs] 目标租户token前20位: ${faqUserParams.targetAuthorization?.substring(0, 20) || '未设置'}`);
       
@@ -1143,12 +1160,28 @@ export const migrateFaqs = async (
           // 处理media_infos到faq_medias的转换
           const faq_medias = faq.media_infos || [];
           
+          // 应用前缀处理
+          let question = faq.question;
+          let content = faq.content;
+          
+          if (options?.prefixProcessing) {
+            // 去掉前缀
+            if (options.prefixRemove) {
+              question = question.replace(new RegExp(options.prefixRemove, 'g'), '');
+              // 对内容也进行前缀处理，但仅处理文本部分，不处理HTML标签
+              // 这里是简单实现，实际场景可能需要更复杂的HTML解析
+              content = content.replace(new RegExp(options.prefixRemove, 'g'), '');
+            }
+            // 添加前缀
+            question = `${options.prefixAdd}${question}`;
+          }
+          
           // 记录请求参数
           const requestParams = {
-            question: faq.question,
+            question: question,
             type: faq.type,
             group_id: faq.group_id,
-            content: faq.content,
+            content: content,
             ai_desc: faq.ai_desc || '',
             language_id: targetLanguageId,
             faq_medias,
@@ -1164,10 +1197,10 @@ export const migrateFaqs = async (
           // 调用addFaq API添加FAQ到目标租户
           await addFaq(requestParams, headers);
           
-          console.log(`[migrateFaqs] 成功迁移FAQ "${faq.question}"`);
-          successFaqs.push(faq.question);
+          console.log(`[migrateFaqs] 成功迁移FAQ "${question}"`);
+          successFaqs.push(question);
         } catch (error: any) {
-          console.error(`[migrateFaqs] 迁移FAQ "${faq.question}" 失败:`, error);
+          console.error(`[migrateFaqs] 迁移FAQ "${faq.question || '未知问题'}" 失败:`, error);
           if (error.response) {
             console.error(`[migrateFaqs] 服务器响应:`, error.response.status, error.response.data);
           }

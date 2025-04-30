@@ -13,6 +13,10 @@ export default defineConfig({
     port: 3010,
     host: true,
     proxy: {
+      '/api/sessions': {
+        target: 'http://localhost:3020',
+        changeOrigin: true,
+      },
       '/api/admin/saas_plat/user/is_login': {
         target: 'https://nxlink.nxcloud.com',
         changeOrigin: true,

@@ -13,7 +13,8 @@ import {
   Tooltip,
   Input,
   Select,
-  Pagination
+  Pagination,
+  Checkbox
 } from 'antd';
 import { EyeOutlined, SearchOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
@@ -45,6 +46,7 @@ interface TargetFaqGroupMigrationProps {}
 export interface TargetFaqGroupMigrationHandle {
   refreshFaqs: () => Promise<void>;
   migrateToSource: () => Promise<void>;
+  handleMigrateOptions: () => void;
 }
 
 const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, TargetFaqGroupMigrationProps>((props, ref) => {
@@ -67,6 +69,12 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
   const [selectedNewLanguageId, setSelectedNewLanguageId] = useState<number | undefined>(undefined);
   const [addingLanguage, setAddingLanguage] = useState(false);
   
+  // 前缀处理相关状态
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [prefixProcessing, setPrefixProcessing] = useState(false);
+  const [prefixAdd, setPrefixAdd] = useState<string>('');
+  const [prefixRemove, setPrefixRemove] = useState<string>('');
+
   // 新增状态 - 分组详情
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<{ id: number | null; group_name: string; group_size: number } | null>(null);
@@ -243,6 +251,44 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
     }
   };
 
+  // 显示迁移选项模态框
+  const handleMigrateOptions = () => {
+    if (!faqUserParams) {
+      message.error('请先设置目标租户身份认证', 3);
+      return;
+    }
+    if (selectedRowKeys.length === 0) {
+      message.error('请选择要迁移的FAQ分组', 3);
+      return;
+    }
+    if (!targetLanguageId) {
+      message.error('请选择源租户目标语言', 3);
+      return;
+    }
+    
+    // 检查授权Token
+    if (!faqUserParams.sourceAuthorization) {
+      message.error('源租户授权Token缺失，请重新设置身份认证', 3);
+      return;
+    }
+    if (!faqUserParams.targetAuthorization) {
+      message.error('目标租户授权Token缺失，请重新设置身份认证', 3);
+      return;
+    }
+
+    // 打开选项模态框
+    setOptionsModalVisible(true);
+  };
+
+  // 确认迁移，调用执行迁移函数
+  const confirmMigrate = () => {
+    // 关闭选项模态框
+    setOptionsModalVisible(false);
+    console.log('执行迁移，前缀处理:', { prefixProcessing, prefixAdd, prefixRemove });
+    // 执行迁移
+    handleMigrate();
+  };
+
   // 处理迁移: 目标租户 -> 源租户
   const handleMigrate = async () => {
     if (!faqUserParams) {
@@ -303,9 +349,18 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
           if (resp.code !== 0 || !Array.isArray(resp.list)) continue;
           
           // 在源租户系统中确保分组存在
-          const sourceGroupId = await ensureGroupExistsInSource(group.group_name, targetLanguageId);
+          let newGroupName = group.group_name;
+          if (prefixProcessing) {
+            // 去掉前缀
+            if (prefixRemove) {
+              newGroupName = newGroupName.replace(new RegExp(prefixRemove, 'g'), '');
+            }
+            // 添加前缀
+            newGroupName = `${prefixAdd}${newGroupName}`;
+          }
+          const sourceGroupId = await ensureGroupExistsInSource(newGroupName, targetLanguageId);
           if (!sourceGroupId) {
-            console.error(`❌ [TargetFaqGroupMigration] 无法在源租户中创建分组 "${group.group_name}"`);
+            console.error(`❌ [TargetFaqGroupMigration] 无法在源租户中创建分组 "${newGroupName}"`);
             continue;
           }
           
@@ -323,7 +378,7 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
             targetAuthorization: faqUserParams.sourceAuthorization   // 源租户作为目标
           };
           
-          console.log(`📤 [TargetFaqGroupMigration] 从目标租户迁移分组 "${group.group_name}" 下的FAQ到源租户`);
+          console.log(`📤 [TargetFaqGroupMigration] 从目标租户迁移分组 "${group.group_name}" 下的FAQ到源租户分组 "${newGroupName}"`);
           console.log(`📤 [TargetFaqGroupMigration] 交换后 - 源租户Token(数据源)前20位: ${userParams.sourceAuthorization.substring(0, 20)}...`);
           console.log(`📤 [TargetFaqGroupMigration] 交换后 - 目标租户Token(迁移目标)前20位: ${userParams.targetAuthorization.substring(0, 20)}...`);
           
@@ -335,18 +390,33 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
           const migratedFaqs: string[] = [];
           for (const faq of modifiedFaqs) {
             try {
+              // 应用前缀处理到FAQ问题和内容
+              let question = faq.question;
+              let content = faq.content;
+              
+              if (prefixProcessing) {
+                // 去掉前缀
+                if (prefixRemove) {
+                  question = question.replace(new RegExp(prefixRemove, 'g'), '');
+                  // 对内容也进行前缀处理，但仅处理文本部分，不处理HTML标签
+                  content = content.replace(new RegExp(prefixRemove, 'g'), '');
+                }
+                // 添加前缀
+                question = `${prefixAdd}${question}`;
+              }
+
               const requestParams = {
-                question: faq.question,
+                question: question,
                 type: faq.type,
                 group_id: faq.group_id,
-                content: faq.content,
+                content: content,
                 ai_desc: faq.ai_desc || '',
                 language_id: targetLanguageId,
                 faq_medias: faq.media_infos || [],
                 faq_status: faq.faq_status
               };
               
-              console.log(`📝 [TargetFaqGroupMigration] 添加FAQ "${faq.question}" 到源租户, 使用源租户Token`);
+              console.log(`📝 [TargetFaqGroupMigration] 添加FAQ "${question}" 到源租户, 使用源租户Token`);
               
               // 使用源租户token(userParams.targetAuthorization)直接调用API
               const response = await axios.post('/api/home/api/faq', requestParams, {
@@ -357,8 +427,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
               });
               
               if (response.data.code === 0) {
-                console.log(`✅ [TargetFaqGroupMigration] 成功添加FAQ "${faq.question}" 到源租户`);
-                migratedFaqs.push(faq.question);
+                console.log(`✅ [TargetFaqGroupMigration] 成功添加FAQ "${question}" 到源租户`);
+                migratedFaqs.push(question);
               } else {
                 console.error(`❌ [TargetFaqGroupMigration] 添加FAQ失败: ${response.data.message}`);
               }
@@ -392,7 +462,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
   // 暴露刷新方法给父组件
   useImperativeHandle(ref, () => ({
     refreshFaqs: fetchFaqList,
-    migrateToSource: handleMigrate
+    migrateToSource: handleMigrate,
+    handleMigrateOptions: handleMigrateOptions
   }));
 
   // 处理搜索
@@ -838,9 +909,9 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
               </Select>
               <Button
                 type="primary"
-                onClick={handleMigrate}
+                onClick={handleMigrateOptions}
+                disabled={selectedRowKeys.length === 0 || migrating || targetLanguageId === 0}
                 loading={migrating}
-                disabled={!targetLanguageId}
               >
                 迁移到源租户
               </Button>
@@ -975,6 +1046,39 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
             <Text type="warning">所有可用语言已添加</Text>
           </div>
         )}
+      </Modal>
+
+      {/* 迁移选项模态框 - 前缀处理 */}
+      <Modal
+        title="迁移设置"
+        open={optionsModalVisible}
+        onCancel={() => setOptionsModalVisible(false)}
+        onOk={confirmMigrate}
+        okText="确认"
+        cancelText="取消"
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Checkbox
+            checked={prefixProcessing}
+            onChange={e => setPrefixProcessing(e.target.checked)}
+          >
+            前缀处理
+          </Checkbox>
+          {prefixProcessing && (
+            <>
+              <Input
+                addonBefore="添加前缀"
+                value={prefixAdd}
+                onChange={e => setPrefixAdd(e.target.value)}
+              />
+              <Input
+                addonBefore="去掉前缀"
+                value={prefixRemove}
+                onChange={e => setPrefixRemove(e.target.value)}
+              />
+            </>
+          )}
+        </Space>
       </Modal>
     </Card>
   );

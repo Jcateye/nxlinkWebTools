@@ -16,7 +16,8 @@ import {
   Pagination,
   Alert,
   Divider,
-  Descriptions
+  Descriptions,
+  Checkbox
 } from 'antd';
 import { EyeOutlined, SearchOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined, PlusOutlined, ExportOutlined, ImportOutlined, SwapOutlined, CaretRightOutlined, DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
@@ -63,6 +64,7 @@ interface FaqGroupMigrationProps {}
 export interface FaqGroupMigrationHandle {
   refreshFaqs: () => Promise<void>;
   migrateToTarget: () => Promise<void>;
+  handleMigrateOptions: () => void;
 }
 
 interface FaqListData {
@@ -111,11 +113,20 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
   const [migrationResults, setMigrationResults] = useState<Array<{groupName: string; count: number}>>([]);
   const [failedFaqs, setFailedFaqs] = useState<Array<{groupName: string; question: string; reason: string}>>([]);
 
+  // 前缀处理相关状态
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [prefixProcessing, setPrefixProcessing] = useState(false);
+  const [prefixAdd, setPrefixAdd] = useState<string>('');
+  const [prefixRemove, setPrefixRemove] = useState<string>('');
+
   // 当用户参数变化时，加载语言列表
   useEffect(() => {
     if (faqUserParams?.sourceAuthorization) {
       fetchLanguageList();
       fetchTenantLanguageList();
+      // 设置默认前缀值
+      // 由于FaqUserParams没有sourceTenantID，这里暂时使用空字符串
+      setPrefixAdd('');
     }
   }, [faqUserParams]);
 
@@ -255,7 +266,8 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
   // 暴露刷新方法给父组件
   useImperativeHandle(ref, () => ({
     refreshFaqs: fetchFaqList,
-    migrateToTarget: handleMigrate
+    migrateToTarget: handleMigrate,
+    handleMigrateOptions: handleMigrateOptions
   }));
 
   // 处理搜索
@@ -291,17 +303,17 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
   // 处理迁移
   const handleMigrate = async () => {
     if (!faqUserParams) {
-      message.error('请先设置身份认证', 3);
+      message.error('请先设置FAQ参数');
       return;
     }
 
     if (selectedRowKeys.length === 0) {
-      message.error('请选择要迁移的FAQ分组', 3);
+      message.error('请选择要迁移的FAQ分组');
       return;
     }
 
     if (!targetLanguageId) {
-      message.error('请选择目标语言', 3);
+      message.error('请选择目标语言');
       return;
     }
 
@@ -413,58 +425,13 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
           // 调用迁移API进行实际迁移
           console.log(`🔄 [FaqGroupMigration] 开始迁移分组 "${group.group_name}" 下的FAQ数据到目标语言ID: ${targetLanguageId}, 目标分组ID: ${targetGroupId}`);
           
-          // 方式一：使用migrateFaqs函数迁移
-          // const migratedResults = await migrateFaqs(faqUserParams, faqsToMigrate, targetLanguageId);
-          
-          // 方式二：直接使用axios调用API，确保使用正确的token
-          const migratedResults: string[] = [];
-          for (const faq of faqsToMigrate) {
-            try {
-              const requestParams = {
-                question: faq.question,
-                type: faq.type,
-                group_id: faq.group_id,
-                content: faq.content,
-                ai_desc: faq.ai_desc || '',
-                language_id: targetLanguageId,
-                faq_medias: faq.media_infos || [],
-                faq_status: faq.faq_status
-              };
-              
-              console.log(`📝 [FaqGroupMigration] 添加FAQ "${faq.question}" 到目标租户`);
-              
-              // 使用目标租户token直接调用API，绕过拦截器
-              const response = await axios.post('/api/home/api/faq', requestParams, {
-                headers: {
-                  authorization: faqUserParams.targetAuthorization,
-                  system_id: '5'
-                }
-              });
-              
-              if (response.data.code === 0) {
-                console.log(`✅ [FaqGroupMigration] 成功添加FAQ "${faq.question}" 到目标租户`);
-                migratedResults.push(faq.question);
-              } else {
-                console.error(`❌ [FaqGroupMigration] 添加FAQ失败: ${response.data.message}`);
-                failedFaqDetails.push({
-                  groupName: group.group_name,
-                  question: faq.question,
-                  reason: `添加失败: ${response.data.message || '服务器返回错误'}`
-                });
-              }
-            } catch (faqError: any) {
-              console.error(`❌ [FaqGroupMigration] 添加FAQ "${faq.question}" 失败:`, faqError.message);
-              if (faqError.response) {
-                console.error(`服务器响应:`, faqError.response.status, faqError.response.data);
-              }
-              
-              failedFaqDetails.push({
-                groupName: group.group_name,
-                question: faq.question,
-                reason: faqError.message || '未知错误'
-              });
-            }
-          }
+          // 使用migrateFaqs函数迁移
+          const migratedResults = await migrateFaqs(
+            faqUserParams, 
+            faqsToMigrate, 
+            targetLanguageId, 
+            prefixProcessing ? { prefixProcessing, prefixAdd, prefixRemove } : undefined
+          );
           
           // 检查迁移结果
           if (migratedResults.length < faqsToMigrate.length) {
@@ -612,29 +579,40 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
 
   // 确保目标系统中存在指定名称的分组
   const ensureGroupExistsInTarget = async (groupName: string, languageId: number): Promise<number | null> => {
+    // 应用前缀处理到分组名称
+    let newGroupName = groupName;
+    if (prefixProcessing) {
+      // 去掉前缀
+      if (prefixRemove) {
+        newGroupName = newGroupName.replace(new RegExp(prefixRemove, 'g'), '');
+      }
+      // 添加前缀
+      newGroupName = `${prefixAdd}${newGroupName}`;
+    }
+
     // 1. 先检查已有分组
     const existingGroups = await getFaqGroupListInTarget(languageId);
-    const found = existingGroups.find(g => g.group_name === groupName && g.id !== null);
+    const found = existingGroups.find(g => g.group_name === newGroupName && g.id !== null);
     if (found && found.id !== null) {
-      console.log(`✅ [FaqGroupMigration] 目标系统已存在分组 "${groupName}"，ID: ${found.id}`);
+      console.log(`✅ [FaqGroupMigration] 目标系统已存在分组 "${newGroupName}"，ID: ${found.id}`);
       return found.id;
     }
 
     // 2. 不存在则创建
-    console.log(`ℹ️ [FaqGroupMigration] 目标系统中不存在分组 "${groupName}"，尝试创建...`);
+    console.log(`ℹ️ [FaqGroupMigration] 目标系统中不存在分组 "${newGroupName}"，尝试创建...`);
     try {
       const resp = await axios.post('/api/home/api/faqGroup',
-        { group_name: groupName, language_id: languageId, type: 4 },
+        { group_name: newGroupName, language_id: languageId, type: 4 },
         { headers: { authorization: faqUserParams?.targetAuthorization || '', system_id: '5' } }
       );
       const data = resp.data as any;
       // 创建成功
       if (data.code === 0) {
-        console.log(`✅ [FaqGroupMigration] 在目标系统创建分组 "${groupName}" 成功，code=0`);
+        console.log(`✅ [FaqGroupMigration] 在目标系统创建分组 "${newGroupName}" 成功，code=0`);
         // 由于API返回code=0但data为null，需要重新获取分组列表以获取ID
         console.log(`ℹ️ [FaqGroupMigration] 重新获取分组列表以获取新创建的分组ID`);
         const updatedGroups = await getFaqGroupListInTarget(languageId);
-        const newGroup = updatedGroups.find(g => g.group_name === groupName && g.id !== null);
+        const newGroup = updatedGroups.find(g => g.group_name === newGroupName && g.id !== null);
         if (newGroup && newGroup.id !== null) {
           console.log(`✅ [FaqGroupMigration] 成功获取到新创建的分组ID: ${newGroup.id}`);
           return newGroup.id;
@@ -643,31 +621,31 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
           // 可能需要等待一小段时间让服务器数据同步
           await new Promise(resolve => setTimeout(resolve, 1000));
           const retryGroups = await getFaqGroupListInTarget(languageId);
-          const retryGroup = retryGroups.find(g => g.group_name === groupName && g.id !== null);
+          const retryGroup = retryGroups.find(g => g.group_name === newGroupName && g.id !== null);
           if (retryGroup && retryGroup.id !== null) {
             console.log(`✅ [FaqGroupMigration] 重试成功获取到分组ID: ${retryGroup.id}`);
             return retryGroup.id;
           }
         }
         
-        console.warn(`⚠️ [FaqGroupMigration] 分组创建成功但未能获取ID`);
+        console.warn(`⚠️ [FaqGroupMigration] 分组 "${newGroupName}" 创建成功但未能获取ID`);
         return null;
       }
       // 如果是重复分组错误，则重新获取
       if (data.code === 11058) {
-        console.warn(`⚠️ [FaqGroupMigration] 分组 "${groupName}" 重复，重新拉取列表`);
+        console.warn(`⚠️ [FaqGroupMigration] 分组 "${newGroupName}" 重复，重新拉取列表`);
         const updated = await getFaqGroupListInTarget(languageId);
-        const dup = updated.find(g => g.group_name === groupName && g.id !== null);
+        const dup = updated.find(g => g.group_name === newGroupName && g.id !== null);
         if (dup && dup.id !== null) {
           console.log(`✅ [FaqGroupMigration] 通过重复错误获取到分组ID: ${dup.id}`);
           return dup.id;
         }
       }
-      console.error(`❌ [FaqGroupMigration] 创建分组 "${groupName}" 失败:`, data);
-      message.error(`创建分组失败: ${data.message || '未知错误'}`, 3);
+      console.error(`❌ [FaqGroupMigration] 创建分组 "${newGroupName}" 失败:`, data);
+      message.error(`创建分组 "${newGroupName}" 失败: ${data.message || '未知错误'}`, 3);
       return null;
     } catch (error: any) {
-      console.error(`❌ [FaqGroupMigration] 调用创建分组接口失败:`, error);
+      console.error(`❌ [FaqGroupMigration] 调用创建分组 "${newGroupName}" 接口失败:`, error);
       return null;
     }
   };
@@ -1163,6 +1141,40 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
     );
   };
 
+  // 显示迁移选项模态框
+  const handleMigrateOptions = () => {
+    if (!faqUserParams) {
+      message.error('请先设置FAQ参数');
+      return;
+    }
+
+    if (!faqUserParams.targetAuthorization) {
+      message.error('请设置目标租户Token');
+      return;
+    }
+
+    if (selectedRowKeys.length === 0) {
+      message.error('请选择要迁移的FAQ分组');
+      return;
+    }
+
+    if (targetLanguageId === 0) {
+      message.error('请选择目标语言');
+      return;
+    }
+
+    // 打开选项模态框
+    setOptionsModalVisible(true);
+  };
+
+  // 确认迁移并执行
+  const confirmMigrate = async () => {
+    // 关闭选项模态框
+    setOptionsModalVisible(false);
+    console.log('执行迁移，前缀处理:', { prefixProcessing, prefixAdd, prefixRemove });
+    await handleMigrate();
+  };
+
   // 如果用户参数未设置，显示提示
   if (!faqUserParams?.sourceAuthorization) {
     return (
@@ -1255,11 +1267,11 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
               </Select>
               <Button
                 type="primary"
-                onClick={handleMigrate}
+                onClick={handleMigrateOptions}
+                disabled={selectedRowKeys.length === 0 || migrating || targetLanguageId === 0}
                 loading={migrating}
-                disabled={!targetLanguageId}
               >
-                迁移到目标租户
+                开始迁移
               </Button>
             </Space>
             <Space>
@@ -1395,6 +1407,39 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
             />
           </div>
         )}
+      </Modal>
+
+      {/* 迁移选项模态框 - 前缀处理 */}
+      <Modal
+        title="迁移设置"
+        open={optionsModalVisible}
+        onCancel={() => setOptionsModalVisible(false)}
+        onOk={confirmMigrate}
+        okText="确认"
+        cancelText="取消"
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Checkbox
+            checked={prefixProcessing}
+            onChange={e => setPrefixProcessing(e.target.checked)}
+          >
+            前缀处理
+          </Checkbox>
+          {prefixProcessing && (
+            <>
+              <Input
+                addonBefore="添加前缀"
+                value={prefixAdd}
+                onChange={e => setPrefixAdd(e.target.value)}
+              />
+              <Input
+                addonBefore="去掉前缀"
+                value={prefixRemove}
+                onChange={e => setPrefixRemove(e.target.value)}
+              />
+            </>
+          )}
+        </Space>
       </Modal>
     </Card>
   );

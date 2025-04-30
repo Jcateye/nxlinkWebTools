@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs } from 'antd';
-import { ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined } from '@ant-design/icons';
 import TagParamsForm from './components/TagParamsForm';
 import FaqParamsForm from './components/FaqParamsForm';
 import TagGroupMigration, { TagGroupMigrationHandle } from './components/TagGroupMigration';
@@ -8,61 +8,110 @@ import FaqGroupMigration, { FaqGroupMigrationHandle } from './components/FaqGrou
 import TargetFaqGroupMigration, { TargetFaqGroupMigrationHandle } from './components/TargetFaqGroupMigration';
 import TagImport from './components/TagImport';
 import FaqImport from './components/FaqImport';
-import { UserProvider } from './context/UserContext';
+import { UserProvider, useUserContext } from './context/UserContext';
 import VoiceList from './components/VoiceList';
 import VoiceMigration from './components/VoiceMigration';
+import CollaborationManager from './components/CollaborationManager';
 import './App.css';
+import zhCN from 'antd/lib/locale/zh_CN';
 
 const { Header, Content, Footer } = Layout;
 const { Title } = Typography;
 const { TabPane } = Tabs;
 
-const App: React.FC = () => {
+// 创建内部AppContent组件，可以使用useUserContext
+const AppContent = () => {
   const tagGroupMigrationRef = useRef<TagGroupMigrationHandle>(null);
   const faqGroupMigrationRef = useRef<FaqGroupMigrationHandle>(null);
   const targetFaqGroupMigrationRef = useRef<TargetFaqGroupMigrationHandle>(null);
   const [activeMenu, setActiveMenu] = useState<string>('tag');
+  const { 
+    isCollaborationMode, 
+    setCollaborationMode, 
+    collaborationSessions, 
+    joinCollaborationSession 
+  } = useUserContext();
+
+  // 添加URL参数处理逻辑
+  useEffect(() => {
+    // 从URL中获取协作会话ID
+    const urlParams = new URLSearchParams(window.location.search);
+    const collaborationId = urlParams.get('collaboration');
+    
+    if (collaborationId) {
+      console.log('检测到协作会话ID:', collaborationId);
+      
+      // 查找现有会话
+      const existingSession = collaborationSessions.find(s => s.id === collaborationId);
+      
+      if (existingSession) {
+        // 已找到会话，直接加入
+        console.log('找到匹配的会话，准备加入:', existingSession.name);
+        joinCollaborationSession(existingSession);
+        setCollaborationMode(true);
+        
+        // 自动切换到FAQ管理页面
+        setActiveMenu('faq');
+      } else {
+        // 会话不存在本地存储中，尝试作为新会话ID加入
+        console.log('本地未找到会话，尝试直接使用ID加入:', collaborationId);
+        try {
+          // 直接使用ID加入会话
+          joinCollaborationSession(collaborationId);
+          setCollaborationMode(true);
+          setActiveMenu('faq');
+        } catch (error) {
+          console.error('使用ID加入会话失败:', error);
+          alert('无法加入协作会话，ID可能无效或已过期');
+        }
+      }
+      
+      // 移除URL参数，避免刷新页面重复处理
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [collaborationSessions, joinCollaborationSession, setCollaborationMode, setActiveMenu]);
 
   // 提供刷新分组列表的方法
   const refreshTagGroups = () => {
-    if (tagGroupMigrationRef.current && tagGroupMigrationRef.current.refreshGroups) {
+    if (tagGroupMigrationRef.current) {
       tagGroupMigrationRef.current.refreshGroups();
     }
   };
 
-  // 刷新FAQ分组列表
   const refreshFaqGroups = () => {
-    if (faqGroupMigrationRef.current && faqGroupMigrationRef.current.refreshFaqs) {
+    if (faqGroupMigrationRef.current) {
       faqGroupMigrationRef.current.refreshFaqs();
     }
   };
 
-  // 刷新目标FAQ分组列表
   const refreshTargetFaqGroups = () => {
-    if (targetFaqGroupMigrationRef.current && targetFaqGroupMigrationRef.current.refreshFaqs) {
+    if (targetFaqGroupMigrationRef.current) {
       targetFaqGroupMigrationRef.current.refreshFaqs();
     }
   };
 
-  // 处理菜单切换
-  const handleMenuClick = (key: string) => {
-    setActiveMenu(key);
-  };
-
-  // 渲染当前活动内容
+  // 渲染内容区域
   const renderContent = () => {
     switch (activeMenu) {
       case 'tag':
         return (
-          <>
-            <TagParamsForm />
-            <TagGroupMigration ref={tagGroupMigrationRef} />
-            <TagImport onImportComplete={refreshTagGroups} />
-          </>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <Row gutter={24} style={{ width: '100%' }}>
+              <Col span={24}>
+                <Card title="标签迁移" style={{ height: '100%' }}>
+                  <TagParamsForm />
+                  <TagGroupMigration ref={tagGroupMigrationRef} />
+                  <Divider style={{ margin: '12px 0' }}/>
+                  <TagImport onImportComplete={refreshTagGroups} />
+                </Card>
+              </Col>
+            </Row>
+          </div>
         );
       case 'faq':
         return (
-          <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <CollaborationManager />
             <Row gutter={24} style={{ width: '100%' }}>
               {/* 左侧：源租户面板 */}
               <Col span={11}>
@@ -78,13 +127,13 @@ const App: React.FC = () => {
                 <Button
                   icon={<ArrowRightOutlined />}
                   type="primary"
-                  onClick={() => faqGroupMigrationRef.current?.migrateToTarget()}
+                  onClick={() => faqGroupMigrationRef.current?.handleMigrateOptions?.()}
                   title="迁移到目标租户"
                 />
                 <Button
                   icon={<ArrowLeftOutlined />}
                   type="default"
-                  onClick={() => targetFaqGroupMigrationRef.current?.migrateToSource()}
+                  onClick={() => targetFaqGroupMigrationRef.current?.handleMigrateOptions?.()}
                   title="迁移到源租户"
                 />
               </Col>
@@ -98,11 +147,12 @@ const App: React.FC = () => {
                 </Card>
               </Col>
             </Row>
-          </>
+          </div>
         );
       case 'voice':
         return (
-          <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <CollaborationManager />
             <Row gutter={24} style={{ width: '100%' }}>
               {/* 左侧：源租户面板 */}
               <Col span={11}>
@@ -119,7 +169,7 @@ const App: React.FC = () => {
                 </Card>
               </Col>
             </Row>
-
+            
             <Tabs defaultActiveKey="list" type="card" style={{ marginTop: 16 }}>
               <TabPane tab="声音列表" key="list">
                 <Row gutter={24} style={{ width: '100%' }}>
@@ -135,7 +185,7 @@ const App: React.FC = () => {
                 <VoiceMigration />
               </TabPane>
             </Tabs>
-          </>
+          </div>
         );
       default:
         return null;
@@ -143,42 +193,40 @@ const App: React.FC = () => {
   };
 
   return (
-    <UserProvider>
-      <Layout className="layout">
-        <Header className="header">
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-            <div style={{ marginRight: 24, whiteSpace: 'nowrap' }}>
-              <Title level={4} style={{ color: 'white', margin: '16px 0' }}>
-                NxLink 管理工具
-              </Title>
-            </div>
-            <Menu
-              theme="dark"
-              mode="horizontal"
-              selectedKeys={[activeMenu]}
-              onClick={({key}) => handleMenuClick(key)}
-              items={[
-                { key: 'tag', label: '标签迁移工具' },
-                { key: 'faq', label: 'FAQ管理' },
-                { key: 'voice', label: '声音管理' }
-              ]}
-              style={{ flex: 1, whiteSpace: 'nowrap' }}
-            />
-          </div>
-        </Header>
-        
-        <Content className="content">
-          <div className="container">
-            {renderContent()}
-          </div>
-        </Content>
-        
-        <Footer className="footer">
-          NxLink 工具箱 ©{new Date().getFullYear()} By Degen
-        </Footer>
-      </Layout>
-    </UserProvider>
+    <Layout className="app-container">
+      <Header className="main-header">
+        <div className="header-content">
+          <Typography.Title level={3} style={{ color: 'white', margin: 0 }}>
+            NxLink 管理工具
+          </Typography.Title>
+          <Menu
+            mode="horizontal"
+            selectedKeys={[activeMenu]}
+            onSelect={({ key }) => setActiveMenu(key as string)}
+            className="main-menu"
+          >
+            <Menu.Item key="tag" icon={<TeamOutlined />}>标签迁移工具</Menu.Item>
+            <Menu.Item key="faq" icon={<QuestionOutlined />}>FAQ管理</Menu.Item>
+            <Menu.Item key="voice" icon={<SoundOutlined />}>声音管理</Menu.Item>
+          </Menu>
+        </div>
+      </Header>
+      <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px - 70px)' }}>
+        {renderContent()}
+      </Content>
+      <Footer style={{ textAlign: 'center', background: '#f0f2f5', height: '70px' }}>
+        NxLink 管理工具 ©2025 Degen
+      </Footer>
+    </Layout>
   );
 };
+
+function App() {
+  return (
+    <UserProvider>
+      <AppContent />
+    </UserProvider>
+  );
+}
 
 export default App; 

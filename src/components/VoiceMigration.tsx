@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, List, Checkbox, Button, message, Typography, Avatar, Tag, Empty, Spin, Divider, Alert, Row, Col } from 'antd';
+import { Card, List, Checkbox, Button, message, Typography, Avatar, Tag, Empty, Spin, Divider, Alert, Row, Col, Modal, Space, Input } from 'antd';
 import { SoundOutlined, UserOutlined, WomanOutlined, ManOutlined, SyncOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { Voice } from '../types';
 import { useUserContext } from '../context/UserContext';
@@ -40,11 +40,19 @@ const VoiceMigration: React.FC = () => {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [migrating, setMigrating] = useState(false);
   const [migratedNames, setMigratedNames] = useState<string[]>([]);
+  // 前缀处理相关状态
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [prefixProcessing, setPrefixProcessing] = useState(false);
+  const [prefixAdd, setPrefixAdd] = useState<string>('');
+  const [prefixRemove, setPrefixRemove] = useState<string>('');
 
   useEffect(() => {
     if (faqUserParams) {
       fetchSourceVoices();
       fetchTargetVoices();
+      // 设置默认前缀值
+      // 由于FaqUserParams没有sourceTenantID，这里暂时使用空字符串
+      setPrefixAdd('');
     }
   }, [faqUserParams]);
 
@@ -130,6 +138,31 @@ const VoiceMigration: React.FC = () => {
     return targetVoices.some(targetVoice => targetVoice.name === voice.name);
   };
 
+  // 显示迁移选项模态框
+  const handleMigrateOptions = () => {
+    if (!faqUserParams || !faqUserParams.targetAuthorization) {
+      message.warning('请先完成目标租户身份认证');
+      return;
+    }
+
+    if (selectedVoices.length === 0) {
+      message.warning('请至少选择一个声音进行迁移');
+      return;
+    }
+
+    // 打开选项模态框
+    setOptionsModalVisible(true);
+  };
+
+  // 确认迁移，调用执行迁移函数
+  const confirmMigrate = () => {
+    // 关闭选项模态框
+    setOptionsModalVisible(false);
+    console.log('执行迁移，前缀处理:', { prefixProcessing, prefixAdd, prefixRemove });
+    // 执行迁移
+    handleMigration();
+  };
+
   const handleMigration = async () => {
     if (!faqUserParams || !faqUserParams.targetAuthorization) {
       message.warning('请先完成目标租户身份认证');
@@ -158,9 +191,20 @@ const VoiceMigration: React.FC = () => {
             continue;
           }
           
+          // 处理前缀
+          let voiceName = voice.name;
+          if (prefixProcessing) {
+            // 去掉前缀
+            if (prefixRemove) {
+              voiceName = voiceName.replace(new RegExp(prefixRemove, 'g'), '');
+            }
+            // 添加前缀
+            voiceName = `${prefixAdd}${voiceName}`;
+          }
+          
           // 构建迁移请求参数
           const payload = {
-            name: voice.name,
+            name: voiceName,
             gender: voice.gender,
             language: voice.language,
             vendor: voice.vendor,
@@ -186,14 +230,14 @@ const VoiceMigration: React.FC = () => {
           );
           
           if (response.data.code === 0) {
-            successNames.push(voice.name);
+            successNames.push(voiceName);
           } else {
-            console.error(`迁移声音 "${voice.name}" 失败:`, response.data);
-            message.error(`迁移声音 "${voice.name}" 失败: ${response.data.message || '未知错误'}`);
+            console.error(`迁移声音 "${voiceName}" 失败:`, response.data);
+            message.error(`迁移声音 "${voiceName}" 失败: ${response.data.message || '未知错误'}`);
           }
         } catch (error) {
-          console.error(`迁移声音 "${voice.name}" 失败:`, error);
-          message.error(`迁移声音 "${voice.name}" 失败，请重试`);
+          console.error(`迁移声音 "${voice.name || '未知声音'}" 失败:`, error);
+          message.error(`迁移声音 "${voice.name || '未知声音'}" 失败，请重试`);
         }
       }
       
@@ -335,14 +379,14 @@ const VoiceMigration: React.FC = () => {
         <Col span={2} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <Button
             type="primary"
+            onClick={handleMigrateOptions}
             icon={<ArrowRightOutlined />}
-            onClick={handleMigration}
             loading={migrating}
-            disabled={selectedVoices.length === 0}
+            disabled={selectedVoices.length === 0 || migrating}
             size="large"
             style={{ marginBottom: 16 }}
           >
-            迁移
+            迁移到目标租户
           </Button>
         </Col>
 
@@ -413,6 +457,39 @@ const VoiceMigration: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* 迁移选项模态框 - 前缀处理 */}
+      <Modal
+        title="迁移设置"
+        open={optionsModalVisible}
+        onCancel={() => setOptionsModalVisible(false)}
+        onOk={confirmMigrate}
+        okText="确认"
+        cancelText="取消"
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Checkbox
+            checked={prefixProcessing}
+            onChange={e => setPrefixProcessing(e.target.checked)}
+          >
+            前缀处理
+          </Checkbox>
+          {prefixProcessing && (
+            <>
+              <Input
+                addonBefore="添加前缀"
+                value={prefixAdd}
+                onChange={e => setPrefixAdd(e.target.value)}
+              />
+              <Input
+                addonBefore="去掉前缀"
+                value={prefixRemove}
+                onChange={e => setPrefixRemove(e.target.value)}
+              />
+            </>
+          )}
+        </Space>
+      </Modal>
     </>
   );
 };

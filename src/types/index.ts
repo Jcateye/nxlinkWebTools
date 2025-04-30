@@ -53,6 +53,27 @@ export interface FaqUserParams {
   targetAuthorization: string;
 }
 
+/**
+ * 协作会话类型定义
+ */
+export interface CollaborationSession {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt?: number;
+  createdBy: string;
+  creatorName: string;
+  participants?: string[];
+  userParams: {
+    companyId: string;
+    tenantId: string;
+    token: string;
+  };
+  tagUserParams?: TagUserParams;
+  faqUserParams?: FaqUserParams;
+  companyInfo?: any;
+}
+
 // 标签分组添加请求类型
 export interface TagGroupAddRequest {
   group_name: string;

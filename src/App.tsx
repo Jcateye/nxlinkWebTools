@@ -11,7 +11,7 @@ import FaqImport from './components/FaqImport';
 import { UserProvider, useUserContext } from './context/UserContext';
 import VoiceList from './components/VoiceList';
 import VoiceMigration from './components/VoiceMigration';
-import CollaborationManager from './components/CollaborationManager';
+// import CollaborationManager from './components/CollaborationManager';
 import './App.css';
 import zhCN from 'antd/lib/locale/zh_CN';
 
@@ -111,7 +111,7 @@ const AppContent = () => {
       case 'faq':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <CollaborationManager />
+            {/* <CollaborationManager /> */}
             <Row gutter={24} style={{ width: '100%' }}>
               {/* 左侧：源租户面板 */}
               <Col span={11}>
@@ -152,7 +152,7 @@ const AppContent = () => {
       case 'voice':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <CollaborationManager />
+            {/* <CollaborationManager /> */}
             <Row gutter={24} style={{ width: '100%' }}>
               {/* 左侧：源租户面板 */}
               <Col span={11}>

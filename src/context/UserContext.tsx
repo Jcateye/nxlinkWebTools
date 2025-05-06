@@ -222,66 +222,23 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isCollaborationMode, activeCollaborationSession]);
 
   // 监听授权信息更新
-  useEffect(() => {
-    const handleAuthUpdate = (payload: any) => {
-      if (!payload) return;
-      const { tagUserParams: tp, faqUserParams: fp, timestamp, senderName } = payload;
-      // 如果本地没有活跃会话，或者推送的不是当前会话，忽略
-      if (!activeCollaborationSession || payload.sessionId !== activeCollaborationSession.id) {
-        return;
-      }
-      const localTs = activeCollaborationSession.updatedAt || 0;
-      // 只有当服务器推送的时间戳更晚时，才更新本地
-      if (!timestamp || timestamp <= localTs) {
-        console.log('本地会话时间戳 >= 服务端，无需更新');
-        return;
-      }
-      // 构造新的会话对象
-      const updatedSession: CollaborationSession = {
-        ...activeCollaborationSession,
-        tagUserParams: tp || activeCollaborationSession.tagUserParams,
-        faqUserParams: fp || activeCollaborationSession.faqUserParams,
-        updatedAt: timestamp
-      };
-      // 更新上下文状态
-      setActiveCollaborationSession(updatedSession);
-      saveActiveCollaborationSessionToStorage(updatedSession);
-      if (tp) setTagUserParamsState(tp);
-      if (fp) setFaqUserParamsState(fp);
-      // 通知用户
-      message.success(`${senderName || '协作用户'} 更新了授权信息`);
-
-      // 自动触发保存身份信息按钮（如果方法存在）
-      if (typeof window.saveIdentityInfo === 'function') {
-        window.saveIdentityInfo();
-      }
-    };
-    
-    if (isCollaborationMode) {
-      // 注册授权更新事件监听
-      collaborationService.onAuthUpdate(handleAuthUpdate);
-    }
-    
-    return () => {
-      // 移除事件监听
-      collaborationService.removeAllListeners();
-    };
-  }, [isCollaborationMode, tagUserParamsState, faqUserParamsState, activeCollaborationSession]);
+  // useEffect(() => {
+  //   const handleAuthUpdate = (payload: any) => {
+  //     ... // 省略原有内容
+  //   };
+  //   if (isCollaborationMode) {
+  //     collaborationService.onAuthUpdate(handleAuthUpdate);
+  //   }
+  //   return () => {
+  //     collaborationService.removeAllListeners();
+  //   };
+  // }, [isCollaborationMode, tagUserParamsState, faqUserParamsState, activeCollaborationSession]);
 
   // 监听会话更新（时间戳决胜）
-  const onSessionUpdated = (updatedSession: CollaborationSession) => {
-    if (!activeCollaborationSession || updatedSession.id !== activeCollaborationSession.id) return;
-    const localTs = activeCollaborationSession.updatedAt || 0;
-    if (updatedSession.updatedAt! <= localTs) return;
-    // 更新本地活动会话
-    setActiveCollaborationSession(updatedSession);
-    saveActiveCollaborationSessionToStorage(updatedSession);
-    // 同步更新列表，使UI自动刷新
-    setCollaborationSessions(prev =>
-      prev.map(s => s.id === updatedSession.id ? updatedSession : s)
-    );
-  };
-  collaborationService.onSessionUpdate(onSessionUpdated);
+  // const onSessionUpdated = (updatedSession: CollaborationSession) => {
+  //   ... // 省略原有内容
+  // };
+  // collaborationService.onSessionUpdate(onSessionUpdated);
 
   // 定义会话上下文方法
   const fetchSessions = async () => {
@@ -308,20 +265,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       // 发送同步事件到协作服务器
-      collaborationService.syncAuthInfo(activeCollaborationSession.id, syncData);
-      
-      // 更新活跃会话的用户参数
-      const updatedSession = {
-        ...activeCollaborationSession,
-        userParams: {
-          companyId: params.nxCloudUserID,
-          tenantId: params.sourceTenantID,
-          token: params.authorization
-        },
-        tagUserParams: params
-      };
-      
-      updateCollaborationSession(updatedSession);
+      // collaborationService.syncAuthInfo(activeCollaborationSession.id, syncData);
     } else {
       // 非协作模式，使用本地存储
       const sessionId = getSessionId();

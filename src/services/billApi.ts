@@ -203,10 +203,107 @@ export const getBillUserParams = (): BillUserParams | null => {
 };
 
 /**
+ * 设置账单用户参数（API令牌）
+ * @param userParams 用户参数
+ */
+export const setBillUserParams = (userParams: BillUserParams): void => {
+  const sessionId = localStorage.getItem('sessionId');
+  if (sessionId) {
+    const storageKey = `tagUserParams_${sessionId}`;
+    // 获取现有的tagUserParams，更新authorization字段
+    const existingParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    const updatedParams = {
+      ...existingParams,
+      authorization: userParams.authorization
+    };
+    
+    localStorage.setItem(storageKey, JSON.stringify(updatedParams));
+    console.log('[账单 API] API令牌已更新');
+  } else {
+    console.warn('[账单 API] 无法设置API令牌：缺少sessionId');
+  }
+};
+
+/**
  * 验证是否有有效的API令牌
  * @returns 是否有有效令牌
  */
 export const hasValidBillToken = (): boolean => {
   const userParams = getBillUserParams();
   return userParams !== null && !!userParams.authorization;
+};
+
+/**
+ * 导出账单数据
+ * @param params 查询参数
+ * @param maxRecords 最大导出记录数，默认10000
+ * @returns 账单记录数组
+ */
+export const exportBillData = async (
+  params: Omit<BillQueryParams, 'pageNum' | 'pageSize'>,
+  maxRecords: number = 10000
+): Promise<BillRecord[]> => {
+  try {
+    console.log('[导出账单] 开始导出数据，最大记录数:', maxRecords);
+    
+    const allRecords: BillRecord[] = [];
+    const pageSize = 1000; // 每页1000条，分批获取
+    let currentPage = 1;
+    let totalFetched = 0;
+    
+    while (totalFetched < maxRecords) {
+      const remainingRecords = maxRecords - totalFetched;
+      const currentPageSize = Math.min(pageSize, remainingRecords);
+      
+      console.log(`[导出账单] 正在获取第 ${currentPage} 页，每页 ${currentPageSize} 条`);
+      
+      const response = await billApi.get<BillQueryResponse>(
+        '/api/nxBill/usage/aiAgentCdr/query',
+        {
+          params: {
+            pageNum: currentPage,
+            pageSize: currentPageSize,
+            customerId: params.customerId,
+            tenantId: params.tenantId,
+            agentFlowName: params.agentFlowName || '',
+            callee: params.callee || '',
+            startTime: params.startTime,
+            endTime: params.endTime
+          }
+        }
+      );
+      
+      const pageData = response.data.data;
+      
+      if (pageData.items.length === 0) {
+        console.log('[导出账单] 没有更多数据，停止获取');
+        break;
+      }
+      
+      allRecords.push(...pageData.items);
+      totalFetched += pageData.items.length;
+      
+      console.log(`[导出账单] 已获取 ${totalFetched} 条记录`);
+      
+      // 如果当前页数据少于页大小，说明已经是最后一页
+      if (pageData.items.length < currentPageSize) {
+        console.log('[导出账单] 已到达最后一页');
+        break;
+      }
+      
+      // 如果已达到总记录数，停止获取
+      if (totalFetched >= pageData.total) {
+        console.log('[导出账单] 已获取所有可用记录');
+        break;
+      }
+      
+      currentPage++;
+    }
+    
+    console.log(`[导出账单] 导出完成，共获取 ${allRecords.length} 条记录`);
+    return allRecords;
+  } catch (error) {
+    console.error('导出账单数据失败:', error);
+    throw error;
+  }
 }; 

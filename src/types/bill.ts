@@ -125,14 +125,14 @@ export interface BillUserParams {
 
 // 呼叫方向枚举
 export enum CallDirection {
-  INCOMING = 1,
-  OUTGOING = 2
+  OUTGOING = 1, // 呼出
+  INCOMING = 2  // 呼入
 }
 
 // 呼叫方向显示文本映射
 export const CALL_DIRECTION_TEXT: Record<number, string> = {
-  [CallDirection.INCOMING]: '呼入',
-  [CallDirection.OUTGOING]: '呼出'
+  [CallDirection.OUTGOING]: '呼出',
+  [CallDirection.INCOMING]: '呼入'
 };
 
 // 账单表格列配置类型

@@ -1,5 +1,6 @@
-import React from 'react';
-import { Table, Typography, Tag } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Table, Typography, Tag, Button, Tooltip } from 'antd';
+import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { BillRecord, CALL_DIRECTION_TEXT, PaginationInfo } from '../../types/bill';
 
@@ -10,14 +11,43 @@ interface BillTableProps {
   loading?: boolean;
   pagination: PaginationInfo;
   onPageChange?: (page: number, pageSize: number) => void;
+  onDesensitizeChange?: (isDesensitized: boolean) => void;
+  initialDesensitized?: boolean;
 }
 
 const BillTable: React.FC<BillTableProps> = ({
   data,
   loading = false,
   pagination,
-  onPageChange
+  onPageChange,
+  onDesensitizeChange,
+  initialDesensitized = false
 }) => {
+  const [isDesensitized, setIsDesensitized] = useState<boolean>(initialDesensitized);
+
+  // 当父组件传入的初始脱敏状态变化时，同步更新本地状态
+  useEffect(() => {
+    setIsDesensitized(initialDesensitized);
+  }, [initialDesensitized]);
+
+  // 脱敏处理函数
+  const desensitizePhone = (phone: string): string => {
+    if (!phone || phone.length < 6) {
+      return phone; // 号码太短，不脱敏
+    }
+    const firstTwo = phone.substring(0, 2);
+    const lastFour = phone.substring(phone.length - 4);
+    const middleStars = '*'.repeat(Math.max(1, phone.length - 6));
+    return `${firstTwo}${middleStars}${lastFour}`;
+  };
+
+  // 切换脱敏状态
+  const toggleDesensitize = () => {
+    const newState = !isDesensitized;
+    setIsDesensitized(newState);
+    onDesensitizeChange?.(newState);
+  };
+
   // 格式化金额显示
   const formatCurrency = (amount: number | null): string => {
     if (amount === null || amount === undefined) {
@@ -67,13 +97,31 @@ const BillTable: React.FC<BillTableProps> = ({
       )
     },
     {
-      title: '用户号码',
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>用户号码</span>
+          <Tooltip title={isDesensitized ? '点击显示完整号码' : '点击脱敏显示'}>
+            <Button
+              type="text"
+              size="small"
+              icon={isDesensitized ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+              onClick={toggleDesensitize}
+              style={{ padding: '0 4px', minWidth: 'auto', height: 'auto' }}
+            />
+          </Tooltip>
+        </div>
+      ),
       dataIndex: 'callee',
       key: 'callee',
-      width: 120,
-      render: (callee: string) => (
-        <Text style={{ fontSize: '12px' }}>{callee || '-'}</Text>
-      )
+      width: 140,
+      render: (callee: string) => {
+        const displayValue = callee && isDesensitized ? desensitizePhone(callee) : (callee || '-');
+        return (
+          <Text style={{ fontSize: '12px' }} title={isDesensitized ? '已脱敏显示' : callee}>
+            {displayValue}
+          </Text>
+        );
+      }
     },
     {
       title: '线路号码',

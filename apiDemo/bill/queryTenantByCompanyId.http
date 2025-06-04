@@ -1,0 +1,33 @@
+# request
+
+curl 'https://nxlink.nxcloud.com/admin/saas_plat_manager/company/queryTenantByCompanyId?companyId=1247' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjgxNywidXVJZCI6IjY4M2ZiZTE5ZTRiMDIyMjliMWE5NzEzMSJ9.rKjQGBe1Fc09s_v5uk2O9QLhnV8XbD3Yr-z24n56txM' \
+  -H 'cache-control: no-cache' \
+  -b '__bid_n=189d541141e1152a1cdb95; fbm_1407008009801826=base_domain=.nxlink.nxcloud.com; fblo_1407008009801826=y; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%2C%22%24latest_referrer%22%3A%22%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTg5ZDU0MGJlZjA5MDItMDJmNDQ1NjNmMTFjNGRlLTFhNTI1NjM0LTE4OTI5NzAtMTg5ZDU0MGJlZjExNWI5In0%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%7D; Hm_lvt_f8f3199714771c412f9dd352ddb23ee5=1730860407,1733282228; _gcl_au=1.1.1123683717.1743392367; _gl_au=1.1.72218752.1747188901; _ga_95Z6D5L9D8=GS2.1.s1747217369$o317$g0$t1747217369$j0$l0$h0; locale=zh-CN; nx-utc=UTC+08:00; nx-zone=105; plat_token=eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc; company_domain=null; login_type=null; _ga_8KK14YS12T=GS2.1.s1748238081$o538$g0$t1748238081$j60$l0$h0$deCK7mS-2E8M93b04blCish4umM6nphsnTw; _ga=GA1.2.1521398006.1691499938; company_domain=null; sipInfo={%22domain%22:%22slave-sgp-cc.nxcloud.com%22%2C%22wssurl%22:%22wss://slave-sgp-cc.nxcloud.com/SINGAPORE/v2%22%2C%22ccToken%22:%22eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc%22%2C%22ccQueue%22:%22NX77777178086G000185%22%2C%22sipNum%22:%22NX777771780860030080%22%2C%22email%22:%22degenxu@nxcloud.com%22%2C%22utcDate%22:%222025/06/03%22%2C%22agentType%22:2}; isLogin=1; JSESSIONID=8D6B3C72A414F66C24BB100EBE389C98' \
+  -H 'dnt: 1' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/manager/' \
+  -H 'sec-ch-ua: "Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 4' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
+
+  # response
+  {
+    "code": 0,
+    "message": null,
+    "data": [
+        {
+            "id": 1624,
+            "name": "默认团队"
+        }
+    ],
+    "traceId": "e37f9b300fd54c058aef0f7bdd8fb471"
+}

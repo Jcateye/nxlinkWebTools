@@ -1,0 +1,211 @@
+
+# request 
+
+curl 'https://nxlink.nxcloud.com/admin/saas_plat_manager/company/queryLikeByCompanyName?companyName=' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjgxNywidXVJZCI6IjY4M2ZiZTE5ZTRiMDIyMjliMWE5NzEzMSJ9.rKjQGBe1Fc09s_v5uk2O9QLhnV8XbD3Yr-z24n56txM' \
+  -H 'cache-control: no-cache' \
+  -b '__bid_n=189d541141e1152a1cdb95; fbm_1407008009801826=base_domain=.nxlink.nxcloud.com; fblo_1407008009801826=y; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%2C%22%24latest_referrer%22%3A%22%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTg5ZDU0MGJlZjA5MDItMDJmNDQ1NjNmMTFjNGRlLTFhNTI1NjM0LTE4OTI5NzAtMTg5ZDU0MGJlZjExNWI5In0%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%7D; Hm_lvt_f8f3199714771c412f9dd352ddb23ee5=1730860407,1733282228; _gcl_au=1.1.1123683717.1743392367; _gl_au=1.1.72218752.1747188901; _ga_95Z6D5L9D8=GS2.1.s1747217369$o317$g0$t1747217369$j0$l0$h0; locale=zh-CN; nx-utc=UTC+08:00; nx-zone=105; plat_token=eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc; company_domain=null; login_type=null; _ga_8KK14YS12T=GS2.1.s1748238081$o538$g0$t1748238081$j60$l0$h0$deCK7mS-2E8M93b04blCish4umM6nphsnTw; _ga=GA1.2.1521398006.1691499938; company_domain=null; sipInfo={%22domain%22:%22slave-sgp-cc.nxcloud.com%22%2C%22wssurl%22:%22wss://slave-sgp-cc.nxcloud.com/SINGAPORE/v2%22%2C%22ccToken%22:%22eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc%22%2C%22ccQueue%22:%22NX77777178086G000185%22%2C%22sipNum%22:%22NX777771780860030080%22%2C%22email%22:%22degenxu@nxcloud.com%22%2C%22utcDate%22:%222025/06/03%22%2C%22agentType%22:2}; isLogin=1; JSESSIONID=8D6B3C72A414F66C24BB100EBE389C98' \
+  -H 'dnt: 1' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/manager/' \
+  -H 'sec-ch-ua: "Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 4' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
+
+  # response
+
+  {
+    "code": 0,
+    "message": null,
+    "data": [
+        {
+            "id": 1247,
+            "customerId": 1,
+            "customerCode": "NX77777169086",
+            "companyName": "NX77777169086-宁波牛信网络有限公司"
+        },
+        {
+            "id": 26,
+            "customerId": 2,
+            "customerCode": "NX77777170086",
+            "companyName": "NX77777170086-牛信产研部-厦门"
+        },
+        {
+            "id": 1722,
+            "customerId": 6,
+            "customerCode": "NX63999001901",
+            "companyName": "NX00022A-OrangeHR-北京明特量化-UKU"
+        },
+        {
+            "id": 160,
+            "customerId": 52,
+            "customerCode": "NX77777101852",
+            "companyName": "NX77777101852-Glory GBOSS"
+        },
+        {
+            "id": 2427,
+            "customerId": 87,
+            "customerCode": "NX63999004701",
+            "companyName": "NX00227A-OrangeHR-PT KREDIT UTAMA FINTECH INDONESIA"
+        },
+        {
+            "id": 819,
+            "customerId": 171,
+            "customerCode": "NX63999000901",
+            "companyName": "NX00049A-OrangeHR-PT. SENTRAL INFORMA DIGITAL-Pinjiam Cash"
+        },
+        {
+            "id": 12,
+            "customerId": 213,
+            "customerCode": "NX00247102065",
+            "companyName": "NX00247102065-H2 GAMES PTE. LTD"
+        },
+        {
+            "id": 91,
+            "customerId": 514,
+            "customerCode": "NX77777172086",
+            "companyName": "NX77777172086-牛信支撑部-董家明"
+        },
+        {
+            "id": 1003,
+            "customerId": 631,
+            "customerCode": "NX00128102086",
+            "companyName": "NX06048105001-乐克-李阳"
+        },
+        {
+            "id": 376,
+            "customerId": 769,
+            "customerCode": "NX68726003001",
+            "companyName": "NX00308101086-阿尔伐智能技术（北京）有限公司"
+        },
+        {
+            "id": 1206,
+            "customerId": 783,
+            "customerCode": "NX63999001401",
+            "companyName": "NX00150-OrangeHR-IDANA"
+        },
+        {
+            "id": 435,
+            "customerId": 786,
+            "customerCode": null,
+            "companyName": "NX77777102086-代理商平台测试用"
+        },
+        {
+            "id": 150,
+            "customerId": 813,
+            "customerCode": "NX77777173086",
+            "companyName": "NX77777173086-Roger"
+        },
+        {
+            "id": 16,
+            "customerId": 843,
+            "customerCode": "NX00167101852",
+            "companyName": "NX00167101852-Codeblock International Limited"
+        },
+        {
+            "id": 52,
+            "customerId": 1066,
+            "customerCode": "NX20326101052",
+            "companyName": "NX20326101052-Worldtone Technology Co.,Ltd."
+        },
+        {
+            "id": 2408,
+            "customerId": 1130,
+            "customerCode": "NX00912101086",
+            "companyName": "NX00912101086-vincash"
+        },
+        {
+            "id": 265,
+            "customerId": 1243,
+            "customerCode": "NX61536000401",
+            "companyName": "NX01001-fast vay-SFT-CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ ĐẦU TƯ KT BẰNG HỮU"
+        },
+        {
+            "id": 169,
+            "customerId": 1366,
+            "customerCode": "NX63999001201",
+            "companyName": "NX01096-OrangeHR-PT BNT dana"
+        },
+        {
+            "id": 1264,
+            "customerId": 1479,
+            "customerCode": "NX05106101086",
+            "companyName": "NX05106101086-北京沃东天骏信息技术有限公司"
+        },
+        {
+            "id": 1830,
+            "customerId": 1488,
+            "customerCode": "NX63999004201",
+            "companyName": "NX05114-PT Pendanaan Teknologi Nusa"
+        },
+        {
+            "id": 498,
+            "customerId": 1502,
+            "customerCode": "NX05128002091",
+            "companyName": "NX05128002091-Fortune Tree Network Technology Co., Limited"
+        },
+        {
+            "id": 1098,
+            "customerId": 1570,
+            "customerCode": "NX05747101086",
+            "companyName": "NX05747101086-成都永盟软件发展有限公司"
+        },
+        {
+            "id": 178,
+            "customerId": 1655,
+            "customerCode": "NX10084102852",
+            "companyName": "NX10084102852-IWAYTECH PTE. LTD."
+        },
+        {
+            "id": 510,
+            "customerId": 1787,
+            "customerCode": "NX05871101086",
+            "companyName": "NX05871101086-南京艺涵网络科技有限公司"
+        },
+        {
+            "id": 650,
+            "customerId": 1811,
+            "customerCode": "NX77777131086",
+            "companyName": "NX77777131086-zhuting"
+        },
+        {
+            "id": 426,
+            "customerId": 1833,
+            "customerCode": "NX05909101086",
+            "companyName": "NX05909101086-北京美薪慧通信息技术有限公司"
+        },
+        {
+            "id": 57,
+            "customerId": 1838,
+            "customerCode": "NX25730",
+            "companyName": "NX25730101852-Beelink Infomation Group Limited"
+        },
+        {
+            "id": 1183,
+            "customerId": 2073,
+            "customerCode": "NX77777132086",
+            "companyName": "NX77777132086-Freya test"
+        },
+        {
+            "id": 333,
+            "customerId": 2109,
+            "customerCode": "NX06087101086",
+            "companyName": "NX06087101086-深圳市五更网络科技有限公司"
+        },
+        {
+            "id": 1000,
+            "customerId": 2283,
+            "customerCode": "NX63999001905",
+            "companyName": "NX00022E-OrangeHR-北京明特量化Dana Mudah"
+        }
+    ],
+    "traceId": "555b358b87b54c819860a1747fadbe96"
+}

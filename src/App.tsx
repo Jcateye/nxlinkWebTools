@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs } from 'antd';
-import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined } from '@ant-design/icons';
 import TagParamsForm from './components/TagParamsForm';
 import FaqParamsForm from './components/FaqParamsForm';
 import TagGroupMigration, { TagGroupMigrationHandle } from './components/TagGroupMigration';
@@ -11,6 +11,8 @@ import FaqImport from './components/FaqImport';
 import { UserProvider, useUserContext } from './context/UserContext';
 import VoiceList from './components/VoiceList';
 import VoiceMigration from './components/VoiceMigration';
+import ScriptTestSystem from './components/ScriptTestSystem';
+import BillManagementPage from './pages/BillManagementPage';
 // import CollaborationManager from './components/CollaborationManager';
 import './App.css';
 import zhCN from 'antd/lib/locale/zh_CN';
@@ -187,6 +189,10 @@ const AppContent = () => {
             </Tabs>
           </div>
         );
+      case 'script':
+        return <ScriptTestSystem />;
+      case 'bill':
+        return <BillManagementPage />;
       default:
         return null;
     }
@@ -208,6 +214,8 @@ const AppContent = () => {
             <Menu.Item key="tag" icon={<TeamOutlined />}>标签迁移工具</Menu.Item>
             <Menu.Item key="faq" icon={<QuestionOutlined />}>FAQ管理</Menu.Item>
             <Menu.Item key="voice" icon={<SoundOutlined />}>声音管理</Menu.Item>
+            <Menu.Item key="script" icon={<CommentOutlined />}>话术测试系统</Menu.Item>
+            <Menu.Item key="bill" icon={<DollarOutlined />}>账单管理</Menu.Item>
           </Menu>
         </div>
       </Header>

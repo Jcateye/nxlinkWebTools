@@ -4,6 +4,9 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');
 const os = require('os');
 
+// 导入TTS路由
+const ttsRoutes = require('./server/routes/tts');
+
 // 获取本机IP地址
 function getLocalIp() {
   const interfaces = os.networkInterfaces();
@@ -26,6 +29,16 @@ const PORT = process.env.PORT || 4000;
 
 // 启用CORS
 app.use(cors());
+
+// JSON解析中间件
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 静态文件目录
+app.use('/audio', express.static(path.join(__dirname, 'server/public/audio')));
+
+// 添加TTS路由
+app.use('/api/tts', ttsRoutes);
 
 // API代理配置
 app.use('/api', createProxyMiddleware({
@@ -135,5 +148,6 @@ app.listen(PORT, () => {
   }
   
   console.log('\nAPI代理已配置: /api -> https://nxlink.nxcloud.com');
+  console.log('\nTTS服务已启动: /api/tts');
   console.log('\n按 Ctrl+C 停止服务\n');
 }); 

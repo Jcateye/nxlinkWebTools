@@ -179,4 +179,7 @@ export interface VoiceResponse {
   page_number: number;
   page_size: number;
   list: Voice[];
-} 
+}
+
+// 导入账单相关类型
+export * from './bill'; 

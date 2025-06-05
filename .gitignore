@@ -1,5 +1,6 @@
 # 依赖目录
 /node_modules
+/server/node_modules
 /.pnp
 .pnp.js
 
@@ -19,6 +20,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# 包管理器锁定文件
+package-lock.json
+/server/package-lock.json
+
 # 编辑器配置
 .vscode/*
 !.vscode/extensions.json
@@ -36,4 +41,27 @@ yarn-error.log*
 /.cursor
 
 # 测试覆盖率
-/coverage 
+/coverage
+
+# 服务器相关
+/server/logs
+/server/.env
+/server/uploads
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 备份文件
+*.backup
+*.bak
+*.old
+
+# IDE文件
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw? 

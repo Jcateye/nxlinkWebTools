@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Input, Button, Space, Typography, message, Tooltip } from 'antd';
-import { EyeInvisibleOutlined, EyeTwoTone, EditOutlined, SaveOutlined, CopyOutlined } from '@ant-design/icons';
+import { EyeInvisibleOutlined, EyeTwoTone, EditOutlined, SaveOutlined, CopyOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { getBillUserParams, setBillUserParams, hasValidBillToken } from '../../services/billApi';
 
 const { Text, Title } = Typography;
@@ -111,7 +111,19 @@ const TokenManager: React.FC<TokenManagerProps> = ({ onTokenChange }) => {
       {!isEditing ? (
         <Space style={{ width: '100%' }} direction="vertical" size="small">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Text strong>当前令牌：</Text>
+            <Space size={4}>
+              <Text strong>当前令牌：</Text>
+              <Tooltip 
+                title={
+                  <div style={{ fontSize: '12px', lineHeight: '16px' }}>
+                    获取路径: 运营平台-开发者工具(F12)-应用（Application）-左边目录的Cookies-nxlink域名下Name是"plat_token"的Value
+                  </div>
+                }
+                placement="top"
+              >
+                <QuestionCircleOutlined style={{ color: '#999', fontSize: '12px' }} />
+              </Tooltip>
+            </Space>
             {currentToken ? (
               <>
                 <Input.Password
@@ -152,7 +164,19 @@ const TokenManager: React.FC<TokenManagerProps> = ({ onTokenChange }) => {
       ) : (
         <Space style={{ width: '100%' }} direction="vertical" size="small">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Text strong>编辑令牌：</Text>
+            <Space size={4}>
+              <Text strong>编辑令牌：</Text>
+              <Tooltip 
+                title={
+                  <div style={{ fontSize: '12px', lineHeight: '16px' }}>
+                    获取路径: 运营平台-开发者工具(F12)-应用（Application）-左边目录的Cookies-nxlink域名下Name是"plat_token"的Value
+                  </div>
+                }
+                placement="top"
+              >
+                <QuestionCircleOutlined style={{ color: '#999', fontSize: '12px' }} />
+              </Tooltip>
+            </Space>
             <Input.Password
               value={editingToken}
               onChange={(e) => setEditingToken(e.target.value)}

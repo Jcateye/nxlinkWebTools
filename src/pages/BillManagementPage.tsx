@@ -7,6 +7,7 @@ import { saveAs } from 'file-saver';
 import { BillFilters, BillRecord, PaginationInfo } from '../types/bill';
 import { queryBillList, hasValidBillToken, exportBillData } from '../services/billApi';
 import BillFiltersComponent from '../components/bill/BillFilters';
+import AdvancedFilters from '../components/bill/AdvancedFilters';
 import BillTable from '../components/bill/BillTable';
 import TokenManager from '../components/bill/TokenManager';
 
@@ -31,7 +32,27 @@ const getDefaultFilters = (): BillFilters => ({
     end: '23:59:59'
   },
   agentFlowName: '',
-  userNumber: ''
+  userNumber: '',
+  // 高级筛选条件的默认值
+  advancedFilters: {
+    customerName: '',
+    tenantName: '',
+    userNumber: '',
+    caller: '',
+    callId: '',
+    billingCycle: '',
+    customerCurrency: '',
+    callDurationRange: { min: null, max: null },
+    feeDurationRange: { min: null, max: null },
+    customerPriceRange: { min: null, max: null },
+    customerTotalPriceRange: { min: null, max: null },
+    asrCostRange: { min: null, max: null },
+    ttsCostRange: { min: null, max: null },
+    llmCostRange: { min: null, max: null },
+    totalCostRange: { min: null, max: null },
+    totalProfitRange: { min: null, max: null },
+    callDirection: null
+  }
 });
 
 // 从localStorage读取保存的脱敏状态
@@ -95,6 +116,11 @@ const loadSavedFilters = (): BillFilters => {
         timeRange: {
           ...defaultFilters.timeRange,
           ...parsed.timeRange
+        },
+        // 确保高级筛选条件存在
+        advancedFilters: {
+          ...defaultFilters.advancedFilters,
+          ...parsed.advancedFilters
         }
       };
     }
@@ -119,15 +145,83 @@ const saveFiltersToStorage = (filters: BillFilters) => {
   }
 };
 
+// 前端筛选逻辑
+const applyAdvancedFilters = (records: BillRecord[], advancedFilters: BillFilters['advancedFilters']): BillRecord[] => {
+  return records.filter(record => {
+    // 字符串模糊筛选 - 添加空值检查
+    if (advancedFilters.customerName && (!record.customerName || !record.customerName.toLowerCase().includes(advancedFilters.customerName.toLowerCase()))) {
+      return false;
+    }
+    if (advancedFilters.tenantName && (!record.tenantName || !record.tenantName.toLowerCase().includes(advancedFilters.tenantName.toLowerCase()))) {
+      return false;
+    }
+    if (advancedFilters.userNumber && (!record.callee || !record.callee.toLowerCase().includes(advancedFilters.userNumber.toLowerCase()))) {
+      return false;
+    }
+    if (advancedFilters.caller && (!record.caller || !record.caller.toLowerCase().includes(advancedFilters.caller.toLowerCase()))) {
+      return false;
+    }
+    if (advancedFilters.callId && (!record.callId || !record.callId.toLowerCase().includes(advancedFilters.callId.toLowerCase()))) {
+      return false;
+    }
+    if (advancedFilters.billingCycle && (!record.billingCycle || !record.billingCycle.toLowerCase().includes(advancedFilters.billingCycle.toLowerCase()))) {
+      return false;
+    }
+    if (advancedFilters.customerCurrency && (!record.customerCurrency || !record.customerCurrency.toLowerCase().includes(advancedFilters.customerCurrency.toLowerCase()))) {
+      return false;
+    }
+
+    // 数字范围筛选
+    const checkRange = (value: number | null, range: { min: number | null; max: number | null }): boolean => {
+      // 将null视为0进行比较
+      const actualValue = value === null ? 0 : value;
+      if (range.min !== null && actualValue < range.min) return false;
+      if (range.max !== null && actualValue > range.max) return false;
+      return true;
+    };
+
+    if (!checkRange(record.callDurationSec, advancedFilters.callDurationRange)) return false;
+    if (!checkRange(record.feeDurationSec, advancedFilters.feeDurationRange)) return false;
+    if (!checkRange(record.customerPrice, advancedFilters.customerPriceRange)) return false;
+    if (!checkRange(record.customerTotalPrice, advancedFilters.customerTotalPriceRange)) return false;
+    if (!checkRange(record.asrCost, advancedFilters.asrCostRange)) return false;
+    
+    // TTS和LLM成本处理，null值视为0
+    if (!checkRange(record.ttsCost, advancedFilters.ttsCostRange)) return false;
+    if (!checkRange(record.llmCost, advancedFilters.llmCostRange)) return false;
+    
+    if (!checkRange(record.totalCost, advancedFilters.totalCostRange)) return false;
+    if (!checkRange(record.totalProfit, advancedFilters.totalProfitRange)) return false;
+
+    // 呼叫方向筛选
+    if (advancedFilters.callDirection !== null && record.callDirection !== advancedFilters.callDirection) {
+      return false;
+    }
+
+    return true;
+  });
+};
+
 const BillManagementPage: React.FC = () => {
   // 状态管理 - 初始化时读取保存的筛选条件
   const [filters, setFilters] = useState<BillFilters>(loadSavedFilters());
 
+  const [originalBillRecords, setOriginalBillRecords] = useState<BillRecord[]>([]); // 原始数据
   const [billRecords, setBillRecords] = useState<BillRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
   const [isDesensitized, setIsDesensitized] = useState<boolean>(loadSavedDesensitizeState());
-  const [pagination, setPagination] = useState<PaginationInfo>({
+  
+  // 后端分页信息（用于没有高级筛选的情况）
+  const [backendPagination, setBackendPagination] = useState<PaginationInfo>({
+    currentPage: 1,
+    pageSize: 10,
+    totalRecords: 0,
+    totalPages: 0
+  });
+  
+  // 前端分页信息（用于有高级筛选的情况）
+  const [frontendPagination, setFrontendPagination] = useState<PaginationInfo>({
     currentPage: 1,
     pageSize: 10,
     totalRecords: 0,
@@ -151,6 +245,55 @@ const BillManagementPage: React.FC = () => {
     saveDesensitizeStateToStorage(isDesensitized);
   }, [isDesensitized]);
 
+  // 检查是否有活跃的高级筛选条件
+  const hasActiveAdvancedFilters = () => {
+    const { advancedFilters } = filters;
+    return (
+      advancedFilters.customerName ||
+      advancedFilters.tenantName ||
+      advancedFilters.userNumber ||
+      advancedFilters.caller ||
+      advancedFilters.callId ||
+      advancedFilters.billingCycle ||
+      advancedFilters.customerCurrency ||
+      advancedFilters.callDirection !== null ||
+      Object.values(advancedFilters).some(filter => 
+        typeof filter === 'object' && filter !== null && (filter.min !== null || filter.max !== null)
+      )
+    );
+  };
+
+  // 监听高级筛选条件变化，应用前端筛选
+  useEffect(() => {
+    const hasAdvancedFilters = hasActiveAdvancedFilters();
+    
+    if (hasAdvancedFilters) {
+      // 有高级筛选时，对原始数据进行筛选
+      const filteredRecords = applyAdvancedFilters(originalBillRecords, filters.advancedFilters);
+      setBillRecords(filteredRecords);
+      
+      // 如果原始数据为空但有公司和团队选择，自动搜索数据
+      if (originalBillRecords.length === 0 && filters.selectedCompany && filters.selectedTeam) {
+        handleSearch(1, 1000); // 加载大量数据用于筛选
+        return;
+      }
+      
+      // 更新前端分页信息
+      setFrontendPagination(prev => ({
+        ...prev,
+        totalRecords: filteredRecords.length,
+        totalPages: Math.ceil(filteredRecords.length / prev.pageSize),
+        currentPage: 1 // 重置到第一页
+      }));
+    } else {
+      // 无高级筛选时，直接使用原始数据
+      setBillRecords(originalBillRecords);
+      
+      // 使用后端分页信息
+      setFrontendPagination(backendPagination);
+    }
+  }, [originalBillRecords, filters.advancedFilters, backendPagination, filters.selectedCompany, filters.selectedTeam]);
+
   // 处理API令牌变化
   const handleTokenChange = (tokenExists: boolean) => {
     setHasToken(tokenExists);
@@ -173,7 +316,7 @@ const BillManagementPage: React.FC = () => {
   };
 
   // 构建查询参数
-  const buildQueryParams = (page: number = pagination.currentPage, size: number = pagination.pageSize) => {
+  const buildQueryParams = (page: number = 1, size: number = 10) => {
     if (!filters.selectedCompany || !filters.selectedTeam) {
       throw new Error('请先选择公司和团队');
     }
@@ -196,28 +339,67 @@ const BillManagementPage: React.FC = () => {
     };
   };
 
-  // 执行搜索
-  const handleSearch = async (page: number = 1, size: number = pagination.pageSize) => {
+  // 获取当前页面应该显示的数据
+  const getCurrentPageData = () => {
+    if (hasActiveAdvancedFilters()) {
+      // 有高级筛选时，对筛选后的数据进行前端分页
+      const startIndex = (frontendPagination.currentPage - 1) * frontendPagination.pageSize;
+      const endIndex = startIndex + frontendPagination.pageSize;
+      return billRecords.slice(startIndex, endIndex);
+    } else {
+      // 无高级筛选时，直接使用后端分页的数据
+      return billRecords;
+    }
+  };
+
+  // 执行搜索 - 有高级筛选时加载更多数据
+  const handleSearch = async (page: number = 1, size: number = 10) => {
     if (!hasToken) {
       return;
     }
 
     try {
       setLoading(true);
-      const params = buildQueryParams(page, size);
+      
+      // 如果有高级筛选，需要加载大量数据进行前端筛选
+      const actualSize = hasActiveAdvancedFilters() ? 1000 : size; // 有高级筛选时加载1000条数据
+      const actualPage = hasActiveAdvancedFilters() ? 1 : page; // 有高级筛选时固定从第1页开始
+      
+      const params = buildQueryParams(actualPage, actualSize);
       const result = await queryBillList(params);
 
-      setBillRecords(result.items);
-      setPagination({
-        currentPage: page,
-        pageSize: size,
-        totalRecords: result.total,
-        totalPages: Math.ceil(result.total / size)
-      });
+      // 保存原始数据
+      setOriginalBillRecords(result.items);
+      
+      // 更新后端分页信息
+      if (!hasActiveAdvancedFilters()) {
+        setBackendPagination({
+          currentPage: page,
+          pageSize: size,
+          totalRecords: result.total,
+          totalPages: Math.ceil(result.total / size)
+        });
+      } else {
+        // 有高级筛选时，设置后端分页信息以便前端分页计算
+        setBackendPagination({
+          currentPage: 1,
+          pageSize: actualSize,
+          totalRecords: result.total,
+          totalPages: Math.ceil(result.total / actualSize)
+        });
+      }
+
     } catch (error) {
       console.error('查询账单失败:', error);
+      setOriginalBillRecords([]);
       setBillRecords([]);
-      setPagination({
+      setBackendPagination({
+        currentPage: page,
+        pageSize: size,
+        totalRecords: 0,
+        totalPages: 0
+      });
+      setFrontendPagination({
         currentPage: page,
         pageSize: size,
         totalRecords: 0,
@@ -238,8 +420,15 @@ const BillManagementPage: React.FC = () => {
   const handleReset = () => {
     const defaultFilters = getDefaultFilters();
     setFilters(defaultFilters);
+    setOriginalBillRecords([]);
     setBillRecords([]);
-    setPagination({
+    setBackendPagination({
+      currentPage: 1,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 0
+    });
+    setFrontendPagination({
       currentPage: 1,
       pageSize: 10,
       totalRecords: 0,
@@ -260,7 +449,17 @@ const BillManagementPage: React.FC = () => {
 
   // 处理分页变化
   const handlePageChange = (page: number, pageSize: number) => {
-    handleSearch(page, pageSize);
+    if (hasActiveAdvancedFilters()) {
+      // 有高级筛选时，只更新前端分页状态
+      setFrontendPagination(prev => ({
+        ...prev,
+        currentPage: page,
+        pageSize: pageSize
+      }));
+    } else {
+      // 无高级筛选时，调用后端API
+      handleSearch(page, pageSize);
+    }
   };
 
   // 处理导出
@@ -296,11 +495,20 @@ const BillManagementPage: React.FC = () => {
 
       console.log('[导出账单] 开始导出，参数:', exportParams);
       
-      const billData = await exportBillData(exportParams, 10000);
+      let billData = await exportBillData(exportParams, 10000);
 
       if (billData.length === 0) {
         message.destroy();
         message.warning('没有找到符合条件的账单数据');
+        return;
+      }
+
+      // 应用高级筛选到导出数据
+      billData = applyAdvancedFilters(billData, filters.advancedFilters);
+
+      if (billData.length === 0) {
+        message.destroy();
+        message.warning('应用高级筛选后没有符合条件的账单数据');
         return;
       }
 
@@ -410,9 +618,14 @@ const BillManagementPage: React.FC = () => {
               <BillFiltersComponent
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
-                onSearch={() => handleSearch(1, pagination.pageSize)}
+                onSearch={() => handleSearch(1, frontendPagination.pageSize)}
                 onReset={handleReset}
                 loading={loading}
+              />
+
+              <AdvancedFilters
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
               />
 
               <div style={{ marginBottom: 16, textAlign: 'right' }}>
@@ -428,9 +641,9 @@ const BillManagementPage: React.FC = () => {
               </div>
 
               <BillTable
-                data={billRecords}
+                data={getCurrentPageData()}
                 loading={loading}
-                pagination={pagination}
+                pagination={frontendPagination}
                 onPageChange={handlePageChange}
                 onDesensitizeChange={handleDesensitizeChange}
                 initialDesensitized={isDesensitized}

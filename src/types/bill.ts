@@ -108,6 +108,56 @@ export interface BillFilters {
   };
   agentFlowName: string;
   userNumber: string;
+  // 新增的高级筛选条件
+  advancedFilters: {
+    // 字符串模糊筛选
+    customerName: string;
+    tenantName: string;
+    userNumber: string;
+    caller: string;
+    callId: string;
+    billingCycle: string;
+    customerCurrency: string;
+    // 数字范围筛选
+    callDurationRange: {
+      min: number | null;
+      max: number | null;
+    };
+    feeDurationRange: {
+      min: number | null;
+      max: number | null;
+    };
+    customerPriceRange: {
+      min: number | null;
+      max: number | null;
+    };
+    customerTotalPriceRange: {
+      min: number | null;
+      max: number | null;
+    };
+    asrCostRange: {
+      min: number | null;
+      max: number | null;
+    };
+    ttsCostRange: {
+      min: number | null;
+      max: number | null;
+    };
+    llmCostRange: {
+      min: number | null;
+      max: number | null;
+    };
+    totalCostRange: {
+      min: number | null;
+      max: number | null;
+    };
+    totalProfitRange: {
+      min: number | null;
+      max: number | null;
+    };
+    // 呼叫方向筛选
+    callDirection: number | null;
+  };
 }
 
 // 分页信息类型

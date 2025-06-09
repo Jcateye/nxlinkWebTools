@@ -211,11 +211,12 @@ const BillManagementPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
   const [isDesensitized, setIsDesensitized] = useState<boolean>(loadSavedDesensitizeState());
+  const [hasSearched, setHasSearched] = useState<boolean>(false); // 新增：跟踪是否已经执行过搜索
   
   // 后端分页信息（用于没有高级筛选的情况）
   const [backendPagination, setBackendPagination] = useState<PaginationInfo>({
     currentPage: 1,
-    pageSize: 10,
+    pageSize: 1000,
     totalRecords: 0,
     totalPages: 0
   });
@@ -223,7 +224,7 @@ const BillManagementPage: React.FC = () => {
   // 前端分页信息（用于有高级筛选的情况）
   const [frontendPagination, setFrontendPagination] = useState<PaginationInfo>({
     currentPage: 1,
-    pageSize: 10,
+    pageSize: 1000,
     totalRecords: 0,
     totalPages: 0
   });
@@ -272,8 +273,9 @@ const BillManagementPage: React.FC = () => {
       const filteredRecords = applyAdvancedFilters(originalBillRecords, filters.advancedFilters);
       setBillRecords(filteredRecords);
       
-      // 如果原始数据为空但有公司和团队选择，自动搜索数据
-      if (originalBillRecords.length === 0 && filters.selectedCompany && filters.selectedTeam) {
+      // 只在未搜索过且有公司和团队选择时才自动搜索数据，避免无限循环
+      if (!hasSearched && originalBillRecords.length === 0 && filters.selectedCompany && filters.selectedTeam) {
+        setHasSearched(true);
         handleSearch(1, 1000); // 加载大量数据用于筛选
         return;
       }
@@ -292,7 +294,7 @@ const BillManagementPage: React.FC = () => {
       // 使用后端分页信息
       setFrontendPagination(backendPagination);
     }
-  }, [originalBillRecords, filters.advancedFilters, backendPagination, filters.selectedCompany, filters.selectedTeam]);
+  }, [originalBillRecords, filters.advancedFilters, backendPagination, filters.selectedCompany, filters.selectedTeam, hasSearched]);
 
   // 处理API令牌变化
   const handleTokenChange = (tokenExists: boolean) => {
@@ -316,7 +318,7 @@ const BillManagementPage: React.FC = () => {
   };
 
   // 构建查询参数
-  const buildQueryParams = (page: number = 1, size: number = 10) => {
+  const buildQueryParams = (page: number = 1, size: number = 1000) => {
     if (!filters.selectedCompany || !filters.selectedTeam) {
       throw new Error('请先选择公司和团队');
     }
@@ -353,13 +355,14 @@ const BillManagementPage: React.FC = () => {
   };
 
   // 执行搜索 - 有高级筛选时加载更多数据
-  const handleSearch = async (page: number = 1, size: number = 10) => {
+  const handleSearch = async (page: number = 1, size: number = 1000) => {
     if (!hasToken) {
       return;
     }
 
     try {
       setLoading(true);
+      setHasSearched(true); // 标记已经搜索过
       
       // 如果有高级筛选，需要加载大量数据进行前端筛选
       const actualSize = hasActiveAdvancedFilters() ? 1000 : size; // 有高级筛选时加载1000条数据
@@ -412,6 +415,11 @@ const BillManagementPage: React.FC = () => {
 
   // 处理筛选条件变化
   const handleFiltersChange = (newFilters: BillFilters) => {
+    // 如果公司或团队发生变化，重置搜索状态
+    if (newFilters.selectedCompany?.customerId !== filters.selectedCompany?.customerId ||
+        newFilters.selectedTeam?.id !== filters.selectedTeam?.id) {
+      setHasSearched(false);
+    }
     setFilters(newFilters);
     // 保存操作在useEffect中自动处理
   };
@@ -420,17 +428,18 @@ const BillManagementPage: React.FC = () => {
   const handleReset = () => {
     const defaultFilters = getDefaultFilters();
     setFilters(defaultFilters);
+    setHasSearched(false); // 重置搜索状态
     setOriginalBillRecords([]);
     setBillRecords([]);
     setBackendPagination({
       currentPage: 1,
-      pageSize: 10,
+      pageSize: 1000,
       totalRecords: 0,
       totalPages: 0
     });
     setFrontendPagination({
       currentPage: 1,
-      pageSize: 10,
+      pageSize: 1000,
       totalRecords: 0,
       totalPages: 0
     });
@@ -512,67 +521,61 @@ const BillManagementPage: React.FC = () => {
         return;
       }
 
-      // 转换数据为Excel友好格式，应用脱敏逻辑
+      // 获取币种信息（从第一条记录中获取）
+      const sipCurrency = billData.length > 0 ? (billData[0].sipCurrency || 'USD') : 'USD';
+      const customerCurrency = billData.length > 0 ? (billData[0].customerCurrency || 'USD') : 'USD';
+
+      // 转换数据为Excel友好格式，应用脱敏逻辑 - 与表格列完全一致
       const excelData = billData.map(record => ({
         '消费时间': record.feeTime,
         'Agent流程名称': record.agentFlowName,
         '用户号码': record.callee && isDesensitized ? desensitizePhone(record.callee) : record.callee,
-        '主叫号码': record.caller,
+        '线路号码': record.caller,
         '呼叫方向': record.callDirection === 1 ? '呼出' : 
                    record.callDirection === 2 ? '呼入' : `未知(${record.callDirection})`,
-        '通话时长(秒)': record.callDurationSec,
-        '计费时长(秒)': record.feeDurationSec,
-        '计费周期': record.billingCycle,
-        '呼叫ID': record.callId,
-        '客户价格': record.customerPrice,
-        '客户总价': record.customerTotalPrice,
-        '客户总价(USD)': record.customerTotalPriceUSD,
-        '客户货币': record.customerCurrency,
-        '呼叫开始时间': record.callStartTime,
-        '呼叫结束时间': record.callEndTime,
-        '呼叫应答时间': record.callAnswerTime,
-        'ASR成本': record.asrCost,
-        'TTS成本': record.ttsCost,
-        'LLM成本': record.llmCost,
-        '总成本': record.totalCost,
-        '总利润': record.totalProfit,
-        '客户编号': record.customerId,
-        '租户编号': record.tenantId,
+        '线路消费(USD)': (record.sipTotalCustomerOriginalPriceUSD || 0).toFixed(8),
+        'AI消费(USD)': (record.customerTotalPriceUSD || 0).toFixed(8),
+        'AI总成本(USD)': (record.totalCost || 0).toFixed(8),
+        [`线路消费(${sipCurrency})`]: `${record.sipCurrency || 'USD'} ${(record.sipTotalCustomerOriginalPrice || 0).toFixed(8)}`,
+        [`AI消费(${customerCurrency})`]: `${record.customerCurrency || 'USD'} ${(record.customerTotalPrice || 0).toFixed(8)}`,
+        '通话时长(秒)': record.callDurationSec || 0,
+        '线路计费时长(秒)': record.sipFeeDuration || 0,
+        'AI计费时长(秒)': record.feeDurationSec || 0,
+        'ASR成本(USD)': (record.asrCost || 0).toFixed(8),
+        'TTS成本(USD)': (record.ttsCost || 0).toFixed(8),
+        'LLM成本(USD)': (record.llmCost || 0).toFixed(8),
+        '线路计费规则': record.billingCycle || '',
+        'AI计费规则': record.sipPriceType || '',
         '客户名称': record.customerName,
-        '租户名称': record.tenantName
+        '团队名称': record.tenantName
       }));
 
       // 创建工作簿
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       
-      // 设置列宽
+      // 设置列宽 - 与表格列一致
       const cols = [
         { wch: 20 }, // 消费时间
         { wch: 25 }, // Agent流程名称
         { wch: 15 }, // 用户号码
-        { wch: 15 }, // 主叫号码
-        { wch: 10 }, // 呼叫方向
+        { wch: 15 }, // 线路号码
+        { wch: 12 }, // 呼叫方向
+        { wch: 15 }, // 线路消费(USD)
+        { wch: 15 }, // AI消费(USD)
+        { wch: 15 }, // AI总成本(USD)
+        { wch: 20 }, // 线路消费(动态币种)
+        { wch: 20 }, // AI消费(动态币种)
         { wch: 15 }, // 通话时长(秒)
-        { wch: 15 }, // 计费时长(秒)
-        { wch: 12 }, // 计费周期
-        { wch: 12 }, // 呼叫ID
-        { wch: 15 }, // 客户价格
-        { wch: 15 }, // 客户总价
-        { wch: 15 }, // 客户总价(USD)
-        { wch: 12 }, // 客户货币
-        { wch: 18 }, // 呼叫开始时间
-        { wch: 18 }, // 呼叫结束时间
-        { wch: 18 }, // 呼叫应答时间
-        { wch: 12 }, // ASR成本
-        { wch: 12 }, // TTS成本
-        { wch: 12 }, // LLM成本
-        { wch: 12 }, // 总成本
-        { wch: 12 }, // 总利润
-        { wch: 12 }, // 客户编号
-        { wch: 12 }, // 租户编号
-        { wch: 15 }, // 客户名称
-        { wch: 15 }  // 租户名称
+        { wch: 18 }, // 线路计费时长(秒)
+        { wch: 17 }, // AI计费时长(秒)
+        { wch: 15 }, // ASR成本(USD)
+        { wch: 15 }, // TTS成本(USD)
+        { wch: 15 }, // LLM成本(USD)
+        { wch: 15 }, // 线路计费规则
+        { wch: 15 }, // AI计费规则
+        { wch: 30 }, // 客户名称
+        { wch: 20 }  // 团队名称
       ];
       worksheet['!cols'] = cols;
       
@@ -647,6 +650,9 @@ const BillManagementPage: React.FC = () => {
                 onPageChange={handlePageChange}
                 onDesensitizeChange={handleDesensitizeChange}
                 initialDesensitized={isDesensitized}
+                companyName={filters.selectedCompany?.companyName}
+                dateRange={filters.dateRange}
+                timeRange={filters.timeRange}
               />
             </>
           ) : (

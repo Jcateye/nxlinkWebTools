@@ -552,11 +552,11 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
                 </Text>
               </>
             }
-            rules={[{ required: true, message: '请输入源租户Authorization令牌' }]}
+            rules={[{ required: false, message: '请输入源租户Authorization令牌' }]}
           >
             <Input.TextArea 
               rows={3} 
-              placeholder="请输入源租户NXLink Authorization令牌" 
+              placeholder="请输入源租户NXLink Authorization令牌（可选，如过期会自动清除）" 
             />
           </Form.Item>
         )}
@@ -572,11 +572,11 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
                 </Text>
               </>
             }
-            rules={[{ required: true, message: '请输入目标租户Authorization令牌' }]}
+            rules={[{ required: false, message: '请输入目标租户Authorization令牌' }]}
           >
             <Input.TextArea 
               rows={3} 
-              placeholder="请输入目标租户NXLink Authorization令牌" 
+              placeholder="请输入目标租户NXLink Authorization令牌（可选，如过期会自动清除）" 
             />
           </Form.Item>
         )}

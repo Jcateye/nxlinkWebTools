@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Claude" version="24.7.17">
+  <diagram name="菜单结构" id="menu-structure">
+    <mxGraphModel dx="1422" dy="737" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- 标题 -->
+        <mxCell id="title" value="NxLink 管理工具 - 菜单结构 (更新版)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="400" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- 主菜单容器 -->
+        <mxCell id="main-menu" value="NxLink 左侧导航菜单 - 默认展开分组" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#001529;strokeColor=#ffffff;fontSize=16;fontStyle=1;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="700" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- 运营后台工具分组 -->
+        <mxCell id="admin-group" value="运营后台工具" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="180" width="250" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- 运营后台工具子菜单 -->
+        <mxCell id="tag-menu" value="标签迁移工具" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="100" y="240" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="bill-menu" value="账单管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="240" y="240" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- NXLink客户端分组 -->
+        <mxCell id="client-group" value="NXLink客户端" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="370" y="180" width="350" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- NXLink客户端子菜单 -->
+        <mxCell id="faq-menu" value="FAQ管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="390" y="240" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="voice-menu" value="声音管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="530" y="240" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="script-menu" value="话术测试系统" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="460" y="310" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="member-menu" value="成员管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="600" y="310" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- 连接线 -->
+        <mxCell id="admin-line" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="admin-group" target="tag-menu">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="admin-line2" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="admin-group" target="bill-menu">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="client-line1" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="client-group" target="faq-menu">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="client-line2" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="client-group" target="voice-menu">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="client-line3" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="client-group" target="script-menu">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="client-line4" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="client-group" target="member-menu">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 功能说明区域 -->
+        <mxCell id="features-admin" value="运营后台工具功能&lt;br&gt;&lt;br&gt;• 标签迁移工具&lt;br&gt;  - 标签参数配置&lt;br&gt;  - 标签组迁移&lt;br&gt;  - 标签批量导入&lt;br&gt;&lt;br&gt;• 账单管理&lt;br&gt;  - 账单查询&lt;br&gt;  - 公司团队选择" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="80" y="390" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="features-client" value="NXLink客户端功能&lt;br&gt;&lt;br&gt;• FAQ管理&lt;br&gt;  - 源租户FAQ&lt;br&gt;  - 目标租户FAQ&lt;br&gt;  - 双向迁移&lt;br&gt;  - FAQ导入&lt;br&gt;&lt;br&gt;• 声音管理&lt;br&gt;  - 声音列表&lt;br&gt;  - 声音迁移&lt;br&gt;&lt;br&gt;• 话术测试系统&lt;br&gt;  - 脚本测试&lt;br&gt;  - 测试用例管理&lt;br&gt;&lt;br&gt;• 成员管理&lt;br&gt;  - 分组列表&lt;br&gt;  - 成员列表&lt;br&gt;  - 邀请成员&lt;br&gt;  - 角色权限&lt;br&gt;  - 使用源租户Token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="520" y="390" width="200" height="300" as="geometry" />
+        </mxCell>
+        
+        <!-- 布局说明 -->
+        <mxCell id="layout-info" value="界面布局特点&lt;br&gt;&lt;br&gt;✓ 左侧固定导航菜单&lt;br&gt;✓ 可折叠侧边栏&lt;br&gt;✓ 功能分组显示&lt;br&gt;✓ 分组默认展开&lt;br&gt;✓ 分组间距优化&lt;br&gt;✓ 顶部动态标题&lt;br&gt;✓ 右侧主内容区域&lt;br&gt;✓ 响应式设计&lt;br&gt;✓ 现代化UI风格" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="320" y="390" width="180" height="220" as="geometry" />
+        </mxCell>
+        
+        <!-- Token使用说明 -->
+        <mxCell id="token-info" value="Token使用说明&lt;br&gt;&lt;br&gt;✓ 运营后台工具：&lt;br&gt;  - 独立的API Token&lt;br&gt;&lt;br&gt;✓ NXLink客户端：&lt;br&gt;  - 成员管理：源租户Token&lt;br&gt;  - FAQ管理：源/目标租户Token&lt;br&gt;  - 声音管理：源/目标租户Token&lt;br&gt;  - 话术测试：源租户Token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="80" y="620" width="300" height="120" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile> 

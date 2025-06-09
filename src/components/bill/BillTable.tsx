@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Typography, Tag, Button, Tooltip } from 'antd';
-import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Table, Typography, Tag, Button, Tooltip, Card, Row, Col, Statistic } from 'antd';
+import { EyeOutlined, EyeInvisibleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { BillRecord, CALL_DIRECTION_TEXT, PaginationInfo } from '../../types/bill';
 
@@ -13,6 +13,9 @@ interface BillTableProps {
   onPageChange?: (page: number, pageSize: number) => void;
   onDesensitizeChange?: (isDesensitized: boolean) => void;
   initialDesensitized?: boolean;
+  companyName?: string;
+  dateRange?: { start: string | null; end: string | null };
+  timeRange?: { start: string | null; end: string | null };
 }
 
 const BillTable: React.FC<BillTableProps> = ({
@@ -21,7 +24,10 @@ const BillTable: React.FC<BillTableProps> = ({
   pagination,
   onPageChange,
   onDesensitizeChange,
-  initialDesensitized = false
+  initialDesensitized = false,
+  companyName,
+  dateRange,
+  timeRange
 }) => {
   const [isDesensitized, setIsDesensitized] = useState<boolean>(initialDesensitized);
 
@@ -29,6 +35,52 @@ const BillTable: React.FC<BillTableProps> = ({
   useEffect(() => {
     setIsDesensitized(initialDesensitized);
   }, [initialDesensitized]);
+
+  // 计算汇总统计信息
+  const summaryStats = useMemo(() => {
+    if (!data || data.length === 0) {
+      return {
+        recordCount: 0,
+        totalSipCost: 0,
+        totalAICost: 0,
+        totalCost: 0,
+        totalASRCost: 0,
+        totalTTSCost: 0,
+        totalLLMCost: 0,
+        totalCallDuration: 0,
+        totalSipFeeDuration: 0,
+        totalAIFeeDuration: 0,
+        avgCallDuration: 0,
+        avgCostPerCall: 0
+      };
+    }
+
+    const recordCount = data.length;
+    const totalSipCost = data.reduce((sum, record) => sum + (record.sipTotalCustomerOriginalPriceUSD || 0), 0);
+    const totalAICost = data.reduce((sum, record) => sum + (record.customerTotalPriceUSD || 0), 0);
+    const totalCost = data.reduce((sum, record) => sum + (record.totalCost || 0), 0);
+    const totalASRCost = data.reduce((sum, record) => sum + (record.asrCost || 0), 0);
+    const totalTTSCost = data.reduce((sum, record) => sum + (record.ttsCost || 0), 0);
+    const totalLLMCost = data.reduce((sum, record) => sum + (record.llmCost || 0), 0);
+    const totalCallDuration = data.reduce((sum, record) => sum + (record.callDurationSec || 0), 0);
+    const totalSipFeeDuration = data.reduce((sum, record) => sum + (record.sipFeeDuration || 0), 0);
+    const totalAIFeeDuration = data.reduce((sum, record) => sum + (record.feeDurationSec || 0), 0);
+
+    return {
+      recordCount,
+      totalSipCost,
+      totalAICost,
+      totalCost,
+      totalASRCost,
+      totalTTSCost,
+      totalLLMCost,
+      totalCallDuration,
+      totalSipFeeDuration,
+      totalAIFeeDuration,
+      avgCallDuration: recordCount > 0 ? Math.round(totalCallDuration / recordCount) : 0,
+      avgCostPerCall: recordCount > 0 ? totalCost / recordCount : 0
+    };
+  }, [data]);
 
   // 脱敏处理函数
   const desensitizePhone = (phone: string): string => {
@@ -73,6 +125,27 @@ const BillTable: React.FC<BillTableProps> = ({
       return timeStr;
     }
   };
+
+  // 格式化时间范围显示
+  const formatDateTimeRange = () => {
+    if (!dateRange || !timeRange || 
+        !dateRange.start || !dateRange.end || 
+        !timeRange.start || !timeRange.end) return '';
+    
+    const startDateTime = `${dateRange.start} ${timeRange.start}`;
+    const endDateTime = `${dateRange.end} ${timeRange.end}`;
+    
+    // 如果是同一天
+    if (dateRange.start === dateRange.end) {
+      return `${dateRange.start} ${timeRange.start}-${timeRange.end}`;
+    }
+    
+    return `${startDateTime} ~ ${endDateTime}`;
+  };
+
+  // 获取币种信息（从第一条记录中获取）
+  const sipCurrency = data.length > 0 ? (data[0].sipCurrency || 'USD') : 'USD';
+  const customerCurrency = data.length > 0 ? (data[0].customerCurrency || 'USD') : 'USD';
 
   // 表格列配置
   const columns: ColumnsType<BillRecord> = [
@@ -144,7 +217,14 @@ const BillTable: React.FC<BillTableProps> = ({
       }
     },
     {
-      title: '线路消费',
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>线路消费</span>
+          <Tooltip title="如果客户币种不是USD时，USD实际费用可能会有转换的精度缺失，请以实际Nxcloud账单为准">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
       dataIndex: 'sipTotalCustomerOriginalPriceUSD',
       key: 'sipTotalCustomerOriginalPriceUSD',
       width: 100,
@@ -154,7 +234,14 @@ const BillTable: React.FC<BillTableProps> = ({
       )
     },
     {
-      title: 'AI消费',
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>AI消费</span>
+          <Tooltip title="如果客户币种不是USD时，USD实际费用可能会有转换的精度缺失，请以实际Nxcloud账单为准">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
       dataIndex: 'customerTotalPriceUSD',
       key: 'customerTotalPriceUSD',
       width: 100,
@@ -172,6 +259,50 @@ const BillTable: React.FC<BillTableProps> = ({
       render: (amount: number) => (
         <Text style={{ fontSize: '11px', fontWeight: 'bold' }}>{formatCurrency(amount)}</Text>
       )
+    },
+    {
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>{`线路消费(${sipCurrency})`}</span>
+          <Tooltip title="如果客户币种不是USD时，USD实际费用可能会有转换的精度缺失，请以实际Nxcloud账单为准">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'sipTotalCustomerOriginalPrice',
+      key: 'sipTotalCustomerOriginalPrice',
+      width: 120,
+      align: 'right' as const,
+      render: (amount: number, record: BillRecord) => {
+        const currency = record.sipCurrency || 'USD';
+        return (
+          <Text style={{ fontSize: '11px' }}>
+            {currency} {(amount || 0).toFixed(8)}
+          </Text>
+        );
+      }
+    },
+    {
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>{`AI消费(${customerCurrency})`}</span>
+          <Tooltip title="如果客户币种不是USD时，USD实际费用可能会有转换的精度缺失，请以实际Nxcloud账单为准">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'customerTotalPrice',
+      key: 'customerTotalPrice',
+      width: 120,
+      align: 'right' as const,
+      render: (amount: number, record: BillRecord) => {
+        const currency = record.customerCurrency || 'USD';
+        return (
+          <Text style={{ fontSize: '11px' }}>
+            {currency} {(amount || 0).toFixed(8)}
+          </Text>
+        );
+      }
     },
     {
       title: '通话时长(秒)',
@@ -274,29 +405,168 @@ const BillTable: React.FC<BillTableProps> = ({
   ];
 
   return (
-    <Table<BillRecord>
-      columns={columns}
-      dataSource={data}
-      loading={loading}
-      rowKey="id"
-      scroll={{ x: 1800, y: 600 }}
-      size="small"
-      pagination={{
-        current: pagination.currentPage,
-        pageSize: pagination.pageSize,
-        total: pagination.totalRecords,
-        showSizeChanger: true,
-        showQuickJumper: true,
-        showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
-        onChange: onPageChange,
-        onShowSizeChange: onPageChange,
-        pageSizeOptions: ['10', '20', '50', '100'],
-        style: { marginTop: 16 }
-      }}
-      locale={{
-        emptyText: '暂无账单数据'
-      }}
-    />
+    <div>
+      {/* 汇总统计区域 */}
+      <Card 
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                账单汇总统计
+              </span>
+              {companyName && (
+                <Tag color="blue" style={{ marginLeft: 8 }}>
+                  {companyName}
+                </Tag>
+              )}
+            </div>
+            {(dateRange && timeRange && 
+              dateRange.start && dateRange.end && 
+              timeRange.start && timeRange.end) && (
+              <Tag color="green" style={{ fontSize: '12px' }}>
+                📅 {formatDateTimeRange()}
+              </Tag>
+            )}
+          </div>
+        } 
+        style={{ marginBottom: 16 }}
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：当前查询结果的记录条数">
+              <Statistic 
+                title="总记录数" 
+                value={summaryStats.recordCount} 
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Tooltip title="计算公式：∑(线路消费) = 所有记录的sipTotalCustomerOriginalPriceUSD字段求和">
+              <Statistic 
+                title="线路消费总计(USD)" 
+                value={summaryStats.totalSipCost.toFixed(8)} 
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Tooltip title="计算公式：∑(AI消费) = 所有记录的customerTotalPriceUSD字段求和">
+              <Statistic 
+                title="AI消费总计(USD)" 
+                value={summaryStats.totalAICost.toFixed(8)} 
+                valueStyle={{ color: '#722ed1' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Tooltip title="计算公式：∑(AI总成本) = 所有记录的totalCost字段求和">
+              <Statistic 
+                title="AI总成本(USD)" 
+                value={summaryStats.totalCost.toFixed(8)} 
+                valueStyle={{ color: '#f5222d', fontWeight: 'bold' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Tooltip title="计算公式：利润 = AI消费总计 - AI总成本">
+              <Statistic 
+                title="利润(USD)" 
+                value={(summaryStats.totalAICost - summaryStats.totalCost).toFixed(8)} 
+                valueStyle={{ 
+                  color: (summaryStats.totalAICost - summaryStats.totalCost) >= 0 ? '#52c41a' : '#f5222d',
+                  fontWeight: 'bold' 
+                }}
+              />
+            </Tooltip>
+          </Col>
+        </Row>
+        
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：∑(ASR成本) = 所有记录的asrCost字段求和">
+              <Statistic 
+                title="ASR成本(USD)" 
+                value={summaryStats.totalASRCost.toFixed(8)} 
+                valueStyle={{ color: '#fa8c16' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：∑(TTS成本) = 所有记录的ttsCost字段求和">
+              <Statistic 
+                title="TTS成本(USD)" 
+                value={summaryStats.totalTTSCost.toFixed(8)} 
+                valueStyle={{ color: '#13c2c2' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：∑(LLM成本) = 所有记录的llmCost字段求和">
+              <Statistic 
+                title="LLM成本(USD)" 
+                value={summaryStats.totalLLMCost.toFixed(8)} 
+                valueStyle={{ color: '#eb2f96' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：总通话时长 = ∑(callDurationSec) ÷ 60，单位转换为分钟">
+              <Statistic 
+                title="总通话时长" 
+                value={Math.round(summaryStats.totalCallDuration / 60)} 
+                suffix="分钟"
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：平均通话时长 = ∑(callDurationSec) ÷ 记录数，四舍五入取整">
+              <Statistic 
+                title="平均通话时长" 
+                value={summaryStats.avgCallDuration} 
+                suffix="秒"
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：平均每通成本 = AI总成本 ÷ 记录数">
+              <Statistic 
+                title="平均每通成本(USD)" 
+                value={summaryStats.avgCostPerCall.toFixed(8)} 
+                valueStyle={{ color: '#722ed1' }}
+              />
+            </Tooltip>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* 数据表格 */}
+      <Table<BillRecord>
+        columns={columns}
+        dataSource={data}
+        loading={loading}
+        rowKey="id"
+        scroll={{ x: 2040, y: 600 }}
+        size="small"
+        pagination={{
+          current: pagination.currentPage,
+          pageSize: pagination.pageSize,
+          total: pagination.totalRecords,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
+          onChange: onPageChange,
+          onShowSizeChange: onPageChange,
+          pageSizeOptions: ['10', '20', '50', '100', '500', '1000'],
+          style: { marginTop: 16 }
+        }}
+        locale={{
+          emptyText: '暂无账单数据'
+        }}
+      />
+    </div>
   );
 };
 

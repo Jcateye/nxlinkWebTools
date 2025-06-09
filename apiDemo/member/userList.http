@@ -1,0 +1,237 @@
+# request
+curl 'https://nxlink.nxcloud.com/admin/saas_plat/tagGroup/userList?pageNum=1&pageSize=10&input=&userGroupId=0' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc' \
+  -H 'cache-control: no-cache' \
+  -b '__bid_n=189d541141e1152a1cdb95; fbm_1407008009801826=base_domain=.nxlink.nxcloud.com; fblo_1407008009801826=y; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%2C%22%24latest_referrer%22%3A%22%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTg5ZDU0MGJlZjA5MDItMDJmNDQ1NjNmMTFjNGRlLTFhNTI1NjM0LTE4OTI5NzAtMTg5ZDU0MGJlZjExNWI5In0%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%7D; Hm_lvt_f8f3199714771c412f9dd352ddb23ee5=1730860407,1733282228; _gcl_au=1.1.1123683717.1743392367; _gl_au=1.1.72218752.1747188901; nx-utc=UTC+08:00; nx-zone=105; plat_token=eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc; company_domain=null; login_type=null; company_domain=null; _ga_95Z6D5L9D8=GS2.1.s1749093393$o319$g0$t1749093393$j60$l0$h0; _ga_8KK14YS12T=GS2.1.s1749172696$o541$g0$t1749172696$j60$l0$h0; _ga=GA1.2.1521398006.1691499938; _gid=GA1.2.102793964.1749172697; sipInfo={%22domain%22:%22master-cc.nxcloud.com%22%2C%22wssurl%22:%22wss://master-cc.nxcloud.com/HONGKONG/v2%22%2C%22ccToken%22:%22eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc%22%2C%22ccQueue%22:%22NX77777178086G000185%22%2C%22sipNum%22:%22NX777771780860030080%22%2C%22email%22:%22degenxu@nxcloud.com%22%2C%22utcDate%22:%222025/06/06%22%2C%22agentType%22:2}; locale=zh-CN; JSESSIONID=EB65645C2DAD477C2EE89B1BB0B00B4A' \
+  -H 'createts: 1749176448330' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'dnt: 1' \
+  -H 'lang: zh_CN' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/' \
+  -H 'sec-ch-ua: "Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
+
+  #response
+  {
+    "code": 0,
+    "message": "",
+    "data": {
+        "total": 1110,
+        "items": [
+            {
+                "id": 26582,
+                "phone": null,
+                "email": "ericyuan@nxcloud.com",
+                "nickname": "ericyuan@nxcloud.com",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 36,
+                "role_name": "管理员",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-05-23 11:19:29",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26551,
+                "phone": null,
+                "email": "oryonghurhu@nxcloud.com",
+                "nickname": "yong",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 36,
+                "role_name": "管理员",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-05 14:23:44",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26500,
+                "phone": null,
+                "email": "autotest800@nxcloud.com",
+                "nickname": "autotest800",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 38,
+                "role_name": "坐席",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-05 08:40:58",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26499,
+                "phone": null,
+                "email": "autotest700@nxcloud.com",
+                "nickname": "autotest700",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 38,
+                "role_name": "坐席",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-05 08:39:34",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26498,
+                "phone": null,
+                "email": "autotest600@nxcloud.com",
+                "nickname": "autotest600",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 38,
+                "role_name": "坐席",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-05 08:38:10",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26497,
+                "phone": null,
+                "email": "autotest500@nxcloud.com",
+                "nickname": "autotest500",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 38,
+                "role_name": "坐席",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-05 08:36:45",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26496,
+                "phone": null,
+                "email": "autotest400@nxcloud.com",
+                "nickname": "autotest400",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 38,
+                "role_name": "坐席",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-05 08:35:21",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26495,
+                "phone": null,
+                "email": "autotest300@nxcloud.com",
+                "nickname": "autotest300",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 11669,
+                "role_name": "自定义角色-Ken-hello",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-05 08:33:57",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26347,
+                "phone": null,
+                "email": "autotest200@nxcloud.com",
+                "nickname": "autotest200",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 37,
+                "role_name": "主管",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-06 09:38:13",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            },
+            {
+                "id": 26322,
+                "phone": null,
+                "email": "autotest100@nxcloud.com",
+                "nickname": "autotest100",
+                "company": null,
+                "default_tenant_id": null,
+                "is_login_user": false,
+                "role_id": 36,
+                "role_name": "管理员",
+                "accessible_system": "呼叫中心,营销",
+                "last_login_at": "2025-06-06 09:31:49",
+                "online_status": 0,
+                "text_seat": true,
+                "voice_seat": true,
+                "one_owner": false,
+                "source": 0,
+                "user_type": 0,
+                "device_online_status": false
+            }
+        ],
+        "pageNum": 1,
+        "pageSize": 10
+    },
+    "traceId": "dbb95b20e39647d3b847188c0631e480"
+}

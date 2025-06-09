@@ -1,0 +1,210 @@
+# request
+curl 'https://nxlink.nxcloud.com/admin/saas_plat/system/roleLists' \
+  -X 'POST' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc' \
+  -H 'cache-control: no-cache' \
+  -H 'content-length: 0' \
+  -b '__bid_n=189d541141e1152a1cdb95; fbm_1407008009801826=base_domain=.nxlink.nxcloud.com; fblo_1407008009801826=y; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%2C%22%24latest_referrer%22%3A%22%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTg5ZDU0MGJlZjA5MDItMDJmNDQ1NjNmMTFjNGRlLTFhNTI1NjM0LTE4OTI5NzAtMTg5ZDU0MGJlZjExNWI5In0%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%7D; Hm_lvt_f8f3199714771c412f9dd352ddb23ee5=1730860407,1733282228; _gcl_au=1.1.1123683717.1743392367; _gl_au=1.1.72218752.1747188901; nx-utc=UTC+08:00; nx-zone=105; plat_token=eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc; company_domain=null; login_type=null; company_domain=null; _ga_95Z6D5L9D8=GS2.1.s1749093393$o319$g0$t1749093393$j60$l0$h0; _ga_8KK14YS12T=GS2.1.s1749172696$o541$g0$t1749172696$j60$l0$h0; _ga=GA1.2.1521398006.1691499938; _gid=GA1.2.102793964.1749172697; sipInfo={%22domain%22:%22master-cc.nxcloud.com%22%2C%22wssurl%22:%22wss://master-cc.nxcloud.com/HONGKONG/v2%22%2C%22ccToken%22:%22eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MmFkM2NlZTRiMGVmNWZmZjljYjM2OCJ9.dGL39mm3smTOz0-Uf8YDzHUWySwfVk1nFofVtisKNbc%22%2C%22ccQueue%22:%22NX77777178086G000185%22%2C%22sipNum%22:%22NX777771780860030080%22%2C%22email%22:%22degenxu@nxcloud.com%22%2C%22utcDate%22:%222025/06/06%22%2C%22agentType%22:2}; locale=zh-CN; JSESSIONID=EB65645C2DAD477C2EE89B1BB0B00B4A' \
+  -H 'createts: 1749176134530' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'dnt: 1' \
+  -H 'lang: zh_CN' \
+  -H 'origin: https://nxlink.nxcloud.com' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/' \
+  -H 'sec-ch-ua: "Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
+
+  # response 
+  {
+    "code": 0,
+    "message": null,
+    "data": [
+        {
+            "system_id": 1,
+            "system_name": "管理中心",
+            "list": []
+        },
+        {
+            "system_id": 2,
+            "system_name": "NXLink",
+            "list": []
+        },
+        {
+            "system_id": 3,
+            "system_name": "云呼叫中心",
+            "list": []
+        },
+        {
+            "system_id": 5,
+            "system_name": "NXlink",
+            "list": [
+                {
+                    "describe": "拥有企业所有权的角色",
+                    "role_id": 35,
+                    "role_name": "企业所有者",
+                    "one_owner": true,
+                    "role_unique_key": "1"
+                },
+                {
+                    "describe": "拥有企业管理权限的角色",
+                    "role_id": 36,
+                    "role_name": "管理员",
+                    "one_owner": false,
+                    "role_unique_key": "8"
+                },
+                {
+                    "describe": "拥有团队管理权限的角色",
+                    "role_id": 37,
+                    "role_name": "主管",
+                    "one_owner": false,
+                    "role_unique_key": "9"
+                },
+                {
+                    "describe": "拥有客服工作权限的角色",
+                    "role_id": 38,
+                    "role_name": "坐席",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "111",
+                    "role_id": 10969,
+                    "role_name": "呵呵--订单",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 11090,
+                    "role_name": "JJ角色",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 11288,
+                    "role_name": "Devin_test",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 11669,
+                    "role_name": "自定义角色-Ken-hello",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 11815,
+                    "role_name": "AI Agent",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 11816,
+                    "role_name": "手动外呼",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 11874,
+                    "role_name": "hqq分组",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 12020,
+                    "role_name": "2223",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "墨西哥环境验证",
+                    "role_id": 12394,
+                    "role_name": "墨西哥角色",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 12762,
+                    "role_name": "自定义管理员",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 13577,
+                    "role_name": "test",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "UI自动化测试",
+                    "role_id": 14265,
+                    "role_name": "AutoTestRole_update",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "UI自动化测试",
+                    "role_id": 14286,
+                    "role_name": "AutoTestRole",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 14303,
+                    "role_name": "testommy",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 14669,
+                    "role_name": "测试111",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 14742,
+                    "role_name": "ZJC_test",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 14917,
+                    "role_name": "测试角色",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                },
+                {
+                    "describe": "",
+                    "role_id": 14983,
+                    "role_name": "1111",
+                    "one_owner": false,
+                    "role_unique_key": "10"
+                }
+            ]
+        }
+    ],
+    "traceId": "7c1005d0a13e439cb414185d0bada022"
+}

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Claude" version="24.7.17">
+  <diagram name="成员管理架构" id="member-management-architecture">
+    <mxGraphModel dx="1422" dy="737" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- UI层 -->
+        <mxCell id="ui-layer" value="UI层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="720" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- 成员管理页面 -->
+        <mxCell id="member-page" value="MemberManagementPage.tsx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Token管理组件 -->
+        <mxCell id="token-manager" value="TokenManager.tsx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="320" y="140" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- 服务层 -->
+        <mxCell id="service-layer" value="服务层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="280" width="720" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- 成员服务 -->
+        <mxCell id="member-service" value="memberService.ts&lt;br&gt;&lt;br&gt;• getMemberGroups()&lt;br&gt;• getMembersByGroup()&lt;br&gt;• getRoles()&lt;br&gt;• inviteMember()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="80" y="370" width="200" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- API层 -->
+        <mxCell id="api-layer" value="API层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="540" width="720" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- API接口 -->
+        <mxCell id="group-api" value="分组列表API&lt;br&gt;/tagGroup/teamGroupCount" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="630" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="member-api" value="成员列表API&lt;br&gt;/tagGroup/userList" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="260" y="630" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="role-api" value="角色列表API&lt;br&gt;/system/roleLists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="440" y="630" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="invite-api" value="邀请成员API&lt;br&gt;/tenant/send_invite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="620" y="630" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- 数据流连接线 -->
+        <mxCell id="ui-to-service" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="member-page" target="member-service">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="token-to-service" value="提供认证Token" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="token-manager" target="member-service">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="service-to-group-api" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="member-service" target="group-api">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="service-to-member-api" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="member-service" target="member-api">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="service-to-role-api" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="member-service" target="role-api">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="service-to-invite-api" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="member-service" target="invite-api">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 功能说明 -->
+        <mxCell id="features" value="主要功能&lt;br&gt;&lt;br&gt;✓ 分组列表展示&lt;br&gt;✓ 成员列表查看&lt;br&gt;✓ 成员搜索&lt;br&gt;✓ 分页显示&lt;br&gt;✓ 邀请新成员&lt;br&gt;✓ 角色权限管理&lt;br&gt;✓ Token认证" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="520" y="140" width="200" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- 标题 -->
+        <mxCell id="title" value="NxLink 成员管理功能架构图" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="280" height="30" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile> 

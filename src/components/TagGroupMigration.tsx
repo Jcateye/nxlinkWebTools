@@ -50,6 +50,8 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
   const [searchText, setSearchText] = useState<string>('');
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prefix, setPrefix] = useState<string>('');
+  const [isPrefixModalVisible, setIsPrefixModalVisible] = useState<boolean>(false);
   
   // 当用户参数变化时，加载标签分组
   useEffect(() => {
@@ -150,6 +152,28 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
     onChange: onSelectChange,
   };
 
+  const showPrefixModal = () => {
+    if (selectedRowKeys.length === 0) {
+      message.error('请选择要迁移的标签分组');
+      return;
+    }
+    if (!tagUserParams?.targetTenantID) {
+      message.error('请设置目标租户ID');
+      return;
+    }
+    setIsPrefixModalVisible(true);
+  };
+
+  const handlePrefixModalOk = () => {
+    setIsPrefixModalVisible(false);
+    handleMigrate();
+  };
+
+  const handlePrefixModalCancel = () => {
+    setIsPrefixModalVisible(false);
+    setPrefix(''); // Reset prefix if cancelled
+  };
+
   // 开始迁移
   const handleMigrate = async () => {
     if (!tagUserParams) {
@@ -176,17 +200,24 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
       // 转换selectedRowKeys为数字数组
       const selectedIds = selectedRowKeys.map((key: React.Key) => Number(key));
       
+      const migrationOptions = prefix ? {
+        prefixProcessing: true,
+        prefixAdd: prefix,
+        prefixRemove: '',
+      } : undefined;
+
       console.log('开始迁移标签分组:', {
         selectedIds,
         nxCloudUserID: tagUserParams.nxCloudUserID,
         sourceTenantID: tagUserParams.sourceTenantID,
-        targetTenantID: tagUserParams.targetTenantID
+        targetTenantID: tagUserParams.targetTenantID,
+        options: migrationOptions,
       });
       
       message.info('正在迁移标签分组，已优化API调用减少服务器压力...');
       
       // 执行迁移
-      const migratedGroups = await migrateTagGroups(tagUserParams, selectedIds);
+      const migratedGroups = await migrateTagGroups(tagUserParams, selectedIds, migrationOptions);
       
       // 更新成功迁移的分组
       setSuccessGroups(migratedGroups);
@@ -229,6 +260,7 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
     setModalVisible(false);
     setSuccessGroups([]);
     setError(null);
+    setTagListModalVisible(false);
   };
 
   // 打开标签列表模态框
@@ -396,9 +428,9 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
             </Button>
             <Button 
               type="primary" 
-              onClick={handleMigrate} 
-              disabled={selectedRowKeys.length === 0 || migrating}
-              loading={migrating}
+              onClick={showPrefixModal} 
+              disabled={selectedRowKeys.length === 0}
+              style={{ marginRight: 8 }}
             >
               开始迁移
             </Button>
@@ -498,10 +530,26 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
         destroyOnClose={true}
       >
         <TagList 
-          groupId={currentGroupId} 
-          groupName={currentGroupName} 
+          groupId={currentGroupId}
+          groupName={currentGroupName}
           onTagsChange={handleTagsChange}
         />
+      </Modal>
+
+      <Modal
+        title="设置迁移前缀"
+        open={isPrefixModalVisible}
+        onOk={handlePrefixModalOk}
+        onCancel={handlePrefixModalCancel}
+        okText="确认并开始迁移"
+        cancelText="取消"
+      >
+        <Input
+          placeholder="请输入要添加的前缀（可选）"
+          value={prefix}
+          onChange={(e) => setPrefix(e.target.value)}
+        />
+        <p style={{ marginTop: 10 }}>前缀将添加到每个迁移的标签分组名称的开头。</p>
       </Modal>
     </>
   );

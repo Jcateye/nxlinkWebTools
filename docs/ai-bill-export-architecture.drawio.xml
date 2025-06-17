@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" modified="2024-01-20T09:00:00.000Z" agent="5.0" version="21.1.2" etag="def456" type="device">
+  <diagram id="ai-bill-export-architecture" name="AI账单导出功能架构">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- 标题 -->
+        <mxCell id="title" value="AI账单导出功能架构图" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- 前端UI层 -->
+        <mxCell id="frontend-layer" value="📱 前端UI层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="1000" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- React组件 -->
+        <mxCell id="react-component" value="AIBillExport.tsx&lt;br/&gt;&lt;br/&gt;• 查询表单 (公司、租户、时间范围等)&lt;br/&gt;• 数据表格 (与API返回格式完全一致)&lt;br/&gt;• 导出按钮&lt;br/&gt;• 分页控制" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 表格列配置 -->
+        <mxCell id="table-columns" value="表格列配置&lt;br/&gt;&lt;br/&gt;• ID、客户名称、租户名称&lt;br/&gt;• AI流程名称、呼叫方向&lt;br/&gt;• 主叫/被叫号码、通话时长&lt;br/&gt;• 各种成本和利润字段&lt;br/&gt;• 时间格式化、货币格式化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="140" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 用户交互 -->
+        <mxCell id="user-interaction" value="用户交互逻辑&lt;br/&gt;&lt;br/&gt;• 公司选择 → 自动加载租户&lt;br/&gt;• 查询条件联动&lt;br/&gt;• 实时搜索和筛选&lt;br/&gt;• 一键导出Excel&lt;br/&gt;• 错误提示和加载状态" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="720" y="140" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- API服务层 -->
+        <mxCell id="api-layer" value="🔌 API服务层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="300" width="1000" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- AI账单API -->
+        <mxCell id="ai-bill-api" value="aiBillApi.ts&lt;br/&gt;&lt;br/&gt;• queryAIBill() - 查询AI账单&lt;br/&gt;• queryCompanyByName() - 查询公司&lt;br/&gt;• queryTenantByCompanyId() - 查询租户&lt;br/&gt;• exportAIBillData() - 导出数据&lt;br/&gt;• 统一错误处理和认证" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="360" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 请求配置 -->
+        <mxCell id="request-config" value="请求配置&lt;br/&gt;&lt;br/&gt;• axios实例配置&lt;br/&gt;• 请求/响应拦截器&lt;br/&gt;• 认证头自动添加&lt;br/&gt;• system_id: 4 (账单API)&lt;br/&gt;• 错误统一处理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="360" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 数据格式化 -->
+        <mxCell id="data-formatting" value="数据格式化&lt;br/&gt;&lt;br/&gt;• TypeScript类型定义&lt;br/&gt;• API响应数据映射&lt;br/&gt;• 分页参数处理&lt;br/&gt;• 查询条件构建&lt;br/&gt;• 响应数据校验" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="720" y="360" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Excel导出层 -->
+        <mxCell id="excel-layer" value="📊 Excel导出层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="520" width="1000" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Excel工具 -->
+        <mxCell id="excel-utils" value="excelExport.ts&lt;br/&gt;&lt;br/&gt;• exportAIBillToExcel() - 单次导出&lt;br/&gt;• exportAIBillBatch() - 批量导出&lt;br/&gt;• exportAIBillByQuery() - 条件导出&lt;br/&gt;• 大数据量分页处理&lt;br/&gt;• 进度提示和错误处理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="580" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 列配置 -->
+        <mxCell id="column-config" value="列配置管理&lt;br/&gt;&lt;br/&gt;• AI_BILL_COLUMNS 配置&lt;br/&gt;• 22个字段完整映射&lt;br/&gt;• 自定义格式化器&lt;br/&gt;• 列宽自适应&lt;br/&gt;• 样式和排版优化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="580" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- XLSX处理 -->
+        <mxCell id="xlsx-processing" value="XLSX处理&lt;br/&gt;&lt;br/&gt;• 数据转换 (aoa_to_sheet)&lt;br/&gt;• 样式设置 (表头加粗)&lt;br/&gt;• 文件生成和下载&lt;br/&gt;• 时间戳文件名&lt;br/&gt;• 浏览器兼容性" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="720" y="580" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 后端API端点 -->
+        <mxCell id="backend-layer" value="🖥️ 后端API端点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcccc;strokeColor=#ff0000;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="740" width="1000" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- API端点详情 -->
+        <mxCell id="api-endpoints" value="API端点&lt;br/&gt;&lt;br/&gt;• /nxBill/usage/aiAgentCdr/query&lt;br/&gt;• /admin/saas_plat_manager/company/queryLikeByCompanyName&lt;br/&gt;• /admin/saas_plat_manager/company/queryTenantByCompanyId&lt;br/&gt;• 支持分页、筛选、排序&lt;br/&gt;• 返回标准JSON格式" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="200" y="800" width="600" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 数据流箭头 -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#4472C4;" edge="1" parent="1" source="react-component" target="ai-bill-api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1-label" value="API调用" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="arrow1">
+          <mxGeometry x="-0.1" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#70AD47;" edge="1" parent="1" source="table-columns" target="excel-utils">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2-label" value="Excel导出" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="arrow2">
+          <mxGeometry x="-0.1" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#FF6B35;" edge="1" parent="1" source="ai-bill-api" target="api-endpoints">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3-label" value="HTTP请求" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="arrow3">
+          <mxGeometry x="-0.1" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 特性说明 -->
+        <mxCell id="features" value="🎯 核心特性&lt;br/&gt;&lt;br/&gt;✅ 完全一致: Excel列和数据与表格完全对应&lt;br/&gt;✅ 大数据量: 支持分页批量导出&lt;br/&gt;✅ 智能筛选: 公司→租户级联选择&lt;br/&gt;✅ 格式优化: 时间、货币、状态格式化&lt;br/&gt;✅ 错误处理: 完善的异常捕获和用户提示&lt;br/&gt;✅ 文件命名: 包含公司名和时间戳" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d4edda;strokeColor=#155724;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="850" y="800" width="300" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- nginx修复说明 -->
+        <mxCell id="nginx-fix" value="🔧 Nginx配置修复&lt;br/&gt;&lt;br/&gt;• underscores_in_headers on&lt;br/&gt;• 正确转发system_id等请求头&lt;br/&gt;• 解决了NPE问题&lt;br/&gt;• API调用现在稳定可靠" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cce5ff;strokeColor=#004080;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="800" width="120" height="120" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile> 

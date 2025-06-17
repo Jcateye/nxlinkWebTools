@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" modified="2024-01-20T08:30:00.000Z" agent="5.0" version="21.1.2" etag="abc123" type="device">
+  <diagram id="nginx-underscores-fix" name="Nginx下划线请求头修复过程">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- 标题 -->
+        <mxCell id="title" value="Nginx 带下划线请求头(system_id)修复过程" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="400" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- 问题发现 -->
+        <mxCell id="problem" value="🚨 问题发现&lt;br/&gt;&lt;br/&gt;• 直接访问 localhost:4000 ✅ 正常&lt;br/&gt;• nginx代理访问 ❌ NPE错误&lt;br/&gt;• system_id请求头丢失" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcccc;strokeColor=#ff0000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- 根因分析 -->
+        <mxCell id="analysis" value="🔍 根因分析&lt;br/&gt;&lt;br/&gt;• nginx默认忽略带下划线的请求头&lt;br/&gt;• 缺少 underscores_in_headers on&lt;br/&gt;• 自定义请求头未转发" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- 修复方案 -->
+        <mxCell id="solution" value="🛠️ 修复方案&lt;br/&gt;&lt;br/&gt;1. 添加 underscores_in_headers on&lt;br/&gt;2. 转发所有自定义请求头&lt;br/&gt;3. 添加调试日志" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="550" y="80" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- 修复前配置 -->
+        <mxCell id="before-config" value="修复前配置&lt;br/&gt;&lt;br/&gt;❌ 无 underscores_in_headers&lt;br/&gt;❌ 只转发基础请求头&lt;br/&gt;❌ 无调试日志" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="220" width="180" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- 修复后配置 -->
+        <mxCell id="after-config" value="修复后配置&lt;br/&gt;&lt;br/&gt;✅ underscores_in_headers on&lt;br/&gt;✅ 转发 authorization、system_id 等&lt;br/&gt;✅ 添加调试日志格式" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="220" width="180" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- 验证结果 -->
+        <mxCell id="result" value="🎉 验证结果&lt;br/&gt;&lt;br/&gt;✅ API返回正常数据&lt;br/&gt;✅ 日志显示请求头转发成功&lt;br/&gt;✅ NPE问题完全解决" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="220" width="180" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- 核心配置代码 -->
+        <mxCell id="config-code" value="关键配置代码&lt;br/&gt;&lt;br/&gt;http {&lt;br/&gt;    underscores_in_headers on;&lt;br/&gt;    ...&lt;br/&gt;    proxy_set_header system_id $http_system_id;&lt;br/&gt;    proxy_set_header authorization $http_authorization;&lt;br/&gt;    proxy_pass_request_headers on;&lt;br/&gt;}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="50" y="340" width="300" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 测试命令 -->
+        <mxCell id="test-cmd" value="测试命令&lt;br/&gt;&lt;br/&gt;curl -s --insecure \&lt;br/&gt;  &quot;https://10.75.29.104/api/home/api/faqTenantLanguage&quot; \&lt;br/&gt;  -H &quot;authorization: TOKEN&quot; \&lt;br/&gt;  -H &quot;system_id: 5&quot;&lt;br/&gt;&lt;br/&gt;返回: {&quot;code&quot;:0,&quot;data&quot;:[...]}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="400" y="340" width="320" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 重要提示 -->
+        <mxCell id="important" value="💡 重要提示&lt;br/&gt;&lt;br/&gt;• nginx默认会忽略带下划线的HTTP请求头&lt;br/&gt;• 必须显式开启 underscores_in_headers on&lt;br/&gt;• 这是nginx的安全特性，需要谨慎启用&lt;br/&gt;• 建议只在必要时使用带下划线的请求头" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="500" width="400" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- 箭头连接 -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="problem" target="analysis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="analysis" target="solution">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="before-config" target="after-config">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="after-config" target="result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="solution" target="result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile> 

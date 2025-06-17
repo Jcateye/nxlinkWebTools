@@ -18,6 +18,7 @@ import {
 } from '../types';
 import requestLimiter from '../utils/requestLimiter';
 import { API_LIMIT_CONFIG, API_CONFIG } from '../config/apiConfig';
+import { withErrorMonitoring } from '../utils/errorMonitor';
 
 // 应用API限流配置
 Object.entries(API_LIMIT_CONFIG).forEach(([apiKey, config]) => {
@@ -662,28 +663,39 @@ export const getFaqLanguageList = async (): Promise<{ id: number; name: string }
 
 // FAQ 相关接口 - 获取租户下的语言列表
 export const getTenantFaqLanguageList = async (): Promise<{ id: number; language_id: number; language_name: string }[]> => {
-  try {
-    const response = await faqApi.get<ApiResponse<{ id: number; language_id: number; language_name: string }[]>>(
-      '/home/api/faqTenantLanguage'
-    );
-    return response.data.data;
-  } catch (error) {
-    console.error('获取租户FAQ语言列表失败', error);
-    throw error;
-  }
+  return withErrorMonitoring(
+    async () => {
+      const response = await faqApi.get<ApiResponse<{ id: number; language_id: number; language_name: string }[]>>(
+        '/home/api/faqTenantLanguage'
+      );
+      
+      if (response.data.code === 0) {
+        return response.data.data || [];
+      } else {
+        throw new Error(`API返回错误: ${response.data.message || '未知错误'}`);
+      }
+    },
+    'getTenantFaqLanguageList',
+    3
+  );
 };
 
 // FAQ 相关接口 - 添加语言
 export const addFaqLanguage = async (languageId: number): Promise<void> => {
-  try {
-    await faqApi.post<ApiResponse<null>>(
-      '/home/api/faqTenantLanguage',
-      { language_id: languageId }
-    );
-  } catch (error) {
-    console.error('添加FAQ语言失败', error);
-    throw error;
-  }
+  return withErrorMonitoring(
+    async () => {
+      const response = await faqApi.post<ApiResponse<null>>(
+        '/home/api/faqTenantLanguage',
+        { language_id: languageId }
+      );
+      
+      if (response.data.code !== 0) {
+        throw new Error(`添加语言失败: ${response.data.message || '未知错误'}`);
+      }
+    },
+    'addFaqLanguage',
+    2
+  );
 };
 
 // FAQ 相关接口 - 获取FAQ分组列表

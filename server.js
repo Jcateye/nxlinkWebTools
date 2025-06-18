@@ -30,7 +30,34 @@ const PORT = process.env.PORT || 4000;
 // 启用CORS
 app.use(cors());
 
-// JSON解析中间件
+// =========================
+// 1. 先挂载 API 代理，避免 body 已被解析导致流被消耗
+// =========================
+app.use('/api', createProxyMiddleware({
+  target: 'https://nxlink.nxcloud.com',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api': ''
+  },
+  // 不再读取 req 流，防止 body 被消费
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`代理请求: ${req.method} ${req.url}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
+    console.log(`代理响应: ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+  },
+  onError: (err, req, res) => {
+    console.error('代理错误:', err);
+    res.status(502).send('API 代理出错');
+  }
+}));
+
+// =========================
+// 2. 其余中间件（会消费 body 的）放在代理之后
+// =========================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,92 +66,6 @@ app.use('/audio', express.static(path.join(__dirname, 'server/public/audio')));
 
 // 添加TTS路由
 app.use('/api/tts', ttsRoutes);
-
-// API代理配置
-app.use('/api', createProxyMiddleware({
-  target: 'https://nxlink.nxcloud.com',
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api': ''
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    // 打印代理请求信息
-    console.log(`\n=== 代理请求开始: ${req.method} ${req.url} ===`);
-    
-    // 特别关注标签迁移接口
-    if (req.url.includes('/mgrPlatform/tagGroup/migrate')) {
-      console.log('=== 标签迁移请求详情 ===');
-      console.log('URL:', req.url);
-      console.log('Method:', req.method);
-      console.log('Headers:', JSON.stringify(req.headers, null, 2));
-      
-      // 获取请求体数据
-      let body = '';
-      req.on('data', chunk => {
-        body += chunk.toString();
-      });
-      
-      req.on('end', () => {
-        try {
-          if (body) {
-            console.log('Request Body:', body);
-            // 尝试解析JSON
-            try {
-              const jsonBody = JSON.parse(body);
-              console.log('Parsed Request Body:', JSON.stringify(jsonBody, null, 2));
-            } catch (e) {
-              console.log('Body不是有效JSON');
-            }
-          }
-        } catch (error) {
-          console.error('读取请求体错误:', error);
-        }
-      });
-    }
-  },
-  onProxyRes: (proxyRes, req, res) => {
-    // 添加CORS头
-    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
-    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
-    
-    // 记录响应状态和头信息
-    console.log(`\n=== 代理响应: ${req.method} ${req.url} ===`);
-    console.log('Status:', proxyRes.statusCode);
-    console.log('Headers:', JSON.stringify(proxyRes.headers, null, 2));
-    
-    // 特别关注标签迁移接口
-    if (req.url.includes('/mgrPlatform/tagGroup/migrate')) {
-      console.log('=== 标签迁移响应详情 ===');
-      
-      // 收集响应体
-      let responseBody = '';
-      proxyRes.on('data', chunk => {
-        responseBody += chunk.toString('utf8');
-      });
-      
-      proxyRes.on('end', () => {
-        try {
-          console.log('Response Body:', responseBody);
-          // 尝试解析JSON
-          try {
-            const jsonResponse = JSON.parse(responseBody);
-            console.log('Parsed Response:', JSON.stringify(jsonResponse, null, 2));
-          } catch (e) {
-            console.log('响应体不是有效JSON');
-          }
-        } catch (error) {
-          console.error('读取响应体错误:', error);
-        }
-        console.log('=== 标签迁移响应结束 ===\n');
-      });
-    }
-  },
-  onError: (err, req, res) => {
-    console.error('代理错误:', err);
-    res.status(500).send('代理请求出错');
-  }
-}));
 
 // 提供静态文件
 app.use(express.static(path.join(__dirname, 'dist')));

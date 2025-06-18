@@ -18,4 +18,83 @@ feat(member): 实现成员管理功能与批量邀请
 
 - **UI/UX优化**:
   - 隐藏了成员列表中的临时操作按钮。
-  - 调整了相关组件的样式和布局，提升视觉体验。 
+  - 调整了相关组件的样式和布局，提升视觉体验。
+
+fix: 修复生产环境POST请求代理失败导致标签迁移功能异常
+
+## 问题描述
+生产环境中标签迁移功能失败，表现为：
+- GET请求（如查询标签分组）正常工作
+- POST请求（如创建标签分组）出现 socket hang up 错误 (ECONNRESET)
+- 开发环境(localhost:3010)正常，生产环境(10.75.29.88:4000)异常
+
+## 根本原因分析
+问题出现在 `server.js` 中 Express 中间件的**注册顺序**：
+
+### 错误的中间件顺序（修复前）：
+```javascript
+app.use(express.json());           // 1. 先注册 body parser
+app.use(express.urlencoded());     // 2. 再注册 URL encoded parser
+app.use('/api', createProxyMiddleware({...})); // 3. 最后注册代理
+```
+
+### 问题机制：
+1. **请求流消费冲突**：当 POST 请求携带 JSON body 到达服务器时，`express.json()` 中间件会**完全读取并消费**请求流(request stream)，将其解析为 `req.body` 对象。
+
+2. **流数据丢失**：等到 `http-proxy-middleware` 尝试将请求转发给目标服务器时，原始的请求流已经被消费完毕，代理中间件无法获取到完整的请求体数据。
+
+3. **连接异常终止**：目标服务器 (https://nxlink.nxcloud.com) 期望接收完整的 JSON 请求体，但收到的是不完整或损坏的数据，导致服务器主动关闭连接，客户端收到 `ECONNRESET` 错误。
+
+4. **GET请求正常的原因**：GET 请求通常不携带请求体，因此不会触发 body parser，代理过程正常。
+
+### 加剧问题的调试代码：
+```javascript
+// 在 onProxyReq 中手动读取流数据，进一步消费了请求流
+req.on('data', chunk => {
+  body += chunk.toString();
+});
+```
+
+## 解决方案
+重新调整 Express 中间件注册顺序，确保代理中间件在任何会消费请求体的中间件之前注册：
+
+### 正确的中间件顺序（修复后）：
+```javascript
+// 1. 先注册 API 代理中间件
+app.use('/api', createProxyMiddleware({
+  target: 'https://nxlink.nxcloud.com',
+  changeOrigin: true,
+  pathRewrite: { '^/api': '' }
+}));
+
+// 2. 再注册会消费请求体的中间件
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+```
+
+### 关键改进：
+1. **代理优先**：`/api` 路径的请求会被代理中间件优先拦截，直接转发原始请求流
+2. **避免流消费**：移除了 `onProxyReq` 中对请求流的手动读取
+3. **保持流完整性**：确保目标服务器能接收到完整、未被修改的请求数据
+
+## 技术要点
+- **Express 中间件执行顺序**：中间件按注册顺序执行，先注册的先执行
+- **Node.js Stream 特性**：请求流只能被读取一次，读取后无法重复使用
+- **代理中间件原理**：需要完整的原始请求流才能正确转发请求
+
+## 影响范围
+- ✅ 修复生产环境标签迁移功能
+- ✅ 修复所有需要发送 JSON body 的 POST/PUT/PATCH 请求
+- ✅ 保持 GET 请求和其他功能正常工作
+- ✅ 恢复标签迁移的前缀处理功能
+
+## 相关文件
+- `server.js`: 调整中间件注册顺序
+- `src/components/TagGroupMigration.tsx`: 恢复前缀处理功能
+- `docs/nginx-fix-guide.md`: 添加生产环境部署指南
+
+## 测试验证
+- [x] 生产环境 curl 测试通过
+- [x] 前端页面标签迁移功能正常
+- [x] 开发环境功能保持正常
+- [x] 其他 API 接口未受影响 

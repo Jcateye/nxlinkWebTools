@@ -51,6 +51,7 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prefix, setPrefix] = useState<string>('');
+  const [prefixToRemove, setPrefixToRemove] = useState<string>('');
   const [isPrefixModalVisible, setIsPrefixModalVisible] = useState<boolean>(false);
   
   // 当用户参数变化时，加载标签分组
@@ -172,6 +173,7 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
   const handlePrefixModalCancel = () => {
     setIsPrefixModalVisible(false);
     setPrefix(''); // Reset prefix if cancelled
+    setPrefixToRemove(''); // Also reset remove prefix
   };
 
   // 开始迁移
@@ -200,10 +202,10 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
       // 转换selectedRowKeys为数字数组
       const selectedIds = selectedRowKeys.map((key: React.Key) => Number(key));
       
-      const migrationOptions = prefix ? {
+      const migrationOptions = (prefix || prefixToRemove) ? {
         prefixProcessing: true,
         prefixAdd: prefix,
-        prefixRemove: '',
+        prefixRemove: prefixToRemove,
       } : undefined;
 
       console.log('开始迁移标签分组:', {
@@ -543,13 +545,62 @@ const TagGroupMigration = forwardRef<TagGroupMigrationHandle, TagGroupMigrationP
         onCancel={handlePrefixModalCancel}
         okText="确认并开始迁移"
         cancelText="取消"
+        width={500}
       >
-        <Input
-          placeholder="请输入要添加的前缀（可选）"
-          value={prefix}
-          onChange={(e) => setPrefix(e.target.value)}
-        />
-        <p style={{ marginTop: 10 }}>前缀将添加到每个迁移的标签分组名称的开头。</p>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+            添加前缀：
+          </label>
+          <Input
+            placeholder="请输入要添加的前缀（可选）"
+            value={prefix}
+            onChange={(e) => setPrefix(e.target.value)}
+          />
+          <p style={{ marginTop: 8, color: '#666', fontSize: '12px' }}>
+            前缀将添加到每个迁移的标签分组名称的开头
+          </p>
+        </div>
+        
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+            移除前缀：
+          </label>
+          <Input
+            placeholder="请输入要移除的前缀（可选）"
+            value={prefixToRemove}
+            onChange={(e) => setPrefixToRemove(e.target.value)}
+          />
+          <p style={{ marginTop: 8, color: '#666', fontSize: '12px' }}>
+            将从每个迁移的标签分组名称的开头移除匹配的前缀
+          </p>
+        </div>
+        
+        {(prefix || prefixToRemove) && (
+          <div style={{ 
+            backgroundColor: '#f6ffed', 
+            border: '1px solid #b7eb8f', 
+            borderRadius: '6px', 
+            padding: '12px', 
+            marginTop: '16px' 
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#389e0d' }}>
+              预览效果：
+            </div>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              {prefixToRemove && (
+                <div>• 移除前缀: "{prefixToRemove}" → 例如: "{prefixToRemove}示例分组" → "示例分组"</div>
+              )}
+              {prefix && (
+                <div>• 添加前缀: "{prefix}" → 例如: "示例分组" → "{prefix}示例分组"</div>
+              )}
+              {prefix && prefixToRemove && (
+                <div style={{ marginTop: '4px', fontStyle: 'italic' }}>
+                  注意：将先移除前缀，再添加新前缀
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
     </>
   );

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs } from 'antd';
-import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined } from '@ant-design/icons';
 import TagParamsForm from './components/TagParamsForm';
 import FaqParamsForm from './components/FaqParamsForm';
 import TagGroupMigration, { TagGroupMigrationHandle } from './components/TagGroupMigration';
@@ -14,6 +14,9 @@ import VoiceMigration from './components/VoiceMigration';
 import ScriptTestSystem from './components/ScriptTestSystem';
 import BillManagementPage from './pages/BillManagementPage';
 import MemberManagementPage from './pages/MemberManagementPage';
+import PromptValidationPage from './pages/PromptValidationPage';
+import VendorAppManagementPage from './pages/VendorAppManagementPage';
+import PhoneNumberValidator from './components/PhoneNumberValidator';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
@@ -99,7 +102,10 @@ const AppContent = () => {
       'faq': 'FAQ管理',
       'voice': '声音管理',
       'script': '话术测试系统',
-      'member': '成员管理'
+      'member': '成员管理',
+      'prompt': '提示词验证',
+      'phone': '电话号码检测',
+      'vendor-app': '供应商应用管理'
     };
     return titles[activeMenu] || 'NxLink 管理工具';
   };
@@ -197,6 +203,12 @@ const AppContent = () => {
         return <ScriptTestSystem />;
       case 'member':
         return <MemberManagementPage />;
+      case 'prompt':
+        return <PromptValidationPage />;
+      case 'phone':
+        return <PhoneNumberValidator />;
+      case 'vendor-app':
+        return <VendorAppManagementPage />;
       default:
         return (
           <Card>
@@ -261,6 +273,9 @@ const AppContent = () => {
             <Menu.Item key="bill" icon={<DollarOutlined />}>
               账单管理
             </Menu.Item>
+            <Menu.Item key="vendor-app" icon={<ApiOutlined />}>
+              供应商应用管理
+            </Menu.Item>
           </SubMenu>
           
           <SubMenu 
@@ -282,6 +297,22 @@ const AppContent = () => {
               成员管理
             </Menu.Item>
           </SubMenu>
+          
+          <Menu.Item 
+            key="prompt" 
+            icon={<ExperimentOutlined />}
+            style={{ marginTop: 8 }}
+          >
+            提示词验证
+          </Menu.Item>
+          
+          <Menu.Item 
+            key="phone" 
+            icon={<PhoneOutlined />}
+            style={{ marginTop: 8 }}
+          >
+            电话号码检测
+          </Menu.Item>
         </Menu>
       </Sider>
 

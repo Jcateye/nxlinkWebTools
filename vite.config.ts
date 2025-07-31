@@ -13,6 +13,41 @@ export default defineConfig({
     port: 3010,
     host: true,
     proxy: {
+      '/api/backend': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/backend/, '/api'),
+      },
+      '/api/tests': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      '/api/providers': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      '/api/prompts': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      '/api/analytics': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      '/api/auth': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      '/batch-test-log': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        rewrite: (path) => '/api/tests/logs',
+      },
+      '/batch-test-logs': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        rewrite: (path) => '/api/tests/logs',
+      },
       '/api/sessions': {
         target: 'http://localhost:3020',
         changeOrigin: true,

@@ -4,6 +4,7 @@ import { SettingOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
 import { memberService, type MemberGroup, type Member, type Role } from '../services/memberService';
 import { useUserContext } from '../context/UserContext';
+import { getDefaultDjbHash } from '../utils/djbHash';
 
 const { Sider, Content } = Layout;
 const { Search } = Input;
@@ -18,10 +19,11 @@ const MemberManagementPage: React.FC = () => {
   const [isBatchModalVisible, setIsBatchModalVisible] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 200,
     total: 0,
   });
   const [searchText, setSearchText] = useState('');
+  const [webAccountSearchText, setWebAccountSearchText] = useState('');
   const [form] = Form.useForm();
   const [tokenForm] = Form.useForm();
   const [hasToken, setHasToken] = useState(false);
@@ -152,6 +154,15 @@ const MemberManagementPage: React.FC = () => {
     }
   };
 
+  // 根据Web账号搜索过滤成员列表
+  const filteredMembers = members.filter(member => {
+    if (!webAccountSearchText) return true;
+    
+    const userIdWebAccount = getDefaultDjbHash(String(member.id));
+    
+    return userIdWebAccount.includes(webAccountSearchText);
+  });
+
   // 当选中分组变化时加载成员（只有在有token时）
   useEffect(() => {
     if (selectedGroupId && hasToken) {
@@ -253,6 +264,20 @@ const MemberManagementPage: React.FC = () => {
 
   // 表格列定义
   const columns: TableProps<Member>['columns'] = [
+    { 
+      title: '用户ID', 
+      dataIndex: 'id', 
+      key: 'id',
+      width: 150,
+      render: (id: number) => (
+        <div>
+          <div>{id}</div>
+          <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+            客户Web账号: {getDefaultDjbHash(String(id))}
+          </div>
+        </div>
+      ),
+    },
     { 
       title: '成员姓名', 
       dataIndex: 'nickname', 
@@ -393,14 +418,28 @@ const MemberManagementPage: React.FC = () => {
           </Sider>
 
           <Content style={{ padding: '24px', background: '#fff' }}>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-              <Search 
-                placeholder="搜索成员姓名/邮箱" 
-                onSearch={onSearch} 
-                style={{ width: 300 }} 
-                allowClear
-                disabled={!hasToken}
-              />
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
+                <Search 
+                  placeholder="搜索成员姓名/邮箱" 
+                  onSearch={onSearch} 
+                  style={{ width: 300 }} 
+                  allowClear
+                  disabled={!hasToken}
+                />
+                <Search 
+                  placeholder="搜索用户ID对应的客户Web账号" 
+                  onSearch={(value) => setWebAccountSearchText(value)}
+                  onChange={(e) => {
+                    if (!e.target.value) {
+                      setWebAccountSearchText('');
+                    }
+                  }}
+                  style={{ width: 300 }} 
+                  allowClear
+                  disabled={!hasToken}
+                />
+              </div>
               <div>
                 <Button type="primary" onClick={() => setIsModalVisible(true)} disabled={!hasToken}>
                   + 邀请成员
@@ -420,7 +459,7 @@ const MemberManagementPage: React.FC = () => {
             
             <Table 
               columns={columns} 
-              dataSource={members} 
+              dataSource={filteredMembers} 
               rowKey="id" 
               loading={loading}
               pagination={false}
@@ -431,11 +470,16 @@ const MemberManagementPage: React.FC = () => {
               <Pagination
                 current={pagination.current}
                 pageSize={pagination.pageSize}
-                total={pagination.total}
+                total={webAccountSearchText ? filteredMembers.length : pagination.total}
                 onChange={onPageChange}
                 showSizeChanger={false}
                 showQuickJumper
-                showTotal={(total, range) => `${range[0]}-${range[1]} 共 ${total} 条`}
+                showTotal={(total, range) => {
+                  if (webAccountSearchText) {
+                    return `显示 ${filteredMembers.length} 条 (从 ${pagination.total} 条中筛选)`;
+                  }
+                  return `${range[0]}-${range[1]} 共 ${total} 条`;
+                }}
                 disabled={!hasToken}
               />
             </div>

@@ -182,4 +182,7 @@ export interface VoiceResponse {
 }
 
 // 导入账单相关类型
-export * from './bill'; 
+export * from './bill';
+
+// 导入供应商应用相关类型
+export * from './vendorApp'; 

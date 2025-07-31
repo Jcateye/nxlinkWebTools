@@ -68,6 +68,7 @@ import {
   SERVICE_TYPE_MAP
 } from '../config/vendorConfig';
 import { getUniqueLanguages, ttsConfig, getLanguageDescByLocale } from '../config/ttsConfig';
+import TokenManager from '../components/TokenManager';
 
 // 供应商应用类型常量
 const VENDOR_APP_TYPES = {
@@ -793,10 +794,13 @@ const VendorAppManagementPage: React.FC = () => {
     <div style={{ padding: '24px' }}>
       <Card>
         <div style={{ marginBottom: 24 }}>
-          <Title level={4} style={{ margin: 0, marginBottom: 16 }}>供应商应用管理</Title>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Title level={4} style={{ margin: 0 }}>供应商应用管理</Title>
+            <TokenManager />
+          </div>
           <Alert
-            message="批量编辑功能已添加"
-            description="✅ 新增批量编辑功能：支持批量修改评级、国家/地区、音色、模型、供应商应用等字段 ✅ 前端逐一提交更新 ✅ 完整的结果统计和错误提醒 ✅ 分页和音色搜索功能完善"
+            message="令牌管理功能已优化"
+            description="✅ 统一令牌管理：所有页面现在都可以方便地编辑API令牌 ✅ 批量编辑功能：支持批量修改评级、国家/地区、音色、模型、供应商应用等字段 ✅ 前端逐一提交更新 ✅ 完整的结果统计和错误提醒"
             type="success"
             showIcon
             style={{ marginBottom: 16 }}

@@ -5,6 +5,7 @@ import type { TableProps } from 'antd';
 import { memberService, type MemberGroup, type Member, type Role } from '../services/memberService';
 import { useUserContext } from '../context/UserContext';
 import { getDefaultDjbHash } from '../utils/djbHash';
+import TokenManager from '../components/TokenManager';
 
 const { Sider, Content } = Layout;
 const { Search } = Input;
@@ -374,23 +375,28 @@ const MemberManagementPage: React.FC = () => {
       ) : (
         <>
           <Sider width={250} style={{ background: '#fff', borderRight: '1px solid #f0f0f0', overflow: 'auto' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0 }}>成员分组</h3>
-              <Tooltip title="配置API认证Token">
-                <Button 
-                  icon={<SettingOutlined />}
-                  type="primary"
-                  ghost
-                  onClick={() => {
-                    setShowTokenEditor(true);
-                    // 设置当前token值到表单
-                    const currentToken = faqUserParams?.sourceAuthorization || '';
-                    tokenForm.setFieldsValue({ sourceAuthorization: currentToken });
-                  }}
-                >
-                  Token设置
-                </Button>
-              </Tooltip>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h3 style={{ margin: 0 }}>成员分组</h3>
+                <Tooltip title="配置API认证Token">
+                  <Button 
+                    icon={<SettingOutlined />}
+                    type="primary"
+                    ghost
+                    onClick={() => {
+                      setShowTokenEditor(true);
+                      // 设置当前token值到表单
+                      const currentToken = faqUserParams?.sourceAuthorization || '';
+                      tokenForm.setFieldsValue({ sourceAuthorization: currentToken });
+                    }}
+                  >
+                    Token设置
+                  </Button>
+                </Tooltip>
+              </div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                <TokenManager />
+              </div>
             </div>
             <List
               dataSource={[{ id: '0', group_name: '全部成员', group_size: 0 }, ...groups]}

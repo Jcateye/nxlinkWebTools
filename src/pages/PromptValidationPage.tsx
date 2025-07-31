@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Layout, Tabs, Card } from 'antd';
+import { Layout, Tabs, Card, Typography, Space } from 'antd';
 import { ExperimentOutlined, SettingOutlined, FileTextOutlined, HistoryOutlined } from '@ant-design/icons';
 import LLMConfig from '../components/promptValidation/LLMConfig';
 import PromptManagement from '../components/promptValidation/PromptManagement';
 import BatchTest from '../components/promptValidation/BatchTest';
 import TestResults from '../components/promptValidation/TestResults';
+import TokenManager from '../components/TokenManager';
 
 const { Content } = Layout;
 const { TabPane } = Tabs;
+const { Title } = Typography;
 
 const PromptValidationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('llm-config');
@@ -16,7 +18,12 @@ const PromptValidationPage: React.FC = () => {
     <Layout style={{ minHeight: '100%', background: '#f0f2f5' }}>
       <Content style={{ padding: '24px' }}>
         <Card 
-          title="提示词验证系统" 
+          title={
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Title level={4} style={{ margin: 0 }}>提示词验证系统</Title>
+              <TokenManager />
+            </div>
+          }
           style={{ height: '100%' }}
           bodyStyle={{ padding: '0 24px 24px' }}
         >

@@ -15,20 +15,23 @@ import {
   Modal, 
   Form, 
   Row, 
-  Col, 
-  Spin,
-  Tag,
-  Tooltip,
-  DatePicker,
-  Alert
-} from 'antd';
+      Col, 
+    Spin,
+    Tag,
+    Tooltip,
+    DatePicker,
+    Alert,
+    Progress
+  } from 'antd';
 import { 
   PlusOutlined, 
   EditOutlined, 
   DeleteOutlined, 
   SearchOutlined, 
-  ReloadOutlined,
-  SettingOutlined
+      ReloadOutlined,
+    SettingOutlined,
+    CheckOutlined,
+    StopOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { 
@@ -69,6 +72,7 @@ import {
 } from '../config/vendorConfig';
 import { getUniqueLanguages, ttsConfig, getLanguageDescByLocale } from '../config/ttsConfig';
 import TokenManager from '../components/TokenManager';
+import DataCenterSelector from '../components/DataCenterSelector';
 
 // 供应商应用类型常量
 const VENDOR_APP_TYPES = {
@@ -105,8 +109,68 @@ const VendorAppManagementPage: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedRows, setSelectedRows] = useState<SceneVendorApp[]>([]);
   const [batchEditModalVisible, setBatchEditModalVisible] = useState(false);
-  const [batchForm] = Form.useForm();
-  const [batchEditLoading, setBatchEditLoading] = useState(false);
+      const [batchForm] = Form.useForm();
+    const [batchEditLoading, setBatchEditLoading] = useState(false);
+    const [batchEnableLoading, setBatchEnableLoading] = useState(false);
+    const [batchDisableLoading, setBatchDisableLoading] = useState(false);
+
+    // 批量操作进度
+    const [progressVisible, setProgressVisible] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [progressStatus, setProgressStatus] = useState({
+      success: 0,
+      failed: 0,
+      total: 0
+    });
+    const [idInput, setIdInput] = useState('');
+    const [exportModalVisible, setExportModalVisible] = useState(false);
+    const [exportData, setExportData] = useState('');
+
+  const handleSelectByIds = () => {
+    const idsToSelect = idInput
+      .split(/[\s,;\n]+/)
+      .map(id => parseInt(id.trim(), 10))
+      .filter(id => !isNaN(id) && id > 0);
+
+    if (idsToSelect.length === 0) {
+      message.warning('请输入有效的数据ID');
+      return;
+    }
+    
+    const newSelectedRows = sceneVendorApps.filter(item => idsToSelect.includes(item.id));
+    const newSelectedRowKeys = newSelectedRows.map(item => item.id);
+    
+    const foundCount = newSelectedRowKeys.length;
+    const notFoundCount = idsToSelect.length - foundCount;
+    
+    setSelectedRowKeys(newSelectedRowKeys);
+    setSelectedRows(newSelectedRows);
+
+    message.success(`操作完成：当前页找到并勾选了 ${foundCount} 条记录。`);
+    
+    if (notFoundCount > 0) {
+        const allIdsOnPage = new Set(sceneVendorApps.map(app => app.id));
+        const notFoundIds = idsToSelect.filter(id => !allIdsOnPage.has(id));
+        message.info(`${notFoundCount} 个ID在当前页面未找到: ${notFoundIds.slice(0, 5).join(', ')}${notFoundIds.length > 5 ? '...' : ''}`);
+    }
+  };
+
+  const handleExportIds = () => {
+    if (sceneVendorApps.length === 0) {
+      message.warning('当前页没有数据可导出');
+      return;
+    }
+
+    const header = `# 供应商应用ID导出
+# 页码: ${currentPage}
+# 每页数量: ${pageSize}
+# 导出时间: ${dayjs().format('YYYY-MM-DD HH:mm:ss')}
+# -----------------------------------\n\n`;
+    
+    const ids = sceneVendorApps.map(app => app.id).join(',\n');
+    setExportData(header + ids);
+    setExportModalVisible(true);
+  };
 
   // 获取供应商应用列表
   const fetchVendorApps = async (params?: VendorAppQueryParams) => {
@@ -237,6 +301,14 @@ const VendorAppManagementPage: React.FC = () => {
     return app ? app.name : `应用ID: ${vendorAppId}`;
   };
 
+  // 处理数据中心切换
+  const handleDataCenterChange = (dataCenter: any) => {
+    console.log('[VendorAppManagementPage] 数据中心切换:', dataCenter);
+    // 数据中心切换后重新加载数据
+    fetchSceneVendorApps(searchParams);
+    fetchVendorAppMapping(activeTab);
+  };
+
   // 初始化语言选项
   useEffect(() => {
     const languages = getUniqueLanguages();
@@ -360,73 +432,158 @@ const VendorAppManagementPage: React.FC = () => {
     batchForm.resetFields();
   };
 
-  const handleBatchSubmit = async (values: any) => {
+    const handleBatchSubmit = async (values: any) => {
     setBatchEditLoading(true);
-    const results = {
-      success: 0,
-      failed: 0,
-      errors: [] as string[]
-    };
+    setProgressVisible(true);
+    setProgress(0);
+    setProgressStatus({ success: 0, failed: 0, total: selectedRows.length });
 
-    try {
-      for (const record of selectedRows) {
-        try {
-          const updateData = { 
-            ...record,
-            remark: record.remark || undefined // 转换null为undefined
-          };
-          
-          // 只更新用户选择的字段
-          if (values.rating !== undefined) {
-            updateData.rating = values.rating;
-          }
-          if (values.language !== undefined) {
-            updateData.language = values.language;
-          }
-          if (values.timbre !== undefined && activeTab === 'TTS') {
-            updateData.timbre = values.timbre;
-          }
-          if (values.model !== undefined) {
-            updateData.model = values.model;
-          }
-          if (values.vendor_app_id !== undefined) {
-            updateData.vendor_app_id = values.vendor_app_id;
-          }
+    const results = { success: 0, failed: 0, errors: [] as string[] };
 
-          await updateSceneVendorApp(record.id, updateData, record);
-          results.success++;
-        } catch (error: any) {
-          results.failed++;
-          results.errors.push(`记录ID ${record.id}: ${error.message || '更新失败'}`);
-        }
+    for (let i = 0; i < selectedRows.length; i++) {
+      const record = selectedRows[i];
+      try {
+        const updateData = { ...record, remark: record.remark || undefined };
+        if (values.rating !== undefined) updateData.rating = values.rating;
+        if (values.language !== undefined) updateData.language = values.language;
+        if (values.timbre !== undefined && activeTab === 'TTS') updateData.timbre = values.timbre;
+        if (values.model !== undefined) updateData.model = values.model;
+        if (values.vendor_app_id !== undefined) updateData.vendor_app_id = values.vendor_app_id;
+        
+        await updateSceneVendorApp(record.id, updateData, record);
+        results.success++;
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push(`记录ID ${record.id}: ${error.message || '更新失败'}`);
       }
+      const currentProgress = ((i + 1) / selectedRows.length) * 100;
+      setProgress(currentProgress);
+      setProgressStatus(prev => ({ ...prev, success: results.success, failed: results.failed }));
+    }
 
-      // 显示结果
+    setBatchEditLoading(false);
+    setBatchEditModalVisible(false);
+    
+    setTimeout(() => {
+      setProgressVisible(false);
       if (results.failed === 0) {
         message.success(`批量编辑成功！共更新 ${results.success} 条记录`);
-      } else if (results.success === 0) {
-        message.error(`批量编辑失败！${results.failed} 条记录更新失败`);
       } else {
         message.warning(`批量编辑部分成功：${results.success} 条成功，${results.failed} 条失败`);
       }
-
-      // 输出详细错误信息
-      if (results.errors.length > 0) {
-        console.error('批量编辑错误详情:', results.errors);
-      }
-
-      setBatchEditModalVisible(false);
+      if (results.errors.length > 0) console.error('批量编辑错误详情:', results.errors);
       setSelectedRowKeys([]);
       setSelectedRows([]);
       fetchSceneVendorApps(searchParams);
-    } catch (error: any) {
-      message.error('批量编辑过程中发生错误');
-    } finally {
-      setBatchEditLoading(false);
-    }
+    }, 1000);
   };
 
-  const rowSelection = {
+    // 批量启用
+    const handleBatchEnable = () => {
+      if (selectedRowKeys.length === 0) {
+        message.warning('请先选择要启用的记录');
+        return;
+      }
+
+      Modal.confirm({
+        title: `确定要批量启用 ${selectedRowKeys.length} 条记录吗？`,
+        content: '此操作将启用所有选中的供应商应用。',
+        okText: '确定启用',
+        cancelText: '取消',
+        onOk: async () => {
+          setBatchEnableLoading(true);
+          setProgressVisible(true);
+          setProgress(0);
+          setProgressStatus({ success: 0, failed: 0, total: selectedRows.length });
+
+          const results = { success: 0, failed: 0, errors: [] as string[] };
+
+          for (let i = 0; i < selectedRows.length; i++) {
+            const record = selectedRows[i];
+            try {
+              await updateSceneVendorAppStatus(record.id, 1, record);
+              results.success++;
+            } catch (error: any) {
+              results.failed++;
+              results.errors.push(`记录ID ${record.id}: ${error.message || '启用失败'}`);
+            }
+            const currentProgress = ((i + 1) / selectedRows.length) * 100;
+            setProgress(currentProgress);
+            setProgressStatus(prev => ({ ...prev, success: results.success, failed: results.failed }));
+          }
+
+          setBatchEnableLoading(false);
+          // 延迟关闭进度条，让用户看到最终结果
+          setTimeout(() => {
+            setProgressVisible(false);
+            if (results.failed === 0) {
+              message.success(`批量启用成功！共启用 ${results.success} 条记录`);
+            } else {
+              message.warning(`批量启用部分成功：${results.success} 条成功，${results.failed} 条失败`);
+            }
+            if (results.errors.length > 0) console.error('批量启用错误详情:', results.errors);
+            setSelectedRowKeys([]);
+            setSelectedRows([]);
+            fetchSceneVendorApps(searchParams);
+          }, 1000);
+        }
+      });
+    };
+
+    // 批量禁用
+    const handleBatchDisable = () => {
+      if (selectedRowKeys.length === 0) {
+        message.warning('请先选择要禁用的记录');
+        return;
+      }
+
+      Modal.confirm({
+        title: `确定要批量禁用 ${selectedRowKeys.length} 条记录吗？`,
+        content: '此操作将禁用所有选中的供应商应用。',
+        okText: '确定禁用',
+        cancelText: '取消',
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          setBatchDisableLoading(true);
+          setProgressVisible(true);
+          setProgress(0);
+          setProgressStatus({ success: 0, failed: 0, total: selectedRows.length });
+
+          const results = { success: 0, failed: 0, errors: [] as string[] };
+          
+          for (let i = 0; i < selectedRows.length; i++) {
+            const record = selectedRows[i];
+            try {
+              await updateSceneVendorAppStatus(record.id, 0, record);
+              results.success++;
+            } catch (error: any) {
+              results.failed++;
+              results.errors.push(`记录ID ${record.id}: ${error.message || '禁用失败'}`);
+            }
+            const currentProgress = ((i + 1) / selectedRows.length) * 100;
+            setProgress(currentProgress);
+            setProgressStatus(prev => ({ ...prev, success: results.success, failed: results.failed }));
+          }
+
+          setBatchDisableLoading(false);
+          // 延迟关闭进度条
+          setTimeout(() => {
+            setProgressVisible(false);
+            if (results.failed === 0) {
+              message.success(`批量禁用成功！共禁用 ${results.success} 条记录`);
+            } else {
+              message.warning(`批量禁用部分成功：${results.success} 条成功，${results.failed} 条失败`);
+            }
+            if (results.errors.length > 0) console.error('批量禁用错误详情:', results.errors);
+            setSelectedRowKeys([]);
+            setSelectedRows([]);
+            fetchSceneVendorApps(searchParams);
+          }, 1000);
+        }
+      });
+    };
+
+    const rowSelection = {
     selectedRowKeys,
     onChange: (selectedRowKeys: React.Key[], selectedRows: SceneVendorApp[]) => {
       setSelectedRowKeys(selectedRowKeys);
@@ -441,6 +598,17 @@ const VendorAppManagementPage: React.FC = () => {
   // 场景供应商应用表格列定义
   const getSceneVendorAppColumns = () => {
     const baseColumns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+      render: (id: number) => (
+        <span style={{ fontFamily: 'monospace', color: '#1890ff' }}>
+          {id}
+        </span>
+      )
+    },
     {
       title: '厂商名称',
       dataIndex: 'code',
@@ -645,7 +813,7 @@ const VendorAppManagementPage: React.FC = () => {
     return (
       <Card size="small" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
-          <Col span={4}>
+          <Col span={6}>
             <Select
               placeholder="选择厂商"
               allowClear
@@ -670,7 +838,7 @@ const VendorAppManagementPage: React.FC = () => {
               ))}
             </Select>
           </Col>
-          <Col span={4}>
+          <Col span={6}>
             <Select
               placeholder="选择语言"
               allowClear
@@ -697,7 +865,7 @@ const VendorAppManagementPage: React.FC = () => {
               ))}
             </Select>
           </Col>
-          <Col span={4}>
+          <Col span={6}>
             <Select
               placeholder="选择状态"
               allowClear
@@ -712,7 +880,7 @@ const VendorAppManagementPage: React.FC = () => {
               <Option value={0}>禁用</Option>
             </Select>
           </Col>
-          <Col span={4}>
+          <Col span={6}>
             <Select
               placeholder="选择评级"
               allowClear
@@ -728,7 +896,53 @@ const VendorAppManagementPage: React.FC = () => {
               ))}
             </Select>
           </Col>
-          <Col span={8}>
+        </Row>
+        
+        {/* TTS专用音色搜索行 */}
+        {activeTab === 'TTS' && (
+          <Row gutter={16} style={{ marginTop: 16 }}>
+            <Col span={6}>
+              <Input
+                placeholder="搜索音色 (如：AmberNeural、小晓、Aria等)"
+                allowClear
+                prefix={<SearchOutlined />}
+                value={searchParams.timbre}
+                onChange={(e) => {
+                  const newParams = { ...searchParams, timbre: e.target.value };
+                  setSearchParams(newParams);
+                }}
+              />
+            </Col>
+            <Col span={18}>
+              <div style={{ color: '#666', fontSize: '12px', lineHeight: '32px' }}>
+                💡 音色搜索支持：英文名称（如 AmberNeural）、中文名称（如 小晓）、性别（男/女）等关键词（前端过滤，每页独立显示结果）。请手动逐页确认，以免遗漏数据
+              </div>
+            </Col>
+          </Row>
+        )}
+
+        <Row gutter={16} style={{ marginTop: 16 }}>
+          <Col span={24}>
+            <Space>
+              <Input.TextArea
+                rows={1}
+                placeholder="在此粘贴多个数据ID，用逗号、空格或换行分隔"
+                value={idInput}
+                onChange={(e) => setIdInput(e.target.value)}
+                style={{ width: 400, verticalAlign: 'middle' }}
+              />
+              <Button onClick={handleSelectByIds}>
+                按ID勾选
+              </Button>
+              <Button onClick={handleExportIds}>
+                导出当前页ID
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+
+        <Row gutter={16} style={{ marginTop: 16 }}>
+          <Col span={24}>
             <Space>
               <Button 
                 type="primary" 
@@ -753,6 +967,8 @@ const VendorAppManagementPage: React.FC = () => {
               >
                 新建
               </Button>
+            </Space>
+            <Space style={{ marginLeft: 24 }}>
               <Button 
                 type="default" 
                 icon={<EditOutlined />}
@@ -761,31 +977,29 @@ const VendorAppManagementPage: React.FC = () => {
               >
                 批量编辑 ({selectedRowKeys.length})
               </Button>
+              <Button 
+                type="default" 
+                icon={<CheckOutlined />}
+                onClick={handleBatchEnable}
+                disabled={selectedRowKeys.length === 0}
+                loading={batchEnableLoading}
+                style={{ color: '#52c41a', borderColor: '#52c41a' }}
+              >
+                批量启用 ({selectedRowKeys.length})
+              </Button>
+              <Button 
+                type="default" 
+                icon={<StopOutlined />}
+                onClick={handleBatchDisable}
+                disabled={selectedRowKeys.length === 0}
+                loading={batchDisableLoading}
+                style={{ color: '#ff4d4f', borderColor: '#ff4d4f' }}
+              >
+                批量禁用 ({selectedRowKeys.length})
+              </Button>
             </Space>
           </Col>
         </Row>
-        {/* TTS专用音色搜索行 */}
-        {activeTab === 'TTS' && (
-          <Row gutter={16} style={{ marginTop: 16 }}>
-            <Col span={6}>
-              <Input
-                placeholder="搜索音色 (如：AmberNeural、小晓、Aria等)"
-                allowClear
-                prefix={<SearchOutlined />}
-                value={searchParams.timbre}
-                onChange={(e) => {
-                  const newParams = { ...searchParams, timbre: e.target.value };
-                  setSearchParams(newParams);
-                }}
-              />
-            </Col>
-            <Col span={18}>
-              <div style={{ color: '#666', fontSize: '12px', lineHeight: '32px' }}>
-                💡 音色搜索支持：英文名称（如 AmberNeural）、中文名称（如 小晓）、性别（男/女）等关键词（前端过滤，每页独立显示结果）。请手动逐页确认，以免遗漏数据
-              </div>
-            </Col>
-          </Row>
-        )}
       </Card>
     );
   };
@@ -796,11 +1010,17 @@ const VendorAppManagementPage: React.FC = () => {
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <Title level={4} style={{ margin: 0 }}>供应商应用管理</Title>
-            <TokenManager />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <DataCenterSelector 
+                onChange={handleDataCenterChange} 
+                size="small"
+              />
+              <TokenManager />
+            </div>
           </div>
           <Alert
-            message="令牌管理功能已优化"
-            description="✅ 统一令牌管理：所有页面现在都可以方便地编辑API令牌 ✅ 批量编辑功能：支持批量修改评级、国家/地区、音色、模型、供应商应用等字段 ✅ 前端逐一提交更新 ✅ 完整的结果统计和错误提醒"
+            message="功能已优化"
+            description="✅ 数据中心切换：支持在香港和CHL环境之间快速切换，自动更新API请求地址 ✅ 统一令牌管理：所有页面现在都可以方便地编辑API令牌 ✅ 批量操作功能：支持批量编辑、批量启用、批量禁用等操作 ✅ 批量编辑：支持批量修改评级、国家/地区、音色、模型、供应商应用等字段 ✅ 前端逐一提交更新 ✅ 完整的结果统计和错误提醒"
             type="success"
             showIcon
             style={{ marginBottom: 16 }}
@@ -827,13 +1047,14 @@ const VendorAppManagementPage: React.FC = () => {
                 total: total,
                 showSizeChanger: true,
                 showQuickJumper: true,
+                pageSizeOptions: ['10', '20', '50', '100', '200', '500', '1000'],
                 showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
                 onChange: (page, size) => {
                   setCurrentPage(page);
                   setPageSize(size || 10);
                 }
               }}
-              scroll={{ x: 1400 }}
+              scroll={{ x: 1480 }}
               size="small"
             />
           </TabPane>
@@ -852,13 +1073,14 @@ const VendorAppManagementPage: React.FC = () => {
                 total: total,
                 showSizeChanger: true,
                 showQuickJumper: true,
+                pageSizeOptions: ['10', '20', '50', '100', '200', '500', '1000'],
                 showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
                 onChange: (page, size) => {
                   setCurrentPage(page);
                   setPageSize(size || 10);
                 }
               }}
-              scroll={{ x: 1400 }}
+              scroll={{ x: 1480 }}
               size="small"
             />
           </TabPane>
@@ -877,13 +1099,14 @@ const VendorAppManagementPage: React.FC = () => {
                 total: total,
                 showSizeChanger: true,
                 showQuickJumper: true,
+                pageSizeOptions: ['10', '20', '50', '100', '200', '500', '1000'],
                 showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
                 onChange: (page, size) => {
                   setCurrentPage(page);
                   setPageSize(size || 10);
                 }
               }}
-              scroll={{ x: 1400 }}
+              scroll={{ x: 1480 }}
               size="small"
             />
           </TabPane>
@@ -1191,6 +1414,50 @@ const VendorAppManagementPage: React.FC = () => {
             </Col>
           </Row>
         </Form>
+      </Modal>
+
+      {/* 批量操作进度条 */}
+      <Modal
+        title="批量操作进行中..."
+        open={progressVisible}
+        footer={null}
+        closable={false}
+        maskClosable={false}
+      >
+        <div style={{ textAlign: 'center', padding: '24px' }}>
+          <Progress type="circle" percent={Math.round(progress)} />
+          <p style={{ marginTop: 16 }}>
+            总数: {progressStatus.total} | 
+            <span style={{ color: 'green' }}> 成功: {progressStatus.success} </span>| 
+            <span style={{ color: 'red' }}> 失败: {progressStatus.failed} </span>
+          </p>
+          <p>请稍候，正在处理数据...</p>
+        </div>
+      </Modal>
+
+      {/* 导出ID模态框 */}
+      <Modal
+        title="导出当前页数据ID"
+        open={exportModalVisible}
+        onCancel={() => setExportModalVisible(false)}
+        footer={[
+          <Button key="copy" type="primary" onClick={() => {
+            navigator.clipboard.writeText(exportData);
+            message.success('已复制到剪贴板');
+          }}>
+            复制到剪贴板
+          </Button>,
+          <Button key="close" onClick={() => setExportModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={600}
+      >
+        <Input.TextArea
+          value={exportData}
+          autoSize={{ minRows: 10, maxRows: 20 }}
+          readOnly
+        />
       </Modal>
     </div>
   );

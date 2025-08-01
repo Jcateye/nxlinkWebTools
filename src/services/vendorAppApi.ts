@@ -10,86 +10,110 @@ import {
   VendorAppFormData,
   SceneVendorAppFormData
 } from '../types/vendorApp';
+import { getCurrentDataCenter } from '../config/apiConfig';
 
-// 创建供应商应用API的axios实例
-const vendorAppApi = axios.create({
-  baseURL: '/api',
-  timeout: 30000,
-  headers: {
-    'Accept': 'application/json, text/plain, */*',
-    'Content-Type': 'application/json;charset=UTF-8',
-    'system_id': '4',
-  }
-});
 
-// 请求拦截器 - 添加认证信息
-vendorAppApi.interceptors.request.use(
-  (config) => {
-    // 从localStorage获取认证信息
-    const sessionId = localStorage.getItem('sessionId');
-    if (sessionId) {
-      const storageKey = `tagUserParams_${sessionId}`;
-      const userParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
-      
-      if (userParams.authorization) {
-        config.headers.authorization = userParams.authorization;
-      }
+
+// 创建不同类型的API实例
+const createApiInstance = (baseURL: string) => {
+  const api = axios.create({
+    baseURL,
+    timeout: 30000,
+    headers: {
+      'Accept': 'application/json, text/plain, */*',
+      'Content-Type': 'application/json;charset=UTF-8',
+      'system_id': '4',
     }
-    
-    // 确保设置正确的请求头
-    config.headers['system_id'] = '4';
-    config.headers['Accept'] = 'application/json, text/plain, */*';
-    config.headers['Content-Type'] = 'application/json;charset=UTF-8';
-    
-    console.log('[vendorAppApi] 请求配置:', {
-      url: config.url,
-      method: config.method,
-      headers: {
-        authorization: config.headers.authorization?.substring(0, 20) + '...',
-        'system_id': config.headers['system_id'],
-        'Content-Type': config.headers['Content-Type']
-      },
-      data: config.data
-    });
-    
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  });
+  
+  // 请求拦截器 - 添加认证信息
+  api.interceptors.request.use(
+    (config) => {
+      // 从localStorage获取认证信息
+      const sessionId = localStorage.getItem('sessionId');
+      if (sessionId) {
+        const storageKey = `tagUserParams_${sessionId}`;
+        const userParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        
+        if (userParams.authorization) {
+          config.headers.authorization = userParams.authorization;
+        }
+      }
+      
+      // 确保设置正确的请求头
+      config.headers['system_id'] = '4';
+      config.headers['Accept'] = 'application/json, text/plain, */*';
+      config.headers['Content-Type'] = 'application/json;charset=UTF-8';
+      
+      console.log('[vendorAppApi] 请求配置:', {
+        baseURL: config.baseURL,
+        url: config.url,
+        method: config.method,
+        headers: {
+          authorization: config.headers.authorization?.substring(0, 20) + '...',
+          'system_id': config.headers['system_id'],
+          'Content-Type': config.headers['Content-Type']
+        },
+        data: config.data
+      });
+      
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
 
-// 响应拦截器
-vendorAppApi.interceptors.response.use(
-  (response) => {
-    console.log('[vendorAppApi] 响应成功:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
-    return response;
-  },
-  (error) => {
-    console.error('[vendorAppApi] 请求失败:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      message: error.message
-    });
-    return Promise.reject(error);
-  }
-);
+  // 响应拦截器
+  api.interceptors.response.use(
+    (response) => {
+      console.log('[vendorAppApi] 响应成功:', {
+        baseURL: response.config.baseURL,
+        url: response.config.url,
+        status: response.status,
+        data: response.data
+      });
+      return response;
+    },
+    (error) => {
+      console.error('[vendorAppApi] 请求失败:', {
+        baseURL: error.config?.baseURL,
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      return Promise.reject(error);
+    }
+  );
+  
+  return api;
+};
+
+// 获取中台API实例（始终使用默认代理，不需要数据中心切换）
+const getManagementApi = () => {
+  return createApiInstance('/api');
+};
+
+// 获取流程管理API实例（根据数据中心切换）
+const getFlowManagerApi = () => {
+  const currentDataCenter = getCurrentDataCenter();
+  return createApiInstance(currentDataCenter.baseURL);
+};
+
+
 
 /**
  * 获取供应商应用列表
  */
 export const getVendorAppList = async (params: VendorAppQueryParams): Promise<VendorAppListResponse> => {
   try {
-    console.log('[getVendorAppList] 获取供应商应用列表', params);
+    console.log('[getVendorAppList] 获取供应商应用列表（中台API）', params);
     
-    const response = await vendorAppApi.get<ApiResponse<VendorAppListResponse>>(
+    const managementApi = getManagementApi();
+    const response = await managementApi.get<ApiResponse<VendorAppListResponse>>(
       '/admin/saas_plat_manager/nx_bill/vendorApp',
       { params }
     );
@@ -110,9 +134,10 @@ export const getVendorAppList = async (params: VendorAppQueryParams): Promise<Ve
  */
 export const getSceneVendorAppList = async (params: SceneVendorAppQueryParams): Promise<SceneVendorAppListResponse> => {
   try {
-    console.log('[getSceneVendorAppList] 获取场景供应商应用列表', params);
+    console.log('[getSceneVendorAppList] 获取场景供应商应用列表（流程管理API）', params);
     
-    const response = await vendorAppApi.get<ApiResponse<SceneVendorAppListResponse>>(
+    const flowManagerApi = getFlowManagerApi();
+    const response = await flowManagerApi.get<ApiResponse<SceneVendorAppListResponse>>(
       '/admin/nx_flow_manager/mgrPlatform/sceneInfo',
       { params }
     );
@@ -135,7 +160,8 @@ export const createVendorApp = async (data: VendorAppFormData): Promise<any> => 
   try {
     console.log('[createVendorApp] 创建供应商应用', data);
     
-    const response = await vendorAppApi.post<ApiResponse<any>>(
+    const managementApi = getManagementApi();
+    const response = await managementApi.post<ApiResponse<any>>(
       '/admin/saas_plat_manager/nx_bill/vendorApp',
       data
     );
@@ -158,7 +184,8 @@ export const updateVendorApp = async (id: number, data: VendorAppFormData): Prom
   try {
     console.log('[updateVendorApp] 更新供应商应用', id, data);
     
-    const response = await vendorAppApi.put<ApiResponse<any>>(
+    const managementApi = getManagementApi();
+    const response = await managementApi.put<ApiResponse<any>>(
       `/admin/saas_plat_manager/nx_bill/vendorApp/${id}`,
       data
     );
@@ -181,7 +208,8 @@ export const deleteVendorApp = async (id: number): Promise<boolean> => {
   try {
     console.log('[deleteVendorApp] 删除供应商应用', id);
     
-    const response = await vendorAppApi.delete<ApiResponse<any>>(
+    const managementApi = getManagementApi();
+    const response = await managementApi.delete<ApiResponse<any>>(
       `/admin/saas_plat_manager/nx_bill/vendorApp/${id}`
     );
     
@@ -223,7 +251,8 @@ export const createSceneVendorApp = async (data: SceneVendorAppFormData): Promis
     
     console.log('[createSceneVendorApp] 发送的数据:', createData);
     
-    const response = await vendorAppApi.post<ApiResponse<any>>(
+    const flowManagerApi = getFlowManagerApi();
+    const response = await flowManagerApi.post<ApiResponse<any>>(
       '/admin/nx_flow_manager/mgrPlatform/sceneInfo',
       createData
     );
@@ -279,7 +308,8 @@ export const updateSceneVendorApp = async (id: number, data: SceneVendorAppFormD
     
     console.log('[updateSceneVendorApp] 发送的完整数据:', updateData);
     
-    const response = await vendorAppApi.put<ApiResponse<any>>(
+    const flowManagerApi = getFlowManagerApi();
+    const response = await flowManagerApi.put<ApiResponse<any>>(
       `/admin/nx_flow_manager/mgrPlatform/sceneInfo`,
       updateData
     );
@@ -302,7 +332,8 @@ export const deleteSceneVendorApp = async (id: number): Promise<boolean> => {
   try {
     console.log('[deleteSceneVendorApp] 删除场景供应商应用', id);
     
-    const response = await vendorAppApi.delete<ApiResponse<any>>(
+    const flowManagerApi = getFlowManagerApi();
+    const response = await flowManagerApi.delete<ApiResponse<any>>(
       `/admin/nx_flow_manager/mgrPlatform/sceneInfo/${id}`
     );
     
@@ -344,7 +375,8 @@ export const updateSceneVendorAppStatus = async (id: number, status: number, ori
       return true;
     } else {
       // 回退到简单的状态更新方式
-      const response = await vendorAppApi.patch<ApiResponse<any>>(
+      const flowManagerApi = getFlowManagerApi();
+      const response = await flowManagerApi.patch<ApiResponse<any>>(
         `/admin/nx_flow_manager/mgrPlatform/sceneInfo/${id}`,
         { status }
       );
@@ -386,7 +418,8 @@ export const getVendorAppListForMapping = async (type: string): Promise<any[]> =
       tenantId
     });
     
-    const response = await vendorAppApi.get<ApiResponse<any>>('/admin/saas_plat_manager/nx_bill/vendorApp', {
+    const managementApi = getManagementApi();
+    const response = await managementApi.get<ApiResponse<any>>('/admin/saas_plat_manager/nx_bill/vendorApp', {
       params: {
         type: type,
         page_num: -1,

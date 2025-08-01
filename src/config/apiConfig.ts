@@ -95,6 +95,56 @@ export const API_CONFIG = {
 };
 
 /**
+ * 数据中心配置
+ */
+export interface DataCenter {
+  id: string;
+  name: string;
+  baseURL: string;
+  description?: string;
+}
+
+export const DATA_CENTERS: DataCenter[] = [
+  {
+    id: 'hk',
+    name: '香港',
+    baseURL: '/api/hk',
+    description: '香港数据中心'
+  },
+  {
+    id: 'chl',
+    name: 'CHL',
+    baseURL: '/api/chl',
+    description: 'CHL环境数据中心'
+  }
+];
+
+/**
+ * 获取当前选择的数据中心
+ */
+export const getCurrentDataCenter = (): DataCenter => {
+  const savedDataCenter = localStorage.getItem('selectedDataCenter');
+  if (savedDataCenter) {
+    try {
+      const parsed = JSON.parse(savedDataCenter);
+      const found = DATA_CENTERS.find(dc => dc.id === parsed.id);
+      if (found) return found;
+    } catch (error) {
+      console.warn('解析保存的数据中心失败:', error);
+    }
+  }
+  // 默认返回香港数据中心
+  return DATA_CENTERS[0];
+};
+
+/**
+ * 设置当前数据中心
+ */
+export const setCurrentDataCenter = (dataCenter: DataCenter): void => {
+  localStorage.setItem('selectedDataCenter', JSON.stringify(dataCenter));
+};
+
+/**
  * 协作模式API配置
  */
 export const COLLABORATION_API_BASE_URL = 'http://localhost:3020'; 

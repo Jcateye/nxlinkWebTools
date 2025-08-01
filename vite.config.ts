@@ -89,6 +89,18 @@ export default defineConfig({
           });
         }
       },
+      '/api/hk': {
+        target: 'https://nxlink.nxcloud.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/hk/, ''),
+      },
+      '/api/chl': {
+        target: 'https://nxlink.nxcloud.com/chl',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/chl/, ''),
+      },
       '/api': {
         target: 'https://nxlink.nxcloud.com',
         changeOrigin: true,

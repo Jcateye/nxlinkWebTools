@@ -1,0 +1,200 @@
+curl 'https://nxlink.nxcloud.com/admin/nx_flow_manager/mgrPlatform/sceneInfo?rating=Standard&page_number=1&page_size=10&type=2&tenantId=255' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjgxNywidXVJZCI6IjY4ODk2ZTg5ZTRiMGRiODgyZWQ3ZWZiNCJ9.BPq4aNt_UmflLhetzJOAqUDUvyymCmUQxN_5fQgGfpc' \
+  -H 'cache-control: no-cache' \
+  -b '__bid_n=189d541141e1152a1cdb95; fbm_1407008009801826=base_domain=.nxlink.nxcloud.com; fblo_1407008009801826=y; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%2C%22%24latest_referrer%22%3A%22%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTg5ZDU0MGJlZjA5MDItMDJmNDQ1NjNmMTFjNGRlLTFhNTI1NjM0LTE4OTI5NzAtMTg5ZDU0MGJlZjExNWI5In0%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%7D; Hm_lvt_f8f3199714771c412f9dd352ddb23ee5=1730860407,1733282228; _gl_au=1.1.72218752.1747188901; _ga=GA1.1.1521398006.1691499938; _gcl_au=1.1.1391561557.1751359578; plat_token=eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjIyLCJkZXZpY2VVbmlxdWVJZGVudGlmaWNhdGlvbiI6IjkwNWI0NzYwLTQ5MDUtMTFlZi1iZTQxLTk3OTI5MGEwN2I2NiIsInV1SWQiOiI2ODdkZDdmN2U0YjBlZjVmZmZhMDFiNzcifQ.qm1pKTJ09kTR-yIN8jhHI6taU5is81PwF1V08MZ4_vM; isLogin=1; nx-utc=UTC+08:00; nx-zone=105; company_domain=null; login_type=null; locale=zh-CN; _ga_8KK14YS12T=GS2.1.s1753176556$o553$g1$t1753177208$j60$l0$h0; _ga_95Z6D5L9D8=GS2.1.s1753176556$o331$g1$t1753177211$j57$l0$h0; sipInfo={%22domain%22:%22slave-sgp-cc.nxcloud.com%22%2C%22wssurl%22:%22wss://slave-sgp-cc.nxcloud.com/SINGAPORE/v2%22%2C%22ccToken%22:%22eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjIyLCJkZXZpY2VVbmlxdWVJZGVudGlmaWNhdGlvbiI6IjkwNWI0NzYwLTQ5MDUtMTFlZi1iZTQxLTk3OTI5MGEwN2I2NiIsInV1SWQiOiI2ODdkZDdmN2U0YjBlZjVmZmZhMDFiNzcifQ.qm1pKTJ09kTR-yIN8jhHI6taU5is81PwF1V08MZ4_vM%22%2C%22ccQueue%22:%22NX77777178086G000181%22%2C%22sipNum%22:%22NX104110004312%22%2C%22email%22:%22xu.xunjian@nxcloud.com%22%2C%22utcDate%22:%222025/07/30%22%2C%22agentType%22:2}; JSESSIONID=FE1CCC50C68D8E34EEEF52E8838A5B17' \
+  -H 'dnt: 1' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/manager/' \
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 4' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+
+# response
+
+{
+    "code": 0,
+    "message": "success",
+    "traceId": "f367314e44314075ba0af6090229aaa8",
+    "data": {
+        "code": 0,
+        "message": null,
+        "traceId": null,
+        "total": 966,
+        "page_number": 1,
+        "page_size": 10,
+        "list": [
+            {
+                "id": 11236,
+                "type": 2,
+                "language": "vi-VN",
+                "vendor": "5",
+                "vendor_params": "{\"languageVoice\":\"vi-VN-Neural2-D\",\"pitch\":\"0.0\",\"speakingSpeed\":\"1.0\",\"volume\":\"0.0\"}",
+                "code": "Iota",
+                "timbre": "vi-VN-Neural2-D",
+                "model": "",
+                "vendor_app_id": "20",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1753846344
+            },
+            {
+                "id": 11241,
+                "type": 2,
+                "language": "vi-VN",
+                "vendor": "5",
+                "vendor_params": "{\"languageVoice\":\"vi-VN-Wavenet-A\",\"pitch\":\"0.0\",\"speakingSpeed\":\"1.0\",\"volume\":\"0.0\"}",
+                "code": "Iota",
+                "timbre": "vi-VN-Wavenet-A",
+                "model": "",
+                "vendor_app_id": "19",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1753846252
+            },
+            {
+                "id": 11242,
+                "type": 2,
+                "language": "vi-VN",
+                "vendor": "5",
+                "vendor_params": "{\"languageVoice\":\"vi-VN-Wavenet-B\",\"pitch\":\"0.0\",\"speakingSpeed\":\"1.0\",\"volume\":\"0.0\"}",
+                "code": "Iota",
+                "timbre": "vi-VN-Wavenet-B",
+                "model": "",
+                "vendor_app_id": "19",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1753846240
+            },
+            {
+                "id": 11243,
+                "type": 2,
+                "language": "vi-VN",
+                "vendor": "5",
+                "vendor_params": "{\"languageVoice\":\"vi-VN-Wavenet-C\",\"pitch\":\"0.0\",\"speakingSpeed\":\"1.0\",\"volume\":\"0.0\"}",
+                "code": "Iota",
+                "timbre": "vi-VN-Wavenet-C",
+                "model": "",
+                "vendor_app_id": "19",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1753846233
+            },
+            {
+                "id": 11244,
+                "type": 2,
+                "language": "vi-VN",
+                "vendor": "5",
+                "vendor_params": "{\"languageVoice\":\"vi-VN-Wavenet-D\",\"pitch\":\"0.0\",\"speakingSpeed\":\"1.0\",\"volume\":\"0.0\"}",
+                "code": "Iota",
+                "timbre": "vi-VN-Wavenet-D",
+                "model": "",
+                "vendor_app_id": "19",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1753846224
+            },
+            {
+                "id": 11631,
+                "type": 2,
+                "language": "zh-CN",
+                "vendor": "9",
+                "vendor_params": "{\"model\":\"cosyvoice-v1\",\"languageVoice\":\"longhao\",\"pitch\":\"1\",\"speakingSpeed\":\"1\",\"volume\":\"66\"}",
+                "code": "Eta",
+                "timbre": "longhao",
+                "model": "cosyvoice-v1",
+                "vendor_app_id": "24",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1752769456
+            },
+            {
+                "id": 11634,
+                "type": 2,
+                "language": "en-SG",
+                "vendor": "9",
+                "vendor_params": "{\"model\":\"cosyvoice-v1\",\"languageVoice\":\"longhao\",\"pitch\":\"1\",\"speakingSpeed\":\"1\", \"volume\":\"66\"}",
+                "code": "Eta",
+                "timbre": "longhao",
+                "model": "cosyvoice-v1",
+                "vendor_app_id": "24",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1751953292
+            },
+            {
+                "id": 11633,
+                "type": 2,
+                "language": "en-US",
+                "vendor": "9",
+                "vendor_params": "{\"model\":\"cosyvoice-v1\",\"languageVoice\":\"longhao\",\"pitch\":\"1\",\"speakingSpeed\":\"1\", \"volume\":\"66\"}",
+                "code": "Eta",
+                "timbre": "longhao",
+                "model": "cosyvoice-v1",
+                "vendor_app_id": "24",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1751953292
+            },
+            {
+                "id": 11632,
+                "type": 2,
+                "language": "zh-TW",
+                "vendor": "9",
+                "vendor_params": "{\"model\":\"cosyvoice-v1\",\"languageVoice\":\"longhao\",\"pitch\":\"1\",\"speakingSpeed\":\"1\", \"volume\":\"66\"}",
+                "code": "Eta",
+                "timbre": "longhao",
+                "model": "cosyvoice-v1",
+                "vendor_app_id": "24",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1751953292
+            },
+            {
+                "id": 11630,
+                "type": 2,
+                "language": "en-SG",
+                "vendor": "9",
+                "vendor_params": "{\"model\":\"cosyvoice-v1\",\"languageVoice\":\"longze\",\"pitch\":\"1\",\"speakingSpeed\":\"1\", \"volume\":\"66\"}",
+                "code": "Eta",
+                "timbre": "longze",
+                "model": "cosyvoice-v1",
+                "vendor_app_id": "24",
+                "status": 1,
+                "rating": "Standard",
+                "remark": null,
+                "create_ts": 1751953292,
+                "update_ts": 1751953292
+            }
+        ],
+        "ext": null,
+        "notEmpty": true,
+        "totalPages": 966,
+        "empty": false
+    }
+}

@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { BillFilters, BillRecord, PaginationInfo } from '../types/bill';
 import { queryBillList, hasValidBillToken, exportBillData } from '../services/billApi';
+import { calculateNewLineBilling } from '../utils/billingCalculator';
 import BillFiltersComponent from '../components/bill/BillFilters';
 import AdvancedFilters from '../components/bill/AdvancedFilters';
 import BillTable from '../components/bill/BillTable';
@@ -51,6 +52,7 @@ const getDefaultFilters = (): BillFilters => ({
     llmCostRange: { min: null, max: null },
     totalCostRange: { min: null, max: null },
     totalProfitRange: { min: null, max: null },
+    sizeRange: { min: null, max: null },
     callDirection: null
   }
 });
@@ -120,7 +122,12 @@ const loadSavedFilters = (): BillFilters => {
         // 确保高级筛选条件存在
         advancedFilters: {
           ...defaultFilters.advancedFilters,
-          ...parsed.advancedFilters
+          ...parsed.advancedFilters,
+          // 确保新添加的字段存在
+          sizeRange: {
+            ...defaultFilters.advancedFilters.sizeRange,
+            ...(parsed.advancedFilters?.sizeRange || {})
+          }
         }
       };
     }
@@ -192,6 +199,7 @@ const applyAdvancedFilters = (records: BillRecord[], advancedFilters: BillFilter
     
     if (!checkRange(record.totalCost, advancedFilters.totalCostRange)) return false;
     if (!checkRange(record.totalProfit, advancedFilters.totalProfitRange)) return false;
+    if (!checkRange(record.size, advancedFilters.sizeRange)) return false;
 
     // 呼叫方向筛选
     if (advancedFilters.callDirection !== null && record.callDirection !== advancedFilters.callDirection) {
@@ -521,12 +529,25 @@ const BillManagementPage: React.FC = () => {
         return;
       }
 
+      // 为导出数据计算新字段
+      const enhancedBillData = billData.map(record => {
+        const newLineBillingData = calculateNewLineBilling(
+          record.callDurationSec || 0,
+          record.sipTotalCustomerOriginalPriceUSD || 0,
+          record.size || 0
+        );
+        return {
+          ...record,
+          ...newLineBillingData
+        };
+      });
+
       // 获取币种信息（从第一条记录中获取）
-      const sipCurrency = billData.length > 0 ? (billData[0].sipCurrency || 'USD') : 'USD';
-      const customerCurrency = billData.length > 0 ? (billData[0].customerCurrency || 'USD') : 'USD';
+      const sipCurrency = enhancedBillData.length > 0 ? (enhancedBillData[0].sipCurrency || 'USD') : 'USD';
+      const customerCurrency = enhancedBillData.length > 0 ? (enhancedBillData[0].customerCurrency || 'USD') : 'USD';
 
       // 转换数据为Excel友好格式，应用脱敏逻辑 - 与表格列完全一致
-      const excelData = billData.map(record => ({
+      const excelData = enhancedBillData.map(record => ({
         '消费时间': record.feeTime,
         'Agent流程名称': record.agentFlowName,
         '用户号码': record.callee && isDesensitized ? desensitizePhone(record.callee) : record.callee,
@@ -541,11 +562,17 @@ const BillManagementPage: React.FC = () => {
         '通话时长(秒)': record.callDurationSec || 0,
         '线路计费时长(秒)': record.sipFeeDuration || 0,
         'AI计费时长(秒)': record.feeDurationSec || 0,
+        '计费量': record.size || 0,
         'ASR成本(USD)': (record.asrCost || 0).toFixed(8),
         'TTS成本(USD)': (record.ttsCost || 0).toFixed(8),
         'LLM成本(USD)': (record.llmCost || 0).toFixed(8),
-        '线路计费规则': record.billingCycle || '',
-        'AI计费规则': record.sipPriceType || '',
+        '线路计费规则': record.sipPriceType || '',
+        'AI计费规则': record.billingCycle || '',
+        '原线路单价(USD)': (record.originalLineUnitPrice || 0).toFixed(8),
+        '新线路计费周期': record.newLineBillingCycle || '20+20',
+        '新线路单价(USD)': (record.newLineUnitPrice || 0).toFixed(8),
+        '新线路计费量': record.newLineBillingQuantity || 0,
+        '新线路消费(USD)': (record.newLineConsumption || 0).toFixed(8),
         '客户名称': record.customerName,
         '团队名称': record.tenantName
       }));
@@ -569,11 +596,17 @@ const BillManagementPage: React.FC = () => {
         { wch: 15 }, // 通话时长(秒)
         { wch: 18 }, // 线路计费时长(秒)
         { wch: 17 }, // AI计费时长(秒)
+        { wch: 12 }, // 计费量
         { wch: 15 }, // ASR成本(USD)
         { wch: 15 }, // TTS成本(USD)
         { wch: 15 }, // LLM成本(USD)
         { wch: 15 }, // 线路计费规则
         { wch: 15 }, // AI计费规则
+        { wch: 18 }, // 原线路单价(USD)
+        { wch: 18 }, // 新线路计费周期
+        { wch: 18 }, // 新线路单价(USD)
+        { wch: 15 }, // 新线路计费量
+        { wch: 18 }, // 新线路消费(USD)
         { wch: 30 }, // 客户名称
         { wch: 20 }  // 团队名称
       ];
@@ -596,7 +629,7 @@ const BillManagementPage: React.FC = () => {
       
       message.destroy();
       const statusText = isDesensitized ? '（用户号码已脱敏）' : '';
-      message.success(`成功导出 ${billData.length} 条账单数据${statusText}`);
+      message.success(`成功导出 ${enhancedBillData.length} 条账单数据${statusText}`);
     } catch (error) {
       message.destroy();
       console.error('导出账单数据失败:', error);

@@ -79,6 +79,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         llmCostRange: { min: null, max: null },
         totalCostRange: { min: null, max: null },
         totalProfitRange: { min: null, max: null },
+        sizeRange: { min: null, max: null },
         callDirection: null
       }
     });
@@ -250,6 +251,29 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                   onChange={handleRangeFilterChange('feeDurationRange', 'max')}
                   placeholder="最大值"
                   min={0}
+                />
+              </Space.Compact>
+            </Col>
+            <Col span={8}>
+              <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>计费量</div>
+              <Space.Compact style={{ width: '100%' }}>
+                <InputNumber
+                  size="small"
+                  style={{ width: '50%' }}
+                  value={filters.advancedFilters.sizeRange.min}
+                  onChange={handleRangeFilterChange('sizeRange', 'min')}
+                  placeholder="最小值"
+                  min={0}
+                  precision={0}
+                />
+                <InputNumber
+                  size="small"
+                  style={{ width: '50%' }}
+                  value={filters.advancedFilters.sizeRange.max}
+                  onChange={handleRangeFilterChange('sizeRange', 'max')}
+                  placeholder="最大值"
+                  min={0}
+                  precision={0}
                 />
               </Space.Compact>
             </Col>

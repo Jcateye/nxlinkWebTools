@@ -3,6 +3,7 @@ import { Table, Typography, Tag, Button, Tooltip, Card, Row, Col, Statistic } fr
 import { EyeOutlined, EyeInvisibleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { BillRecord, CALL_DIRECTION_TEXT, PaginationInfo } from '../../types/bill';
+import { calculateNewLineBilling, calculateBillingQuantity, parseBillingRule } from '../../utils/billingCalculator';
 
 const { Text } = Typography;
 
@@ -36,9 +37,26 @@ const BillTable: React.FC<BillTableProps> = ({
     setIsDesensitized(initialDesensitized);
   }, [initialDesensitized]);
 
+  // 计算增强数据（包含新字段计算）
+  const enhancedData = useMemo(() => {
+    return data.map(record => {
+      // 计算新线路相关数据
+      const newLineBillingData = calculateNewLineBilling(
+        record.callDurationSec || 0,
+        record.sipTotalCustomerOriginalPriceUSD || 0,
+        record.size || 0
+      );
+      
+      return {
+        ...record,
+        ...newLineBillingData
+      };
+    });
+  }, [data]);
+
   // 计算汇总统计信息
   const summaryStats = useMemo(() => {
-    if (!data || data.length === 0) {
+    if (!enhancedData || enhancedData.length === 0) {
       return {
         recordCount: 0,
         totalSipCost: 0,
@@ -50,21 +68,31 @@ const BillTable: React.FC<BillTableProps> = ({
         totalCallDuration: 0,
         totalSipFeeDuration: 0,
         totalAIFeeDuration: 0,
+        totalBillingSize: 0,
+        totalNewLineBillingQuantity: 0,
+        totalNewLineConsumption: 0,
         avgCallDuration: 0,
-        avgCostPerCall: 0
+        avgCostPerCall: 0,
+        avgOriginalLineUnitPrice: 0,
+        avgNewLineUnitPrice: 0
       };
     }
 
-    const recordCount = data.length;
-    const totalSipCost = data.reduce((sum, record) => sum + (record.sipTotalCustomerOriginalPriceUSD || 0), 0);
-    const totalAICost = data.reduce((sum, record) => sum + (record.customerTotalPriceUSD || 0), 0);
-    const totalCost = data.reduce((sum, record) => sum + (record.totalCost || 0), 0);
-    const totalASRCost = data.reduce((sum, record) => sum + (record.asrCost || 0), 0);
-    const totalTTSCost = data.reduce((sum, record) => sum + (record.ttsCost || 0), 0);
-    const totalLLMCost = data.reduce((sum, record) => sum + (record.llmCost || 0), 0);
-    const totalCallDuration = data.reduce((sum, record) => sum + (record.callDurationSec || 0), 0);
-    const totalSipFeeDuration = data.reduce((sum, record) => sum + (record.sipFeeDuration || 0), 0);
-    const totalAIFeeDuration = data.reduce((sum, record) => sum + (record.feeDurationSec || 0), 0);
+    const recordCount = enhancedData.length;
+    const totalSipCost = enhancedData.reduce((sum, record) => sum + (record.sipTotalCustomerOriginalPriceUSD || 0), 0);
+    const totalAICost = enhancedData.reduce((sum, record) => sum + (record.customerTotalPriceUSD || 0), 0);
+    const totalCost = enhancedData.reduce((sum, record) => sum + (record.totalCost || 0), 0);
+    const totalASRCost = enhancedData.reduce((sum, record) => sum + (record.asrCost || 0), 0);
+    const totalTTSCost = enhancedData.reduce((sum, record) => sum + (record.ttsCost || 0), 0);
+    const totalLLMCost = enhancedData.reduce((sum, record) => sum + (record.llmCost || 0), 0);
+    const totalCallDuration = enhancedData.reduce((sum, record) => sum + (record.callDurationSec || 0), 0);
+    const totalSipFeeDuration = enhancedData.reduce((sum, record) => sum + (record.sipFeeDuration || 0), 0);
+    const totalAIFeeDuration = enhancedData.reduce((sum, record) => sum + (record.feeDurationSec || 0), 0);
+    const totalBillingSize = enhancedData.reduce((sum, record) => sum + (record.size || 0), 0);
+    const totalNewLineBillingQuantity = enhancedData.reduce((sum, record) => sum + (record.newLineBillingQuantity || 0), 0);
+    const totalNewLineConsumption = enhancedData.reduce((sum, record) => sum + (record.newLineConsumption || 0), 0);
+    const totalOriginalLineUnitPrice = enhancedData.reduce((sum, record) => sum + (record.originalLineUnitPrice || 0), 0);
+    const totalNewLineUnitPrice = enhancedData.reduce((sum, record) => sum + (record.newLineUnitPrice || 0), 0);
 
     return {
       recordCount,
@@ -77,10 +105,15 @@ const BillTable: React.FC<BillTableProps> = ({
       totalCallDuration,
       totalSipFeeDuration,
       totalAIFeeDuration,
+      totalBillingSize,
+      totalNewLineBillingQuantity,
+      totalNewLineConsumption,
       avgCallDuration: recordCount > 0 ? Math.round(totalCallDuration / recordCount) : 0,
-      avgCostPerCall: recordCount > 0 ? totalCost / recordCount : 0
+      avgCostPerCall: recordCount > 0 ? totalCost / recordCount : 0,
+      avgOriginalLineUnitPrice: recordCount > 0 ? totalOriginalLineUnitPrice / recordCount : 0,
+      avgNewLineUnitPrice: recordCount > 0 ? totalNewLineUnitPrice / recordCount : 0
     };
-  }, [data]);
+  }, [enhancedData]);
 
   // 脱敏处理函数
   const desensitizePhone = (phone: string): string => {
@@ -335,6 +368,23 @@ const BillTable: React.FC<BillTableProps> = ({
       )
     },
     {
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>计费量</span>
+          <Tooltip title="根据计费规则计算的计费周期数量。例如：通话61秒按60+60规则计费，计费量为2">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'size',
+      key: 'size',
+      width: 80,
+      align: 'center' as const,
+      render: (size: number) => (
+        <Text style={{ fontSize: '12px', fontWeight: 'bold', color: '#1890ff' }}>{size || 0}</Text>
+      )
+    },
+    {
       title: 'ASR成本',
       dataIndex: 'asrCost',
       key: 'asrCost',
@@ -366,20 +416,98 @@ const BillTable: React.FC<BillTableProps> = ({
     },
     {
       title: '线路计费规则',
+      dataIndex: 'sipPriceType',
+      key: 'sipPriceType',
+      width: 110,
+      render: (type: string) => (
+        <Text style={{ fontSize: '11px' }}>{type || '-'}</Text>
+      )
+    },
+    {
+      title: 'AI计费规则',
       dataIndex: 'billingCycle',
       key: 'billingCycle',
-      width: 110,
+      width: 100,
       render: (cycle: string) => (
         <Text style={{ fontSize: '11px' }}>{cycle || '-'}</Text>
       )
     },
     {
-      title: 'AI计费规则',
-      dataIndex: 'sipPriceType',
-      key: 'sipPriceType',
-      width: 100,
-      render: (type: string) => (
-        <Text style={{ fontSize: '11px' }}>{type || '-'}</Text>
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>原线路单价</span>
+          <Tooltip title="原线路消费 ÷ 原线路计费量">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'originalLineUnitPrice',
+      key: 'originalLineUnitPrice',
+      width: 120,
+      align: 'right' as const,
+      render: (price: number) => (
+        <Text style={{ fontSize: '11px' }}>{formatCurrency(price)}</Text>
+      )
+    },
+    {
+      title: '新线路计费周期',
+      dataIndex: 'newLineBillingCycle',
+      key: 'newLineBillingCycle',
+      width: 120,
+      align: 'center' as const,
+      render: (cycle: string) => (
+        <Text style={{ fontSize: '11px', color: '#52c41a', fontWeight: 'bold' }}>{cycle || '20+20'}</Text>
+      )
+    },
+    {
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>新线路单价</span>
+          <Tooltip title="原线路单价 ÷ 3">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'newLineUnitPrice',
+      key: 'newLineUnitPrice',
+      width: 120,
+      align: 'right' as const,
+      render: (price: number) => (
+        <Text style={{ fontSize: '11px', color: '#52c41a' }}>{formatCurrency(price)}</Text>
+      )
+    },
+    {
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>新线路计费量</span>
+          <Tooltip title="按20+20规则计算的计费周期数量">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'newLineBillingQuantity',
+      key: 'newLineBillingQuantity',
+      width: 120,
+      align: 'center' as const,
+      render: (quantity: number) => (
+        <Text style={{ fontSize: '12px', color: '#52c41a', fontWeight: 'bold' }}>{quantity || 0}</Text>
+      )
+    },
+    {
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>新线路消费</span>
+          <Tooltip title="新线路单价 × 新线路计费量">
+            <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'newLineConsumption',
+      key: 'newLineConsumption',
+      width: 120,
+      align: 'right' as const,
+      render: (consumption: number) => (
+        <Text style={{ fontSize: '11px', color: '#52c41a', fontWeight: 'bold' }}>{formatCurrency(consumption)}</Text>
       )
     },
     {
@@ -511,12 +639,21 @@ const BillTable: React.FC<BillTableProps> = ({
             </Tooltip>
           </Col>
           <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：∑(计费量) = 所有记录的size字段求和，表示总计费周期数">
+              <Statistic 
+                title="总计费量" 
+                value={summaryStats.totalBillingSize} 
+                valueStyle={{ color: '#1890ff', fontWeight: 'bold' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
             <Tooltip title="计算公式：总通话时长 = ∑(callDurationSec) ÷ 60，单位转换为分钟">
               <Statistic 
                 title="总通话时长" 
                 value={Math.round(summaryStats.totalCallDuration / 60)} 
                 suffix="分钟"
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: '#52c41a' }}
               />
             </Tooltip>
           </Col>
@@ -526,10 +663,13 @@ const BillTable: React.FC<BillTableProps> = ({
                 title="平均通话时长" 
                 value={summaryStats.avgCallDuration} 
                 suffix="秒"
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: '#722ed1' }}
               />
             </Tooltip>
           </Col>
+        </Row>
+        
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={12} sm={8} md={6} lg={4}>
             <Tooltip title="计算公式：平均每通成本 = AI总成本 ÷ 记录数">
               <Statistic 
@@ -539,16 +679,73 @@ const BillTable: React.FC<BillTableProps> = ({
               />
             </Tooltip>
           </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：平均计费量 = 总计费量 ÷ 记录数，表示平均每通话的计费周期数">
+              <Statistic 
+                title="平均计费量" 
+                value={summaryStats.recordCount > 0 ? (summaryStats.totalBillingSize / summaryStats.recordCount).toFixed(2) : '0.00'} 
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Tooltip title="计算公式：∑(新线路消费) = 所有记录的新线路消费求和">
+              <Statistic 
+                title="新线路消费总计(USD)" 
+                value={summaryStats.totalNewLineConsumption.toFixed(8)} 
+                valueStyle={{ color: '#52c41a', fontWeight: 'bold' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Tooltip title="计算公式：∑(新线路计费量) = 所有记录的新线路计费量求和">
+              <Statistic 
+                title="新线路计费量总计" 
+                value={summaryStats.totalNewLineBillingQuantity} 
+                valueStyle={{ color: '#52c41a', fontWeight: 'bold' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Tooltip title="计算公式：平均原线路单价 = ∑(原线路单价) ÷ 记录数">
+              <Statistic 
+                title="平均原线路单价(USD)" 
+                value={summaryStats.avgOriginalLineUnitPrice.toFixed(8)} 
+                valueStyle={{ color: '#fa8c16' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Tooltip title="计算公式：平均新线路单价 = ∑(新线路单价) ÷ 记录数">
+              <Statistic 
+                title="平均新线路单价(USD)" 
+                value={summaryStats.avgNewLineUnitPrice.toFixed(8)} 
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Tooltip title="计算公式：线路费用节省 = 原线路消费总计 - 新线路消费总计">
+              <Statistic 
+                title="线路费用节省(USD)" 
+                value={(summaryStats.totalSipCost - summaryStats.totalNewLineConsumption).toFixed(8)} 
+                valueStyle={{ 
+                  color: (summaryStats.totalSipCost - summaryStats.totalNewLineConsumption) >= 0 ? '#52c41a' : '#f5222d',
+                  fontWeight: 'bold' 
+                }}
+              />
+            </Tooltip>
+          </Col>
         </Row>
       </Card>
 
       {/* 数据表格 */}
       <Table<BillRecord>
         columns={columns}
-        dataSource={data}
+        dataSource={enhancedData}
         loading={loading}
         rowKey="id"
-        scroll={{ x: 2040, y: 600 }}
+        scroll={{ x: 2720, y: 600 }}
         size="small"
         pagination={{
           current: pagination.currentPage,

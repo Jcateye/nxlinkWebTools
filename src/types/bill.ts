@@ -50,6 +50,12 @@ export interface BillRecord {
   llmCost: number | null;
   totalCost: number;
   totalProfit: number;
+  // 新增计算字段
+  originalLineUnitPrice?: number; // 原线路单价
+  newLineBillingCycle?: string; // 新线路计费周期
+  newLineUnitPrice?: number; // 新线路单价
+  newLineBillingQuantity?: number; // 新线路计费量
+  newLineConsumption?: number; // 新线路消费
 }
 
 // 账单查询响应类型
@@ -152,6 +158,10 @@ export interface BillFilters {
       max: number | null;
     };
     totalProfitRange: {
+      min: number | null;
+      max: number | null;
+    };
+    sizeRange: {
       min: number | null;
       max: number | null;
     };

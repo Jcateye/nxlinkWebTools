@@ -81,7 +81,8 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         totalProfitRange: { min: null, max: null },
         sizeRange: { min: null, max: null },
         callDirection: null
-      }
+      },
+      customLineUnitPrice: null
     });
   };
 

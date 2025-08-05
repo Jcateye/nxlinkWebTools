@@ -74,12 +74,14 @@ export const calculateOriginalLineUnitPrice = (
  * @param callDurationSec 通话时长（秒）
  * @param originalConsumption 原线路消费
  * @param originalBillingQuantity 原线路计费量
+ * @param customLineUnitPrice 自定义线路单价（可选）
  * @returns 新线路相关计算结果
  */
 export const calculateNewLineBilling = (
   callDurationSec: number,
   originalConsumption: number,
-  originalBillingQuantity: number
+  originalBillingQuantity: number,
+  customLineUnitPrice?: number | null
 ) => {
   // 新线路计费周期固定为 20+20
   const newLineBillingCycle = "20+20";
@@ -95,13 +97,19 @@ export const calculateNewLineBilling = (
   const newLineBillingQuantity = calculateBillingQuantity(callDurationSec, newLineRule);
   
   // 计算新线路消费
-  const newLineConsumption = newLineUnitPrice * newLineBillingQuantity;
+  // 如果有自定义线路单价，使用自定义单价，否则使用计算出的新线路单价
+  const actualUnitPrice = customLineUnitPrice !== null && customLineUnitPrice !== undefined 
+    ? customLineUnitPrice 
+    : newLineUnitPrice;
+  const newLineConsumption = actualUnitPrice * newLineBillingQuantity;
   
   return {
     originalLineUnitPrice,
     newLineBillingCycle,
     newLineUnitPrice,
     newLineBillingQuantity,
-    newLineConsumption
+    newLineConsumption,
+    isUsingCustomPrice: customLineUnitPrice !== null && customLineUnitPrice !== undefined,
+    actualUnitPrice
   };
 };

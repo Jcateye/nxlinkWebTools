@@ -168,6 +168,8 @@ export interface BillFilters {
     // 呼叫方向筛选
     callDirection: number | null;
   };
+  // 自定义线路单价
+  customLineUnitPrice: number | null;
 }
 
 // 分页信息类型

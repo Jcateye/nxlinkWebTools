@@ -17,6 +17,7 @@ interface BillTableProps {
   companyName?: string;
   dateRange?: { start: string | null; end: string | null };
   timeRange?: { start: string | null; end: string | null };
+  customLineUnitPrice?: number | null;
 }
 
 const BillTable: React.FC<BillTableProps> = ({
@@ -28,7 +29,8 @@ const BillTable: React.FC<BillTableProps> = ({
   initialDesensitized = false,
   companyName,
   dateRange,
-  timeRange
+  timeRange,
+  customLineUnitPrice
 }) => {
   const [isDesensitized, setIsDesensitized] = useState<boolean>(initialDesensitized);
 
@@ -37,22 +39,8 @@ const BillTable: React.FC<BillTableProps> = ({
     setIsDesensitized(initialDesensitized);
   }, [initialDesensitized]);
 
-  // 计算增强数据（包含新字段计算）
-  const enhancedData = useMemo(() => {
-    return data.map(record => {
-      // 计算新线路相关数据
-      const newLineBillingData = calculateNewLineBilling(
-        record.callDurationSec || 0,
-        record.sipTotalCustomerOriginalPriceUSD || 0,
-        record.size || 0
-      );
-      
-      return {
-        ...record,
-        ...newLineBillingData
-      };
-    });
-  }, [data]);
+  // 直接使用传入的数据（已经在页面级别计算过增强字段）
+  const enhancedData = data;
 
   // 计算汇总统计信息
   const summaryStats = useMemo(() => {
@@ -497,7 +485,7 @@ const BillTable: React.FC<BillTableProps> = ({
       title: (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span>新线路消费</span>
-          <Tooltip title="新线路单价 × 新线路计费量">
+          <Tooltip title={customLineUnitPrice ? "自定义单价 × 新线路计费量" : "新线路单价 × 新线路计费量"}>
             <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
           </Tooltip>
         </div>
@@ -506,8 +494,15 @@ const BillTable: React.FC<BillTableProps> = ({
       key: 'newLineConsumption',
       width: 120,
       align: 'right' as const,
-      render: (consumption: number) => (
-        <Text style={{ fontSize: '11px', color: '#52c41a', fontWeight: 'bold' }}>{formatCurrency(consumption)}</Text>
+      render: (consumption: number, record: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: '11px', color: '#52c41a', fontWeight: 'bold' }}>
+            {formatCurrency(consumption)}
+          </Text>
+          {record.isUsingCustomPrice && (
+            <Text style={{ fontSize: '10px', color: '#faad14' }}>自定义单价</Text>
+          )}
+        </div>
       )
     },
     {
@@ -553,6 +548,11 @@ const BillTable: React.FC<BillTableProps> = ({
               timeRange.start && timeRange.end) && (
               <Tag color="green" style={{ fontSize: '12px' }}>
                 📅 {formatDateTimeRange()}
+              </Tag>
+            )}
+            {customLineUnitPrice && (
+              <Tag color="orange" style={{ fontSize: '12px' }}>
+                💰 自定义单价: USD {customLineUnitPrice.toFixed(8)}
               </Tag>
             )}
           </div>

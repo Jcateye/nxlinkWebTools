@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, Row, Col, Form, DatePicker, TimePicker, Input, Button, Space } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Form, DatePicker, TimePicker, Input, InputNumber, Button, Space, Tooltip } from 'antd';
+import { SearchOutlined, ReloadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 import { BillFilters, Company, Team } from '../../types/bill';
 import CompanySelector from './CompanySelector';
@@ -77,6 +77,14 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
     onFiltersChange({
       ...filters,
       userNumber: e.target.value
+    });
+  };
+
+  // 处理自定义线路单价变化
+  const handleCustomLineUnitPriceChange = (value: number | null) => {
+    onFiltersChange({
+      ...filters,
+      customLineUnitPrice: value
     });
   };
 
@@ -157,7 +165,7 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
         </Row>
 
         <Row gutter={16}>
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item label="Agent流程名称">
               <Input
                 value={filters.agentFlowName}
@@ -167,13 +175,36 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item label="用户号码">
               <Input
                 value={filters.userNumber}
                 onChange={handleUserNumberChange}
                 placeholder="请输入用户号码"
                 allowClear
+              />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item 
+              label={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span>自定义线路单价(USD)</span>
+                  <Tooltip title="填写此单价后，新线路消费将使用此单价计算，否则使用默认计算的新线路单价">
+                    <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+                  </Tooltip>
+                </div>
+              }
+            >
+              <InputNumber
+                value={filters.customLineUnitPrice}
+                onChange={handleCustomLineUnitPriceChange}
+                placeholder="留空使用默认单价"
+                style={{ width: '100%' }}
+                min={0}
+                step={0.0001}
+                precision={8}
+                controls={false}
               />
             </Form.Item>
           </Col>

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Layout, Typography, Alert, Spin, Button, Space, message } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Layout, Typography, Alert, Spin, Button, Space, message, Modal, Progress } from 'antd';
+import { DownloadOutlined, ExportOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { BillFilters, BillRecord, PaginationInfo } from '../types/bill';
-import { queryBillList, hasValidBillToken, exportBillData } from '../services/billApi';
+import { queryBillList, hasValidBillToken, exportBillData, exportAllBillData, exportAllBillDataInBatches, ProgressCallback, BatchExportCallback } from '../services/billApi';
 import { calculateNewLineBilling } from '../utils/billingCalculator';
 import BillFiltersComponent from '../components/bill/BillFilters';
 import AdvancedFilters from '../components/bill/AdvancedFilters';
@@ -54,7 +54,8 @@ const getDefaultFilters = (): BillFilters => ({
     totalProfitRange: { min: null, max: null },
     sizeRange: { min: null, max: null },
     callDirection: null
-  }
+  },
+  customLineUnitPrice: null
 });
 
 // 从localStorage读取保存的脱敏状态
@@ -218,6 +219,30 @@ const BillManagementPage: React.FC = () => {
   const [billRecords, setBillRecords] = useState<BillRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
+  const [exportingAll, setExportingAll] = useState<boolean>(false); // 新增：导出全部数据状态
+  const [exportProgress, setExportProgress] = useState<{
+    visible: boolean;
+    step: 'confirm' | 'progress'; // 新增：当前步骤
+    current: number;
+    total: number;
+    percentage: number;
+    currentPage: number;
+    totalPages: number;
+    currentBatch: number; // 新增：当前批次
+    totalBatches: number; // 新增：总批次数
+    downloadedFiles: string[]; // 新增：已下载的文件名列表
+  }>({
+    visible: false,
+    step: 'confirm',
+    current: 0,
+    total: 0,
+    percentage: 0,
+    currentPage: 0,
+    totalPages: 0,
+    currentBatch: 0,
+    totalBatches: 0,
+    downloadedFiles: []
+  }); // 新增：导出进度状态
   const [isDesensitized, setIsDesensitized] = useState<boolean>(loadSavedDesensitizeState());
   const [hasSearched, setHasSearched] = useState<boolean>(false); // 新增：跟踪是否已经执行过搜索
   
@@ -349,16 +374,34 @@ const BillManagementPage: React.FC = () => {
     };
   };
 
+  // 计算增强数据（包含新字段计算）
+  const enhancedBillRecords = useMemo(() => {
+    return billRecords.map(record => {
+      // 计算新线路相关数据
+      const newLineBillingData = calculateNewLineBilling(
+        record.callDurationSec || 0,
+        record.sipTotalCustomerOriginalPriceUSD || 0,
+        record.size || 0,
+        filters.customLineUnitPrice // 使用自定义单价
+      );
+      
+      return {
+        ...record,
+        ...newLineBillingData
+      };
+    });
+  }, [billRecords, filters.customLineUnitPrice]);
+
   // 获取当前页面应该显示的数据
   const getCurrentPageData = () => {
     if (hasActiveAdvancedFilters()) {
       // 有高级筛选时，对筛选后的数据进行前端分页
       const startIndex = (frontendPagination.currentPage - 1) * frontendPagination.pageSize;
       const endIndex = startIndex + frontendPagination.pageSize;
-      return billRecords.slice(startIndex, endIndex);
+      return enhancedBillRecords.slice(startIndex, endIndex);
     } else {
       // 无高级筛选时，直接使用后端分页的数据
-      return billRecords;
+      return enhancedBillRecords;
     }
   };
 
@@ -534,7 +577,8 @@ const BillManagementPage: React.FC = () => {
         const newLineBillingData = calculateNewLineBilling(
           record.callDurationSec || 0,
           record.sipTotalCustomerOriginalPriceUSD || 0,
-          record.size || 0
+          record.size || 0,
+          filters.customLineUnitPrice // 使用自定义单价
         );
         return {
           ...record,
@@ -546,7 +590,7 @@ const BillManagementPage: React.FC = () => {
       const sipCurrency = enhancedBillData.length > 0 ? (enhancedBillData[0].sipCurrency || 'USD') : 'USD';
       const customerCurrency = enhancedBillData.length > 0 ? (enhancedBillData[0].customerCurrency || 'USD') : 'USD';
 
-      // 转换数据为Excel友好格式，应用脱敏逻辑 - 与表格列完全一致
+      // 转换数据为Excel友好格式，应用脱敏逻辑 - 币种和数值分离，数值保持数字类型
       const excelData = enhancedBillData.map(record => ({
         '消费时间': record.feeTime,
         'Agent流程名称': record.agentFlowName,
@@ -554,25 +598,36 @@ const BillManagementPage: React.FC = () => {
         '线路号码': record.caller,
         '呼叫方向': record.callDirection === 1 ? '呼出' : 
                    record.callDirection === 2 ? '呼入' : `未知(${record.callDirection})`,
-        '线路消费(USD)': (record.sipTotalCustomerOriginalPriceUSD || 0).toFixed(8),
-        'AI消费(USD)': (record.customerTotalPriceUSD || 0).toFixed(8),
-        'AI总成本(USD)': (record.totalCost || 0).toFixed(8),
-        [`线路消费(${sipCurrency})`]: `${record.sipCurrency || 'USD'} ${(record.sipTotalCustomerOriginalPrice || 0).toFixed(8)}`,
-        [`AI消费(${customerCurrency})`]: `${record.customerCurrency || 'USD'} ${(record.customerTotalPrice || 0).toFixed(8)}`,
+        // USD金额（数值类型）
+        '线路消费(USD)': record.sipTotalCustomerOriginalPriceUSD || 0,
+        'AI消费(USD)': record.customerTotalPriceUSD || 0,
+        'AI总成本(USD)': record.totalCost || 0,
+        // 原始币种金额（数值类型）
+        '线路消费(原始金额)': record.sipTotalCustomerOriginalPrice || 0,
+        '线路消费币种': record.sipCurrency || 'USD',
+        'AI消费(原始金额)': record.customerTotalPrice || 0,
+        'AI消费币种': record.customerCurrency || 'USD',
+        // 时长和计量（数值类型）
         '通话时长(秒)': record.callDurationSec || 0,
         '线路计费时长(秒)': record.sipFeeDuration || 0,
         'AI计费时长(秒)': record.feeDurationSec || 0,
         '计费量': record.size || 0,
-        'ASR成本(USD)': (record.asrCost || 0).toFixed(8),
-        'TTS成本(USD)': (record.ttsCost || 0).toFixed(8),
-        'LLM成本(USD)': (record.llmCost || 0).toFixed(8),
+        // 成本分解（数值类型）
+        'ASR成本(USD)': record.asrCost || 0,
+        'TTS成本(USD)': record.ttsCost || 0,
+        'LLM成本(USD)': record.llmCost || 0,
+        // 计费规则
         '线路计费规则': record.sipPriceType || '',
         'AI计费规则': record.billingCycle || '',
-        '原线路单价(USD)': (record.originalLineUnitPrice || 0).toFixed(8),
+        // 新线路计费相关（数值类型）
+        '原线路单价(USD)': record.originalLineUnitPrice || 0,
         '新线路计费周期': record.newLineBillingCycle || '20+20',
-        '新线路单价(USD)': (record.newLineUnitPrice || 0).toFixed(8),
+        '新线路单价(USD)': record.newLineUnitPrice || 0,
         '新线路计费量': record.newLineBillingQuantity || 0,
-        '新线路消费(USD)': (record.newLineConsumption || 0).toFixed(8),
+        '新线路消费(USD)': record.newLineConsumption || 0,
+        '使用自定义单价': record.isUsingCustomPrice ? '是' : '否',
+        '实际使用单价(USD)': record.actualUnitPrice || 0,
+        // 基本信息
         '客户名称': record.customerName,
         '团队名称': record.tenantName
       }));
@@ -581,18 +636,20 @@ const BillManagementPage: React.FC = () => {
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       
-      // 设置列宽 - 与表格列一致
+      // 设置列宽 - 重新排列后的列结构
       const cols = [
         { wch: 20 }, // 消费时间
         { wch: 25 }, // Agent流程名称
         { wch: 15 }, // 用户号码
         { wch: 15 }, // 线路号码
         { wch: 12 }, // 呼叫方向
-        { wch: 15 }, // 线路消费(USD)
-        { wch: 15 }, // AI消费(USD)
-        { wch: 15 }, // AI总成本(USD)
-        { wch: 20 }, // 线路消费(动态币种)
-        { wch: 20 }, // AI消费(动态币种)
+        { wch: 18 }, // 线路消费(USD)
+        { wch: 18 }, // AI消费(USD)
+        { wch: 18 }, // AI总成本(USD)
+        { wch: 20 }, // 线路消费(原始金额)
+        { wch: 12 }, // 线路消费币种
+        { wch: 18 }, // AI消费(原始金额)
+        { wch: 12 }, // AI消费币种
         { wch: 15 }, // 通话时长(秒)
         { wch: 18 }, // 线路计费时长(秒)
         { wch: 17 }, // AI计费时长(秒)
@@ -607,6 +664,8 @@ const BillManagementPage: React.FC = () => {
         { wch: 18 }, // 新线路单价(USD)
         { wch: 15 }, // 新线路计费量
         { wch: 18 }, // 新线路消费(USD)
+        { wch: 16 }, // 使用自定义单价
+        { wch: 20 }, // 实际使用单价(USD)
         { wch: 30 }, // 客户名称
         { wch: 20 }  // 团队名称
       ];
@@ -639,6 +698,279 @@ const BillManagementPage: React.FC = () => {
     }
   };
 
+  // 生成CSV文件的轻量级函数
+  const generateCSVFile = (data: any[], fileName: string) => {
+    if (data.length === 0) {
+      console.warn('没有数据可导出');
+      return;
+    }
+
+    try {
+      // 获取表头
+      const headers = Object.keys(data[0]);
+      
+      // 转义CSV字段的函数
+      const escapeCSVField = (field: any): string => {
+        if (field === null || field === undefined) {
+          return '';
+        }
+        const str = String(field);
+        // 如果包含逗号、引号或换行符，需要用引号包围并转义内部引号
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      // 构建CSV内容
+      const csvLines: string[] = [];
+      
+      // 添加表头
+      csvLines.push(headers.map(escapeCSVField).join(','));
+      
+      // 添加数据行
+      for (const row of data) {
+        const csvRow = headers.map(header => escapeCSVField(row[header])).join(',');
+        csvLines.push(csvRow);
+      }
+
+      // 创建CSV内容，添加BOM以支持中文
+      const csvContent = '\uFEFF' + csvLines.join('\n');
+      
+      // 创建Blob并下载
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, fileName);
+      
+      console.log(`✅ CSV文件导出成功: ${fileName}`);
+    } catch (error) {
+      console.error('❌ CSV导出失败:', error);
+      message.error(`CSV导出失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  // 转换数据为Excel格式的通用函数
+  const convertToExcelFormat = (records: BillRecord[]) => {
+    return records.map(record => ({
+      '消费时间': record.feeTime,
+      'Agent流程名称': record.agentFlowName,
+      '用户号码': record.callee && isDesensitized ? desensitizePhone(record.callee) : record.callee,
+      '线路号码': record.caller,
+      '呼叫方向': record.callDirection === 1 ? '呼出' : 
+                 record.callDirection === 2 ? '呼入' : `未知(${record.callDirection})`,
+      // USD金额（数值类型）
+      '线路消费(USD)': record.sipTotalCustomerOriginalPriceUSD || 0,
+      'AI消费(USD)': record.customerTotalPriceUSD || 0,
+      'AI总成本(USD)': record.totalCost || 0,
+      // 原始币种金额（数值类型）
+      '线路消费(原始金额)': record.sipTotalCustomerOriginalPrice || 0,
+      '线路消费币种': record.sipCurrency || 'USD',
+      'AI消费(原始金额)': record.customerTotalPrice || 0,
+      'AI消费币种': record.customerCurrency || 'USD',
+      // 时长和计量（数值类型）
+      '通话时长(秒)': record.callDurationSec || 0,
+      '线路计费时长(秒)': record.sipFeeDuration || 0,
+      'AI计费时长(秒)': record.feeDurationSec || 0,
+      '计费量': record.size || 0,
+      // 成本分解（数值类型）
+      'ASR成本(USD)': record.asrCost || 0,
+      'TTS成本(USD)': record.ttsCost || 0,
+      'LLM成本(USD)': record.llmCost || 0,
+      // 计费规则
+      '线路计费规则': record.sipPriceType || '',
+      'AI计费规则': record.billingCycle || '',
+      // 新线路计费相关（数值类型）
+      '原线路单价(USD)': record.originalLineUnitPrice || 0,
+      '新线路计费周期': record.newLineBillingCycle || '20+20',
+      '新线路单价(USD)': record.newLineUnitPrice || 0,
+      '新线路计费量': record.newLineBillingUnit || 0,
+      '新线路消费(USD)': record.newLineConsumption || 0,
+      '使用自定义单价': record.usingCustomPrice ? '是' : '否',
+      '实际使用单价(USD)': record.actualUnitPrice || 0,
+      // 客户和团队信息
+      '客户名称': record.customerName || '',
+      '团队名称': record.tenantName || ''
+    }));
+  };
+
+  // 处理导出全部数据
+  const handleExportAll = async () => {
+    if (!hasToken) {
+      message.error('缺少API令牌');
+      return;
+    }
+
+    if (!filters.selectedCompany || !filters.selectedTeam) {
+      message.error('请先选择公司和团队');
+      return;
+    }
+
+    // 显示确认和进度Modal
+    setExportProgress({
+      visible: true,
+      step: 'confirm',
+      current: 0,
+      total: 0,
+      percentage: 0,
+      currentPage: 0,
+      totalPages: 0,
+      currentBatch: 0,
+      totalBatches: 0,
+      downloadedFiles: []
+    });
+  };
+
+  // 确认导出操作
+  const confirmExport = async () => {
+    setExportingAll(true);
+    setExportProgress(prev => ({
+      ...prev,
+      step: 'progress'
+    }));
+
+    try {
+      // 构建导出参数（不包含分页）
+      const startDate = filters.dateRange.start || dayjs().format('YYYY-MM-DD');
+      const endDate = filters.dateRange.end || dayjs().format('YYYY-MM-DD');
+      const startTime = filters.timeRange.start || '00:00:00';
+      const endTime = filters.timeRange.end || '23:59:59';
+
+      const exportParams = {
+        customerId: filters.selectedCompany.customerId,
+        tenantId: filters.selectedTeam.id,
+        agentFlowName: filters.agentFlowName.trim(),
+        callee: filters.userNumber.trim(),
+        startTime: `${startDate} ${startTime}`,
+        endTime: `${endDate} ${endTime}`
+      };
+
+      console.log('[导出全部账单] 开始分批导出，参数:', exportParams);
+      
+      const companyName = filters.selectedCompany.companyName.replace(/[\\/:*?"<>|]/g, '_');
+      const desensitizePrefix = isDesensitized ? '_脱敏' : '';
+      const downloadedFiles: string[] = [];
+      let totalProcessed = 0;
+
+      // 数据获取进度回调函数
+      const onProgress: ProgressCallback = (progress) => {
+        setExportProgress(prev => ({
+          ...prev,
+          current: progress.current,
+          total: progress.total,
+          percentage: Math.min(progress.percentage, 95), // 留5%给文件生成
+          currentPage: progress.currentPage,
+          totalPages: progress.totalPages || 0
+        }));
+      };
+
+      // 批次处理回调函数（边获取边生成）
+      const onBatchReady: BatchExportCallback = async (batchData, batchInfo) => {
+        console.log(`[导出批次] 处理第 ${batchInfo.batchNumber} 批次，${batchInfo.batchSize} 条记录`);
+        
+        // 更新批次信息
+        setExportProgress(prev => ({
+          ...prev,
+          currentBatch: batchInfo.batchNumber,
+          totalBatches: batchInfo.totalBatches,
+          percentage: 95 + (batchInfo.batchNumber / batchInfo.totalBatches) * 5 // 最后5%为文件生成进度
+        }));
+
+        // 应用高级筛选到当前批次数据
+        let filteredBatchData = applyAdvancedFilters(batchData, filters.advancedFilters);
+
+        // 如果过滤后没有数据，跳过这个批次
+        if (filteredBatchData.length === 0) {
+          console.log(`[导出批次] 第 ${batchInfo.batchNumber} 批次过滤后没有数据，跳过`);
+          return;
+        }
+
+        // 为导出数据计算新字段
+        const enhancedBatchData = filteredBatchData.map(record => {
+          const newLineBillingData = calculateNewLineBilling(
+            record.callDurationSec || 0,
+            record.sipTotalCustomerOriginalPriceUSD || 0,
+            record.size || 0,
+            filters.customLineUnitPrice
+          );
+          return {
+            ...record,
+            ...newLineBillingData
+          };
+        });
+
+        // 转换数据为Excel友好格式
+        const excelData = convertToExcelFormat(enhancedBatchData);
+
+        // 生成文件名
+        const fileName = batchInfo.totalBatches > 1 
+          ? `账单批量导出_${companyName}_${startDate}_${endDate}_第${batchInfo.batchNumber}批次_共${batchInfo.totalBatches}批次${desensitizePrefix}.csv`
+          : `账单全部导出_${companyName}_${startDate}_${endDate}${desensitizePrefix}.csv`;
+        
+        // 生成并下载文件
+        generateCSVFile(excelData, fileName);
+        downloadedFiles.push(fileName);
+
+        // 更新已下载文件列表
+        setExportProgress(prev => ({
+          ...prev,
+          downloadedFiles: [...downloadedFiles]
+        }));
+
+        totalProcessed += enhancedBatchData.length;
+        console.log(`[导出批次] 第 ${batchInfo.batchNumber} 批次完成，累计处理 ${totalProcessed} 条有效记录`);
+
+        // 批次间延迟，让浏览器处理下载
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      };
+
+      // 使用内存友好的分批导出
+      const totalRecords = await exportAllBillDataInBatches(
+        exportParams,
+        50000, // 每5万条一个批次，CSV更轻量
+        onProgress,
+        onBatchReady
+      );
+
+      if (totalRecords === 0) {
+        message.warning('没有找到符合条件的账单数据');
+        setExportProgress(prev => ({ ...prev, visible: false }));
+        setExportingAll(false);
+        return;
+      }
+
+      if (totalProcessed === 0) {
+        message.warning('应用高级筛选后没有符合条件的账单数据');
+        setExportProgress(prev => ({ ...prev, visible: false }));
+        setExportingAll(false);
+        return;
+      }
+
+      // 最终进度更新
+      setExportProgress(prev => ({
+        ...prev,
+        percentage: 100
+      }));
+
+      const statusText = isDesensitized ? '（用户号码已脱敏）' : '';
+      const fileText = downloadedFiles.length > 1 ? `${downloadedFiles.length}个文件` : '1个文件';
+      message.success(`成功导出 ${totalProcessed} 条有效账单数据（原始${totalRecords}条），共${fileText}${statusText}`);
+
+    } catch (error) {
+      console.error('导出全部账单数据失败:', error);
+      message.error('导出全部账单数据失败，请稍后重试');
+    } finally {
+      setExportingAll(false);
+      // 保持Modal显示3秒后自动关闭
+      setTimeout(() => {
+        setExportProgress(prev => ({ ...prev, visible: false }));
+      }, 3000);
+    }
+  };
+
+  // 取消导出
+  const cancelExport = () => {
+    setExportProgress(prev => ({ ...prev, visible: false }));
+  };
+
   return (
     <Layout style={{ minHeight: '100vh', padding: '24px' }}>
       <Content>
@@ -665,15 +997,26 @@ const BillManagementPage: React.FC = () => {
               />
 
               <div style={{ marginBottom: 16, textAlign: 'right' }}>
-                <Button 
-                  icon={<DownloadOutlined />} 
-                  onClick={handleExport}
-                  loading={exporting}
-                  disabled={!filters.selectedCompany || !filters.selectedTeam || loading}
-                  type="default"
-                >
-                  {exporting ? '导出中...' : `导出数据 ${isDesensitized ? '(脱敏)' : '(完整)'} - 最多10000条`}
-                </Button>
+                <Space>
+                  <Button 
+                    icon={<DownloadOutlined />} 
+                    onClick={handleExport}
+                    loading={exporting}
+                    disabled={!filters.selectedCompany || !filters.selectedTeam || loading || exportingAll}
+                    type="default"
+                  >
+                    {exporting ? '导出中...' : `导出数据 ${isDesensitized ? '(脱敏)' : '(完整)'} - 最多10000条`}
+                  </Button>
+                  <Button 
+                    icon={<ExportOutlined />} 
+                    onClick={handleExportAll}
+                    loading={exportingAll}
+                    disabled={!filters.selectedCompany || !filters.selectedTeam || loading || exporting}
+                    type="primary"
+                  >
+                    {exportingAll ? '导出全部中...' : `导出全部数据为CSV ${isDesensitized ? '(脱敏)' : '(完整)'}`}
+                  </Button>
+                </Space>
               </div>
 
               <BillTable
@@ -686,6 +1029,7 @@ const BillManagementPage: React.FC = () => {
                 companyName={filters.selectedCompany?.companyName}
                 dateRange={filters.dateRange}
                 timeRange={filters.timeRange}
+                customLineUnitPrice={filters.customLineUnitPrice}
               />
             </>
           ) : (
@@ -699,6 +1043,134 @@ const BillManagementPage: React.FC = () => {
           )}
         </div>
       </Content>
+
+      {/* 导出全部数据确认和进度对话框 */}
+      <Modal
+        title={exportProgress.step === 'confirm' ? '确认导出全部数据' : '导出全部数据进度'}
+        open={exportProgress.visible}
+        footer={exportProgress.step === 'confirm' ? [
+          <Button key="cancel" onClick={cancelExport}>
+            取消
+          </Button>,
+          <Button key="confirm" type="primary" onClick={confirmExport}>
+            确认导出
+          </Button>
+        ] : null}
+        closable={exportProgress.step === 'confirm'}
+        maskClosable={false}
+        width={600}
+      >
+        {exportProgress.step === 'confirm' ? (
+          <div style={{ padding: '16px 0' }}>
+            <Alert
+              message="重要提示"
+              description={
+                <div>
+                  <p>即将导出符合当前筛选条件的<strong>全部</strong>账单数据。</p>
+                  <p>• 数据将按每 <strong>5万条</strong> 自动分批下载为 <strong>CSV格式</strong></p>
+                  <p>• 导出过程可能需要较长时间，请耐心等待</p>
+                  <p>• 请不要在导出过程中关闭页面</p>
+                </div>
+              }
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+            <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px' }}>
+              <p style={{ margin: 0, fontSize: 14, color: '#666' }}>
+                <strong>当前筛选条件：</strong>
+              </p>
+              <p style={{ margin: '8px 0 0 0', fontSize: 14 }}>
+                公司：{filters.selectedCompany?.companyName || '未选择'}<br/>
+                团队：{filters.selectedTeam?.name || '未选择'}<br/>
+                日期：{filters.dateRange.start} 到 {filters.dateRange.end}<br/>
+                脱敏模式：{isDesensitized ? '开启' : '关闭'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            {exportProgress.total > 0 && exportProgress.currentBatch === 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <Progress
+                  type="circle"
+                  percent={Math.round(exportProgress.percentage)}
+                  format={(percent) => `${percent}%`}
+                  size={120}
+                />
+                <div style={{ marginTop: 16, fontSize: 16 }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <strong>正在获取数据...</strong>
+                  </div>
+                  <div style={{ color: '#666', fontSize: 14 }}>
+                    已获取: {exportProgress.current.toLocaleString()} / {exportProgress.total.toLocaleString()} 条
+                  </div>
+                  <div style={{ color: '#666', fontSize: 14 }}>
+                    页面进度: {exportProgress.currentPage} / {exportProgress.totalPages}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {exportProgress.totalBatches > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <Progress
+                  type="circle"
+                  percent={Math.round(exportProgress.percentage)}
+                  format={(percent) => `${percent}%`}
+                  size={120}
+                />
+                <div style={{ marginTop: 16, fontSize: 16 }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <strong>正在生成文件...</strong>
+                  </div>
+                  <div style={{ color: '#666', fontSize: 14 }}>
+                    批次进度: {exportProgress.currentBatch} / {exportProgress.totalBatches}
+                  </div>
+                  {exportProgress.currentBatch > 0 && (
+                    <div style={{ color: '#1890ff', fontSize: 14 }}>
+                      正在处理第 {exportProgress.currentBatch} 批次数据
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {exportProgress.downloadedFiles.length > 0 && (
+              <div style={{ marginTop: 16, textAlign: 'left' }}>
+                <div style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
+                  已下载文件：
+                </div>
+                <div style={{ 
+                  maxHeight: 150, 
+                  overflowY: 'auto', 
+                  border: '1px solid #d9d9d9', 
+                  borderRadius: '4px',
+                  padding: '8px',
+                  background: '#fafafa'
+                }}>
+                  {exportProgress.downloadedFiles.map((fileName, index) => (
+                    <div key={index} style={{ 
+                      fontSize: 12, 
+                      color: '#52c41a',
+                      marginBottom: 4,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{ marginRight: 8 }}>✓</span>
+                      {fileName}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div style={{ marginTop: 16, color: '#999', fontSize: 12 }}>
+              请耐心等待，不要关闭页面
+            </div>
+          </div>
+        )}
+      </Modal>
     </Layout>
   );
 };

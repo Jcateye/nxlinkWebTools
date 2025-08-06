@@ -26,7 +26,7 @@ import {
 } from '@ant-design/icons';
 import { BillFieldConfig, BillFieldPreset, BillFieldGroup } from '../../types/bill';
 
-const { Panel } = Collapse;
+
 const { Option } = Select;
 
 interface FieldSelectorProps {
@@ -172,8 +172,7 @@ const FieldSelector: React.FC<FieldSelectorProps> = ({
   onConfirm,
   initialConfig
 }) => {
-  // 添加调试日志
-  console.log('FieldSelector rendered with:', { visible, initialConfig });
+
   const [config, setConfig] = useState<BillFieldConfig>(() => {
     if (initialConfig) return initialConfig;
     
@@ -357,7 +356,7 @@ const FieldSelector: React.FC<FieldSelectorProps> = ({
       cancelText="取消"
       width={900}
       style={{ top: 20 }}
-      bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
     >
       {/* 快速操作区 */}
       <Card size="small" style={{ marginBottom: 16 }}>
@@ -455,31 +454,32 @@ const FieldSelector: React.FC<FieldSelectorProps> = ({
       </Card>
 
       {/* 字段选择区 */}
-      <Collapse defaultActiveKey={Object.keys(groupedFields)} ghost>
-        {Object.entries(groupedFields).map(([groupName, fields]) => {
+      <Collapse 
+        defaultActiveKey={Object.keys(groupedFields)} 
+        ghost
+        items={Object.entries(groupedFields).map(([groupName, fields]) => {
           const isFullySelected = isGroupFullySelected(groupName);
           const isPartiallySelected = isGroupPartiallySelected(groupName);
           const selectedInGroup = fields.filter(field => config[field.key]).length;
 
-          return (
-            <Panel
-              key={groupName}
-              header={
-                <Space>
-                  <Checkbox
-                    checked={isFullySelected}
-                    indeterminate={isPartiallySelected}
-                    onChange={(e) => handleGroupSelectAll(groupName, e.target.checked)}
-                  >
-                    <strong>{groupName}</strong>
-                  </Checkbox>
-                  <Badge count={selectedInGroup} style={{ backgroundColor: '#1890ff' }} />
-                  <span style={{ fontSize: '12px', color: '#666' }}>
-                    {selectedInGroup}/{fields.length}
-                  </span>
-                </Space>
-              }
-            >
+          return {
+            key: groupName,
+            label: (
+              <Space>
+                <Checkbox
+                  checked={isFullySelected}
+                  indeterminate={isPartiallySelected}
+                  onChange={(e) => handleGroupSelectAll(groupName, e.target.checked)}
+                >
+                  <strong>{groupName}</strong>
+                </Checkbox>
+                <Badge count={selectedInGroup} style={{ backgroundColor: '#1890ff' }} />
+                <span style={{ fontSize: '12px', color: '#666' }}>
+                  {selectedInGroup}/{fields.length}
+                </span>
+              </Space>
+            ),
+            children: (
               <Row gutter={[16, 8]}>
                 {fields.map(field => (
                   <Col span={8} key={field.key}>
@@ -493,10 +493,10 @@ const FieldSelector: React.FC<FieldSelectorProps> = ({
                   </Col>
                 ))}
               </Row>
-            </Panel>
-          );
+            )
+          };
         })}
-      </Collapse>
+      />
     </Modal>
   );
 };

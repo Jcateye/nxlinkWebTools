@@ -186,60 +186,43 @@ export interface BillFilters {
   customLineUnitPrice: number | null;
 }
 
-// 账单导出字段配置
+// 账单导出字段配置 - 基于BillTable实际显示的字段
 export interface BillExportFieldConfig {
   // 基础信息字段
-  id: boolean;
-  customerId: boolean;
-  tenantId: boolean;
-  customerName: boolean;
-  tenantName: boolean;
-  agentFlowName: boolean;
+  feeTime: boolean; // 消费时间
+  agentFlowName: boolean; // Agent流程名称
+  customerName: boolean; // 客户名称
+  tenantName: boolean; // 团队名称
   
   // 通话信息字段
-  callDirection: boolean;
-  caller: boolean;
-  callee: boolean;
-  callId: boolean;
-  callStartTime: boolean;
-  callEndTime: boolean;
-  callAnswerTime: boolean;
+  callee: boolean; // 用户号码
+  caller: boolean; // 线路号码
+  callDirection: boolean; // 呼叫方向
   
-  // 时长相关字段
-  callDurationSec: boolean;
-  feeDurationSec: boolean;
-  sipFeeDuration: boolean;
+  // 时长计费字段
+  callDurationSec: boolean; // 通话时长(秒)
+  feeDurationSec: boolean; // AI计费时长(秒)
+  sipFeeDuration: boolean; // 线路计费时长(秒)
+  size: boolean; // 计费量
+  billingCycle: boolean; // AI计费规则
+  sipPriceType: boolean; // 线路计费规则
   
-  // 计费相关字段
-  billingCycle: boolean;
-  size: boolean;
-  customerPrice: boolean;
-  customerTotalPrice: boolean;
-  customerTotalPriceUSD: boolean;
-  customerCurrency: boolean;
-  feeTime: boolean;
+  // 成本消费字段
+  sipTotalCustomerOriginalPriceUSD: boolean; // 线路消费(USD)
+  customerTotalPriceUSD: boolean; // AI消费(USD)
+  sipTotalCustomerOriginalPrice: boolean; // 线路消费(原币种)
+  customerTotalPrice: boolean; // AI消费(原币种)
+  totalCost: boolean; // AI总成本
+  asrCost: boolean; // ASR成本
+  ttsCost: boolean; // TTS成本
+  llmCost: boolean; // LLM成本
   
-  // 线路相关字段
-  sipCurrency: boolean;
-  sipPriceType: boolean;
-  sipTotalCustomerOriginalPrice: boolean;
-  sipTotalCustomerOriginalPriceUSD: boolean;
-  sipTotalCustomerPrice: boolean;
-  
-  // 成本相关字段
-  allCustomerPriceUSD: boolean;
-  asrCost: boolean;
-  ttsCost: boolean;
-  llmCost: boolean;
-  totalCost: boolean;
-  totalProfit: boolean;
-  
-  // 计算字段
-  originalLineUnitPrice: boolean;
-  newLineBillingCycle: boolean;
-  newLineUnitPrice: boolean;
-  newLineBillingQuantity: boolean;
-  newLineConsumption: boolean;
+  // 新线路计算字段
+  originalLineUnitPrice: boolean; // 原线路单价
+  newLineBillingCycle: boolean; // 新线路计费周期
+  newLineUnitPrice: boolean; // 新线路单价
+  newLineBillingQuantity: boolean; // 新线路计费量
+  newLineConsumption: boolean; // 新线路消费
 }
 
 // 导出字段预设配置
@@ -255,7 +238,7 @@ export interface BillExportFieldGroup {
   key: keyof BillExportFieldConfig;
   label: string;
   description?: string;
-  group: '基础信息' | '通话信息' | '时长计费' | '成本利润' | '线路相关' | '计算字段';
+  group: '基础信息' | '通话信息' | '时长计费' | '成本消费' | '新线路计算';
 }
 
 // 分页信息类型

@@ -36,61 +36,46 @@ interface ExportFieldSelectorProps {
   initialConfig?: BillExportFieldConfig;
 }
 
-// 字段分组定义
+// 字段分组定义 - 基于BillTable实际显示的字段
 const fieldGroups: BillExportFieldGroup[] = [
   // 基础信息组
-  { key: 'id', label: 'ID', group: '基础信息' },
-  { key: 'customerId', label: '客户ID', group: '基础信息' },
-  { key: 'tenantId', label: '租户ID', group: '基础信息' },
+  { key: 'feeTime', label: '消费时间', group: '基础信息' },
+  { key: 'agentFlowName', label: 'Agent流程名称', group: '基础信息' },
   { key: 'customerName', label: '客户名称', group: '基础信息' },
-  { key: 'tenantName', label: '租户名称', group: '基础信息' },
-  { key: 'agentFlowName', label: '代理流程名称', group: '基础信息' },
+  { key: 'tenantName', label: '团队名称', group: '基础信息' },
 
   // 通话信息组
+  { key: 'callee', label: '用户号码', group: '通话信息' },
+  { key: 'caller', label: '线路号码', group: '通话信息' },
   { key: 'callDirection', label: '呼叫方向', group: '通话信息' },
-  { key: 'caller', label: '主叫号码', group: '通话信息' },
-  { key: 'callee', label: '被叫号码', group: '通话信息' },
-  { key: 'callId', label: '通话ID', group: '通话信息' },
-  { key: 'callStartTime', label: '通话开始时间', group: '通话信息' },
-  { key: 'callEndTime', label: '通话结束时间', group: '通话信息' },
-  { key: 'callAnswerTime', label: '通话接听时间', group: '通话信息' },
 
   // 时长计费组
   { key: 'callDurationSec', label: '通话时长(秒)', group: '时长计费' },
   { key: 'feeDurationSec', label: 'AI计费时长(秒)', group: '时长计费' },
   { key: 'sipFeeDuration', label: '线路计费时长(秒)', group: '时长计费' },
-  { key: 'billingCycle', label: '计费周期', group: '时长计费' },
   { key: 'size', label: '计费量', group: '时长计费' },
-  { key: 'feeTime', label: '计费时间', group: '时长计费' },
+  { key: 'billingCycle', label: 'AI计费规则', group: '时长计费' },
+  { key: 'sipPriceType', label: '线路计费规则', group: '时长计费' },
 
-  // 成本利润组
-  { key: 'customerPrice', label: '客户单价', group: '成本利润' },
-  { key: 'customerTotalPrice', label: '客户总价', group: '成本利润' },
-  { key: 'customerTotalPriceUSD', label: 'AI消费(USD)', group: '成本利润' },
-  { key: 'customerCurrency', label: '客户货币', group: '成本利润' },
-  { key: 'allCustomerPriceUSD', label: '所有客户价格(USD)', group: '成本利润' },
-  { key: 'asrCost', label: 'ASR成本', group: '成本利润' },
-  { key: 'ttsCost', label: 'TTS成本', group: '成本利润' },
-  { key: 'llmCost', label: 'LLM成本', group: '成本利润' },
-  { key: 'totalCost', label: '总成本', group: '成本利润' },
-  { key: 'totalProfit', label: '总利润', group: '成本利润' },
+  // 成本消费组
+  { key: 'sipTotalCustomerOriginalPriceUSD', label: '线路消费(USD)', group: '成本消费' },
+  { key: 'customerTotalPriceUSD', label: 'AI消费(USD)', group: '成本消费' },
+  { key: 'sipTotalCustomerOriginalPrice', label: '线路消费(原币种)', group: '成本消费' },
+  { key: 'customerTotalPrice', label: 'AI消费(原币种)', group: '成本消费' },
+  { key: 'totalCost', label: 'AI总成本', group: '成本消费' },
+  { key: 'asrCost', label: 'ASR成本', group: '成本消费' },
+  { key: 'ttsCost', label: 'TTS成本', group: '成本消费' },
+  { key: 'llmCost', label: 'LLM成本', group: '成本消费' },
 
-  // 线路相关组
-  { key: 'sipCurrency', label: '线路货币', group: '线路相关' },
-  { key: 'sipPriceType', label: '线路价格类型', group: '线路相关' },
-  { key: 'sipTotalCustomerOriginalPrice', label: '线路原始总价', group: '线路相关' },
-  { key: 'sipTotalCustomerOriginalPriceUSD', label: '线路消费(USD)', group: '线路相关' },
-  { key: 'sipTotalCustomerPrice', label: '线路客户总价', group: '线路相关' },
-
-  // 计算字段组
-  { key: 'originalLineUnitPrice', label: '原线路单价', group: '计算字段' },
-  { key: 'newLineBillingCycle', label: '新线路计费周期', group: '计算字段' },
-  { key: 'newLineUnitPrice', label: '新线路单价', group: '计算字段' },
-  { key: 'newLineBillingQuantity', label: '新线路计费量', group: '计算字段' },
-  { key: 'newLineConsumption', label: '新线路消费', group: '计算字段' }
+  // 新线路计算组
+  { key: 'originalLineUnitPrice', label: '原线路单价', group: '新线路计算' },
+  { key: 'newLineBillingCycle', label: '新线路计费周期', group: '新线路计算' },
+  { key: 'newLineUnitPrice', label: '新线路单价', group: '新线路计算' },
+  { key: 'newLineBillingQuantity', label: '新线路计费量', group: '新线路计算' },
+  { key: 'newLineConsumption', label: '新线路消费', group: '新线路计算' }
 ];
 
-// 预设配置
+// 预设配置 - 基于实际表格字段
 const defaultPresets: BillExportPreset[] = [
   {
     id: 'basic',
@@ -98,45 +83,31 @@ const defaultPresets: BillExportPreset[] = [
     description: '包含基本的通话和计费信息',
     config: {
       // 基础信息
-      id: true,
-      customerId: false,
-      tenantId: false,
+      feeTime: true,
+      agentFlowName: true,
       customerName: true,
       tenantName: true,
-      agentFlowName: true,
       // 通话信息
-      callDirection: true,
-      caller: true,
       callee: true,
-      callId: true,
-      callStartTime: true,
-      callEndTime: true,
-      callAnswerTime: false,
+      caller: true,
+      callDirection: true,
       // 时长计费
       callDurationSec: true,
       feeDurationSec: true,
       sipFeeDuration: false,
-      billingCycle: true,
       size: true,
-      customerPrice: true,
-      customerTotalPrice: true,
-      customerTotalPriceUSD: true,
-      customerCurrency: false,
-      feeTime: false,
-      // 线路相关
-      sipCurrency: false,
+      billingCycle: true,
       sipPriceType: false,
+      // 成本消费
+      sipTotalCustomerOriginalPriceUSD: true,
+      customerTotalPriceUSD: true,
       sipTotalCustomerOriginalPrice: false,
-      sipTotalCustomerOriginalPriceUSD: false,
-      sipTotalCustomerPrice: false,
-      // 成本利润
-      allCustomerPriceUSD: false,
+      customerTotalPrice: false,
+      totalCost: false,
       asrCost: false,
       ttsCost: false,
       llmCost: false,
-      totalCost: false,
-      totalProfit: false,
-      // 计算字段
+      // 新线路计算
       originalLineUnitPrice: false,
       newLineBillingCycle: false,
       newLineUnitPrice: false,
@@ -150,45 +121,31 @@ const defaultPresets: BillExportPreset[] = [
     description: '专注于成本、利润和财务分析的字段',
     config: {
       // 基础信息
-      id: true,
-      customerId: true,
-      tenantId: true,
+      feeTime: true,
+      agentFlowName: true,
       customerName: true,
       tenantName: true,
-      agentFlowName: true,
       // 通话信息
-      callDirection: false,
-      caller: false,
       callee: false,
-      callId: true,
-      callStartTime: true,
-      callEndTime: false,
-      callAnswerTime: false,
+      caller: false,
+      callDirection: false,
       // 时长计费
       callDurationSec: true,
       feeDurationSec: true,
       sipFeeDuration: true,
-      billingCycle: true,
       size: true,
-      customerPrice: true,
-      customerTotalPrice: true,
-      customerTotalPriceUSD: true,
-      customerCurrency: true,
-      feeTime: true,
-      // 线路相关
-      sipCurrency: true,
+      billingCycle: true,
       sipPriceType: true,
-      sipTotalCustomerOriginalPrice: true,
+      // 成本消费
       sipTotalCustomerOriginalPriceUSD: true,
-      sipTotalCustomerPrice: true,
-      // 成本利润
-      allCustomerPriceUSD: true,
+      customerTotalPriceUSD: true,
+      sipTotalCustomerOriginalPrice: true,
+      customerTotalPrice: true,
+      totalCost: true,
       asrCost: true,
       ttsCost: true,
       llmCost: true,
-      totalCost: true,
-      totalProfit: true,
-      // 计算字段
+      // 新线路计算
       originalLineUnitPrice: true,
       newLineBillingCycle: true,
       newLineUnitPrice: true,

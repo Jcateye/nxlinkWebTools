@@ -24,20 +24,20 @@ import {
   CopyOutlined,
   DeleteOutlined
 } from '@ant-design/icons';
-import { BillExportFieldConfig, BillExportPreset, BillExportFieldGroup } from '../../types/bill';
+import { BillFieldConfig, BillFieldPreset, BillFieldGroup } from '../../types/bill';
 
 const { Panel } = Collapse;
 const { Option } = Select;
 
-interface ExportFieldSelectorProps {
+interface FieldSelectorProps {
   visible: boolean;
   onCancel: () => void;
-  onConfirm: (config: BillExportFieldConfig) => void;
-  initialConfig?: BillExportFieldConfig;
+  onConfirm: (config: BillFieldConfig) => void;
+  initialConfig?: BillFieldConfig;
 }
 
 // 字段分组定义 - 基于BillTable实际显示的字段
-const fieldGroups: BillExportFieldGroup[] = [
+const fieldGroups: BillFieldGroup[] = [
   // 基础信息组
   { key: 'feeTime', label: '消费时间', group: '基础信息' },
   { key: 'agentFlowName', label: 'Agent流程名称', group: '基础信息' },
@@ -76,7 +76,7 @@ const fieldGroups: BillExportFieldGroup[] = [
 ];
 
 // 预设配置 - 基于实际表格字段
-const defaultPresets: BillExportPreset[] = [
+const defaultPresets: BillFieldPreset[] = [
   {
     id: 'basic',
     name: '基础字段',
@@ -163,23 +163,30 @@ const defaultPresets: BillExportPreset[] = [
   }
 ];
 
-const EXPORT_CONFIG_STORAGE_KEY = 'billExportFieldConfig';
-const CUSTOM_PRESETS_STORAGE_KEY = 'billExportCustomPresets';
+const FIELD_CONFIG_STORAGE_KEY = 'billFieldConfig';
+const CUSTOM_PRESETS_STORAGE_KEY = 'billFieldCustomPresets';
 
-const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
+const FieldSelector: React.FC<FieldSelectorProps> = ({
   visible,
   onCancel,
   onConfirm,
   initialConfig
 }) => {
-  const [config, setConfig] = useState<BillExportFieldConfig>(() => {
+  // 添加调试日志
+  console.log('FieldSelector rendered with:', { visible, initialConfig });
+  const [config, setConfig] = useState<BillFieldConfig>(() => {
     if (initialConfig) return initialConfig;
     
     // 尝试从localStorage加载保存的配置
     try {
-      const saved = localStorage.getItem(EXPORT_CONFIG_STORAGE_KEY);
+      const saved = localStorage.getItem(FIELD_CONFIG_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsedConfig = JSON.parse(saved);
+        // 确保所有必需的字段都存在，与defaultPresets[0].config合并
+        return {
+          ...defaultPresets[0].config,
+          ...parsedConfig
+        };
       }
     } catch (error) {
       console.warn('加载导出配置失败:', error);
@@ -189,7 +196,7 @@ const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
     return defaultPresets[0].config;
   });
 
-  const [customPresets, setCustomPresets] = useState<BillExportPreset[]>([]);
+  const [customPresets, setCustomPresets] = useState<BillFieldPreset[]>([]);
   const [newPresetName, setNewPresetName] = useState('');
   const [newPresetDescription, setNewPresetDescription] = useState('');
 
@@ -206,7 +213,7 @@ const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
   }, []);
 
   // 保存自定义预设到localStorage
-  const saveCustomPresets = (presets: BillExportPreset[]) => {
+  const saveCustomPresets = (presets: BillFieldPreset[]) => {
     try {
       localStorage.setItem(CUSTOM_PRESETS_STORAGE_KEY, JSON.stringify(presets));
       setCustomPresets(presets);
@@ -223,10 +230,10 @@ const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
     }
     groups[field.group].push(field);
     return groups;
-  }, {} as Record<string, BillExportFieldGroup[]>);
+  }, {} as Record<string, BillFieldGroup[]>);
 
   // 处理字段选择变化
-  const handleFieldChange = (fieldKey: keyof BillExportFieldConfig, checked: boolean) => {
+  const handleFieldChange = (fieldKey: keyof BillFieldConfig, checked: boolean) => {
     setConfig(prev => ({
       ...prev,
       [fieldKey]: checked
@@ -320,9 +327,9 @@ const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
 
     // 保存当前配置到localStorage
     try {
-      localStorage.setItem(EXPORT_CONFIG_STORAGE_KEY, JSON.stringify(config));
+      localStorage.setItem(FIELD_CONFIG_STORAGE_KEY, JSON.stringify(config));
     } catch (error) {
-      console.warn('保存导出配置失败:', error);
+      console.warn('保存字段配置失败:', error);
     }
 
     onConfirm(config);
@@ -336,7 +343,7 @@ const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
       title={
         <Space>
           <SettingOutlined />
-          <span>自定义导出字段</span>
+          <span>自定义字段配置</span>
           <Badge count={selectedCount} style={{ backgroundColor: '#52c41a' }} />
           <span style={{ fontSize: '12px', color: '#666' }}>
             已选择 {selectedCount}/{totalCount} 个字段
@@ -346,7 +353,7 @@ const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
       open={visible}
       onCancel={onCancel}
       onOk={handleConfirm}
-      okText="确认导出"
+      okText="确认配置"
       cancelText="取消"
       width={900}
       style={{ top: 20 }}
@@ -479,10 +486,9 @@ const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
                     <Checkbox
                       checked={config[field.key]}
                       onChange={(e) => handleFieldChange(field.key, e.target.checked)}
+                      title={field.description}
                     >
-                      <Tooltip title={field.description} placement="top">
-                        {field.label}
-                      </Tooltip>
+                      {field.label}
                     </Checkbox>
                   </Col>
                 ))}
@@ -495,4 +501,4 @@ const ExportFieldSelector: React.FC<ExportFieldSelectorProps> = ({
   );
 };
 
-export default ExportFieldSelector;
+export default FieldSelector;

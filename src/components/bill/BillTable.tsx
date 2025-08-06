@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Typography, Tag, Button, Tooltip, Card, Row, Col, Statistic } from 'antd';
 import { EyeOutlined, EyeInvisibleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { BillRecord, CALL_DIRECTION_TEXT, PaginationInfo } from '../../types/bill';
+import { BillRecord, CALL_DIRECTION_TEXT, PaginationInfo, BillFieldConfig } from '../../types/bill';
 import { calculateNewLineBilling, calculateBillingQuantity, parseBillingRule } from '../../utils/billingCalculator';
 
 const { Text } = Typography;
@@ -18,6 +18,7 @@ interface BillTableProps {
   dateRange?: { start: string | null; end: string | null };
   timeRange?: { start: string | null; end: string | null };
   customLineUnitPrice?: number | null;
+  fieldConfig?: BillFieldConfig | null; // 字段显示配置
 }
 
 const BillTable: React.FC<BillTableProps> = ({
@@ -30,7 +31,8 @@ const BillTable: React.FC<BillTableProps> = ({
   companyName,
   dateRange,
   timeRange,
-  customLineUnitPrice
+  customLineUnitPrice,
+  fieldConfig
 }) => {
   const [isDesensitized, setIsDesensitized] = useState<boolean>(initialDesensitized);
 
@@ -168,8 +170,8 @@ const BillTable: React.FC<BillTableProps> = ({
   const sipCurrency = data.length > 0 ? (data[0].sipCurrency || 'USD') : 'USD';
   const customerCurrency = data.length > 0 ? (data[0].customerCurrency || 'USD') : 'USD';
 
-  // 表格列配置
-  const columns: ColumnsType<BillRecord> = [
+  // 所有可能的表格列配置
+  const allColumns: ColumnsType<BillRecord> = [
     {
       title: '消费时间',
       dataIndex: 'feeTime',
@@ -526,6 +528,20 @@ const BillTable: React.FC<BillTableProps> = ({
       )
     }
   ];
+
+  // 根据字段配置筛选显示的列
+  const columns: ColumnsType<BillRecord> = useMemo(() => {
+    if (!fieldConfig) {
+      // 如果没有字段配置，显示所有列
+      return allColumns;
+    }
+    
+    // 根据字段配置筛选列
+    return allColumns.filter(column => {
+      const key = column.key as keyof BillFieldConfig;
+      return fieldConfig[key] === true;
+    });
+  }, [allColumns, fieldConfig]);
 
   return (
     <div>

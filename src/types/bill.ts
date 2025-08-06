@@ -186,8 +186,8 @@ export interface BillFilters {
   customLineUnitPrice: number | null;
 }
 
-// 账单导出字段配置 - 基于BillTable实际显示的字段
-export interface BillExportFieldConfig {
+// 账单字段显示配置 - 控制列表显示和导出的字段
+export interface BillFieldConfig {
   // 基础信息字段
   feeTime: boolean; // 消费时间
   agentFlowName: boolean; // Agent流程名称
@@ -225,17 +225,17 @@ export interface BillExportFieldConfig {
   newLineConsumption: boolean; // 新线路消费
 }
 
-// 导出字段预设配置
-export interface BillExportPreset {
+// 字段预设配置
+export interface BillFieldPreset {
   id: string;
   name: string;
   description: string;
-  config: BillExportFieldConfig;
+  config: BillFieldConfig;
 }
 
-// 导出字段分组
-export interface BillExportFieldGroup {
-  key: keyof BillExportFieldConfig;
+// 字段分组
+export interface BillFieldGroup {
+  key: keyof BillFieldConfig;
   label: string;
   description?: string;
   group: '基础信息' | '通话信息' | '时长计费' | '成本消费' | '新线路计算';

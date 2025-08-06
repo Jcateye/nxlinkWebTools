@@ -133,6 +133,20 @@ export interface BillFilters {
       min: number | null;
       max: number | null;
     };
+    // AI相关字段筛选
+    customerTotalPriceUSDRange: { // AI消费(USD)
+      min: number | null;
+      max: number | null;
+    };
+    sipTotalCustomerOriginalPriceUSDRange: { // 线路消费(USD)
+      min: number | null;
+      max: number | null;
+    };
+    sipFeeDurationRange: { // 线路计费时长
+      min: number | null;
+      max: number | null;
+    };
+    // 原有字段保持兼容
     customerPriceRange: {
       min: number | null;
       max: number | null;
@@ -170,6 +184,78 @@ export interface BillFilters {
   };
   // 自定义线路单价
   customLineUnitPrice: number | null;
+}
+
+// 账单导出字段配置
+export interface BillExportFieldConfig {
+  // 基础信息字段
+  id: boolean;
+  customerId: boolean;
+  tenantId: boolean;
+  customerName: boolean;
+  tenantName: boolean;
+  agentFlowName: boolean;
+  
+  // 通话信息字段
+  callDirection: boolean;
+  caller: boolean;
+  callee: boolean;
+  callId: boolean;
+  callStartTime: boolean;
+  callEndTime: boolean;
+  callAnswerTime: boolean;
+  
+  // 时长相关字段
+  callDurationSec: boolean;
+  feeDurationSec: boolean;
+  sipFeeDuration: boolean;
+  
+  // 计费相关字段
+  billingCycle: boolean;
+  size: boolean;
+  customerPrice: boolean;
+  customerTotalPrice: boolean;
+  customerTotalPriceUSD: boolean;
+  customerCurrency: boolean;
+  feeTime: boolean;
+  
+  // 线路相关字段
+  sipCurrency: boolean;
+  sipPriceType: boolean;
+  sipTotalCustomerOriginalPrice: boolean;
+  sipTotalCustomerOriginalPriceUSD: boolean;
+  sipTotalCustomerPrice: boolean;
+  
+  // 成本相关字段
+  allCustomerPriceUSD: boolean;
+  asrCost: boolean;
+  ttsCost: boolean;
+  llmCost: boolean;
+  totalCost: boolean;
+  totalProfit: boolean;
+  
+  // 计算字段
+  originalLineUnitPrice: boolean;
+  newLineBillingCycle: boolean;
+  newLineUnitPrice: boolean;
+  newLineBillingQuantity: boolean;
+  newLineConsumption: boolean;
+}
+
+// 导出字段预设配置
+export interface BillExportPreset {
+  id: string;
+  name: string;
+  description: string;
+  config: BillExportFieldConfig;
+}
+
+// 导出字段分组
+export interface BillExportFieldGroup {
+  key: keyof BillExportFieldConfig;
+  label: string;
+  description?: string;
+  group: '基础信息' | '通话信息' | '时长计费' | '成本利润' | '线路相关' | '计算字段';
 }
 
 // 分页信息类型

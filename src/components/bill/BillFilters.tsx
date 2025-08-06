@@ -1,12 +1,13 @@
 import React from 'react';
-import { Card, Row, Col, Form, DatePicker, TimePicker, Input, InputNumber, Button, Space, Tooltip } from 'antd';
-import { SearchOutlined, ReloadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Form, DatePicker, TimePicker, Input, InputNumber, Button, Space, Tooltip, Select, Tag } from 'antd';
+import { SearchOutlined, ReloadOutlined, QuestionCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
-import { BillFilters, Company, Team } from '../../types/bill';
+import { BillFilters, Company, Team, CALL_DIRECTION_TEXT } from '../../types/bill';
 import CompanySelector from './CompanySelector';
 import TeamSelector from './TeamSelector';
 
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 interface BillFiltersProps {
   filters: BillFilters;
@@ -88,6 +89,64 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
     });
   };
 
+  // 处理呼叫方向变化
+  const handleCallDirectionChange = (value: number | null) => {
+    onFiltersChange({
+      ...filters,
+      advancedFilters: {
+        ...filters.advancedFilters,
+        callDirection: value
+      }
+    });
+  };
+
+  // 快速时间范围选择
+  const handleQuickTimeRange = (type: string) => {
+    const now = dayjs();
+    let start: Dayjs, end: Dayjs;
+
+    switch (type) {
+      case 'today':
+        start = now.startOf('day');
+        end = now.endOf('day');
+        break;
+      case 'yesterday':
+        start = now.subtract(1, 'day').startOf('day');
+        end = now.subtract(1, 'day').endOf('day');
+        break;
+      case 'last7days':
+        start = now.subtract(6, 'day').startOf('day');
+        end = now.endOf('day');
+        break;
+      case 'last30days':
+        start = now.subtract(29, 'day').startOf('day');
+        end = now.endOf('day');
+        break;
+      case 'thisMonth':
+        start = now.startOf('month');
+        end = now.endOf('month');
+        break;
+      case 'lastMonth':
+        start = now.subtract(1, 'month').startOf('month');
+        end = now.subtract(1, 'month').endOf('month');
+        break;
+      default:
+        return;
+    }
+
+    onFiltersChange({
+      ...filters,
+      dateRange: {
+        start: start.format('YYYY-MM-DD'),
+        end: end.format('YYYY-MM-DD')
+      },
+      timeRange: {
+        start: '00:00:00',
+        end: '23:59:59'
+      }
+    });
+  };
+
   // 处理重置
   const handleReset = () => {
     form.resetFields();
@@ -149,6 +208,46 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
                 placeholder={['开始日期', '结束日期']}
                 format="YYYY-MM-DD"
               />
+              <div style={{ marginTop: 8 }}>
+                <Space size="small" wrap>
+                  <Tag.CheckableTag
+                    checked={false}
+                    onChange={() => handleQuickTimeRange('today')}
+                  >
+                    今天
+                  </Tag.CheckableTag>
+                  <Tag.CheckableTag
+                    checked={false}
+                    onChange={() => handleQuickTimeRange('yesterday')}
+                  >
+                    昨天
+                  </Tag.CheckableTag>
+                  <Tag.CheckableTag
+                    checked={false}
+                    onChange={() => handleQuickTimeRange('last7days')}
+                  >
+                    近7天
+                  </Tag.CheckableTag>
+                  <Tag.CheckableTag
+                    checked={false}
+                    onChange={() => handleQuickTimeRange('last30days')}
+                  >
+                    近30天
+                  </Tag.CheckableTag>
+                  <Tag.CheckableTag
+                    checked={false}
+                    onChange={() => handleQuickTimeRange('thisMonth')}
+                  >
+                    本月
+                  </Tag.CheckableTag>
+                  <Tag.CheckableTag
+                    checked={false}
+                    onChange={() => handleQuickTimeRange('lastMonth')}
+                  >
+                    上月
+                  </Tag.CheckableTag>
+                </Space>
+              </div>
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -165,7 +264,7 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
         </Row>
 
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item label="Agent流程名称">
               <Input
                 value={filters.agentFlowName}
@@ -175,7 +274,7 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
               />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item label="用户号码">
               <Input
                 value={filters.userNumber}
@@ -185,11 +284,28 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
               />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
+            <Form.Item label="呼叫方向">
+              <Select
+                value={filters.advancedFilters.callDirection}
+                onChange={handleCallDirectionChange}
+                placeholder="请选择呼叫方向"
+                allowClear
+                style={{ width: '100%' }}
+              >
+                {Object.entries(CALL_DIRECTION_TEXT).map(([key, value]) => (
+                  <Option key={key} value={Number(key)}>
+                    {value}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={6}>
             <Form.Item 
               label={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span>自定义线路单价(USD)</span>
+                  <span>自定义线路单价</span>
                   <Tooltip title="填写此单价后，新线路消费将使用此单价计算，否则使用默认计算的新线路单价">
                     <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
                   </Tooltip>
@@ -199,12 +315,13 @@ const BillFiltersComponent: React.FC<BillFiltersProps> = ({
               <InputNumber
                 value={filters.customLineUnitPrice}
                 onChange={handleCustomLineUnitPriceChange}
-                placeholder="留空使用默认单价"
+                placeholder="留空使用默认"
                 style={{ width: '100%' }}
                 min={0}
                 step={0.0001}
                 precision={8}
                 controls={false}
+                size="small"
               />
             </Form.Item>
           </Col>

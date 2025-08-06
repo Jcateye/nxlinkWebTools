@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Row, Col, Input, InputNumber, Select, Button, Space, Collapse } from 'antd';
-import { FilterOutlined, ClearOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Input, InputNumber, Select, Button, Space, Collapse, Modal, message, Dropdown } from 'antd';
+import { FilterOutlined, ClearOutlined, SaveOutlined, HistoryOutlined, DownOutlined } from '@ant-design/icons';
 import { BillFilters, CALL_DIRECTION_TEXT } from '../../types/bill';
 
 const { Panel } = Collapse;
@@ -16,6 +16,48 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   onFiltersChange
 }) => {
   const [activeKey, setActiveKey] = useState<string | string[]>([]);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [saveFilterName, setSaveFilterName] = useState('');
+
+  // 保存的筛选条件键名
+  const SAVED_FILTERS_KEY = 'billSavedFilters';
+
+  // 获取保存的筛选条件
+  const getSavedFilters = (): Record<string, BillFilters> => {
+    try {
+      const saved = localStorage.getItem(SAVED_FILTERS_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch (error) {
+      console.error('获取保存的筛选条件失败:', error);
+      return {};
+    }
+  };
+
+  // 保存筛选条件
+  const saveFilters = (name: string, filters: BillFilters) => {
+    try {
+      const savedFilters = getSavedFilters();
+      savedFilters[name] = filters;
+      localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(savedFilters));
+      message.success(`筛选条件 "${name}" 保存成功`);
+    } catch (error) {
+      console.error('保存筛选条件失败:', error);
+      message.error('保存筛选条件失败');
+    }
+  };
+
+  // 删除保存的筛选条件
+  const deleteSavedFilter = (name: string) => {
+    try {
+      const savedFilters = getSavedFilters();
+      delete savedFilters[name];
+      localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(savedFilters));
+      message.success(`筛选条件 "${name}" 删除成功`);
+    } catch (error) {
+      console.error('删除筛选条件失败:', error);
+      message.error('删除筛选条件失败');
+    }
+  };
 
   // 处理字符串筛选条件变化
   const handleStringFilterChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +114,11 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         customerCurrency: '',
         callDurationRange: { min: null, max: null },
         feeDurationRange: { min: null, max: null },
+        // AI相关字段筛选
+        customerTotalPriceUSDRange: { min: null, max: null },
+        sipTotalCustomerOriginalPriceUSDRange: { min: null, max: null },
+        sipFeeDurationRange: { min: null, max: null },
+        // 原有字段保持兼容
         customerPriceRange: { min: null, max: null },
         customerTotalPriceRange: { min: null, max: null },
         asrCostRange: { min: null, max: null },
@@ -104,6 +151,69 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
     );
   };
 
+  // 处理保存筛选条件
+  const handleSaveFilters = () => {
+    if (!saveFilterName.trim()) {
+      message.error('请输入筛选条件名称');
+      return;
+    }
+    saveFilters(saveFilterName.trim(), filters);
+    setSaveModalVisible(false);
+    setSaveFilterName('');
+  };
+
+  // 处理加载筛选条件
+  const handleLoadFilters = (name: string) => {
+    const savedFilters = getSavedFilters();
+    const savedFilter = savedFilters[name];
+    if (savedFilter) {
+      onFiltersChange(savedFilter);
+      message.success(`筛选条件 "${name}" 加载成功`);
+    }
+  };
+
+  // 生成保存的筛选条件菜单
+  const getSavedFiltersMenu = () => {
+    const savedFilters = getSavedFilters();
+    const menuItems = Object.keys(savedFilters).map(name => ({
+      key: name,
+      label: (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 150 }}>
+          <span
+            onClick={() => handleLoadFilters(name)}
+            style={{ flex: 1, cursor: 'pointer' }}
+          >
+            {name}
+          </span>
+          <Button
+            type="text"
+            size="small"
+            danger
+            onClick={(e) => {
+              e.stopPropagation();
+              Modal.confirm({
+                title: '确认删除',
+                content: `确定要删除筛选条件 "${name}" 吗？`,
+                onOk: () => deleteSavedFilter(name)
+              });
+            }}
+          >
+            删除
+          </Button>
+        </div>
+      )
+    }));
+
+    if (menuItems.length === 0) {
+      menuItems.push({
+        key: 'empty',
+        label: <span style={{ color: '#999' }}>暂无保存的筛选条件</span>
+      });
+    }
+
+    return { items: menuItems };
+  };
+
   return (
     <Card 
       size="small"
@@ -120,14 +230,29 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </Space>
       }
       extra={
-        <Button 
-          size="small" 
-          icon={<ClearOutlined />} 
-          onClick={clearAdvancedFilters}
-          disabled={!hasActiveFilters()}
-        >
-          清空筛选
-        </Button>
+        <Space size="small">
+          <Button 
+            size="small" 
+            icon={<SaveOutlined />} 
+            onClick={() => setSaveModalVisible(true)}
+            disabled={!hasActiveFilters()}
+          >
+            保存筛选
+          </Button>
+          <Dropdown menu={getSavedFiltersMenu()}>
+            <Button size="small" icon={<HistoryOutlined />}>
+              加载筛选 <DownOutlined />
+            </Button>
+          </Dropdown>
+          <Button 
+            size="small" 
+            icon={<ClearOutlined />} 
+            onClick={clearAdvancedFilters}
+            disabled={!hasActiveFilters()}
+          >
+            清空筛选
+          </Button>
+        </Space>
       }
     >
       <Collapse 
@@ -212,6 +337,59 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </Panel>
 
         <Panel header="数字范围筛选" key="range">
+          <div style={{ marginBottom: 16 }}>
+            <Space size="small" wrap>
+              <span style={{ fontSize: '12px', color: '#666' }}>快速金额筛选：</span>
+              <Button 
+                size="small" 
+                onClick={() => onFiltersChange({
+                  ...filters,
+                  advancedFilters: {
+                    ...filters.advancedFilters,
+                    customerTotalPriceUSDRange: { min: 0, max: 1 }
+                  }
+                })}
+              >
+                AI消费 ≤$1
+              </Button>
+              <Button 
+                size="small" 
+                onClick={() => onFiltersChange({
+                  ...filters,
+                  advancedFilters: {
+                    ...filters.advancedFilters,
+                    customerTotalPriceUSDRange: { min: 1, max: 10 }
+                  }
+                })}
+              >
+                AI消费 $1-$10
+              </Button>
+              <Button 
+                size="small" 
+                onClick={() => onFiltersChange({
+                  ...filters,
+                  advancedFilters: {
+                    ...filters.advancedFilters,
+                    sipTotalCustomerOriginalPriceUSDRange: { min: 0, max: 1 }
+                  }
+                })}
+              >
+                线路消费 ≤$1
+              </Button>
+              <Button 
+                size="small" 
+                onClick={() => onFiltersChange({
+                  ...filters,
+                  advancedFilters: {
+                    ...filters.advancedFilters,
+                    sipTotalCustomerOriginalPriceUSDRange: { min: 1, max: 10 }
+                  }
+                })}
+              >
+                线路消费 $1-$10
+              </Button>
+            </Space>
+          </div>
           <Row gutter={[16, 16]}>
             <Col span={8}>
               <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>通话时长(秒)</div>
@@ -235,7 +413,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               </Space.Compact>
             </Col>
             <Col span={8}>
-              <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>计费时长(秒)</div>
+              <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>AI计费时长(秒)</div>
               <Space.Compact style={{ width: '100%' }}>
                 <InputNumber
                   size="small"
@@ -250,6 +428,27 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                   style={{ width: '50%' }}
                   value={filters.advancedFilters.feeDurationRange.max}
                   onChange={handleRangeFilterChange('feeDurationRange', 'max')}
+                  placeholder="最大值"
+                  min={0}
+                />
+              </Space.Compact>
+            </Col>
+            <Col span={8}>
+              <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>线路计费时长(秒)</div>
+              <Space.Compact style={{ width: '100%' }}>
+                <InputNumber
+                  size="small"
+                  style={{ width: '50%' }}
+                  value={filters.advancedFilters.sipFeeDurationRange.min}
+                  onChange={handleRangeFilterChange('sipFeeDurationRange', 'min')}
+                  placeholder="最小值"
+                  min={0}
+                />
+                <InputNumber
+                  size="small"
+                  style={{ width: '50%' }}
+                  value={filters.advancedFilters.sipFeeDurationRange.max}
+                  onChange={handleRangeFilterChange('sipFeeDurationRange', 'max')}
                   placeholder="最大值"
                   min={0}
                 />
@@ -275,6 +474,52 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                   placeholder="最大值"
                   min={0}
                   precision={0}
+                />
+              </Space.Compact>
+            </Col>
+            <Col span={8}>
+              <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>AI消费(USD)</div>
+              <Space.Compact style={{ width: '100%' }}>
+                <InputNumber
+                  size="small"
+                  style={{ width: '50%' }}
+                  value={filters.advancedFilters.customerTotalPriceUSDRange.min}
+                  onChange={handleRangeFilterChange('customerTotalPriceUSDRange', 'min')}
+                  placeholder="最小值"
+                  min={0}
+                  step={0.01}
+                />
+                <InputNumber
+                  size="small"
+                  style={{ width: '50%' }}
+                  value={filters.advancedFilters.customerTotalPriceUSDRange.max}
+                  onChange={handleRangeFilterChange('customerTotalPriceUSDRange', 'max')}
+                  placeholder="最大值"
+                  min={0}
+                  step={0.01}
+                />
+              </Space.Compact>
+            </Col>
+            <Col span={8}>
+              <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>线路消费(USD)</div>
+              <Space.Compact style={{ width: '100%' }}>
+                <InputNumber
+                  size="small"
+                  style={{ width: '50%' }}
+                  value={filters.advancedFilters.sipTotalCustomerOriginalPriceUSDRange.min}
+                  onChange={handleRangeFilterChange('sipTotalCustomerOriginalPriceUSDRange', 'min')}
+                  placeholder="最小值"
+                  min={0}
+                  step={0.01}
+                />
+                <InputNumber
+                  size="small"
+                  style={{ width: '50%' }}
+                  value={filters.advancedFilters.sipTotalCustomerOriginalPriceUSDRange.max}
+                  onChange={handleRangeFilterChange('sipTotalCustomerOriginalPriceUSDRange', 'max')}
+                  placeholder="最大值"
+                  min={0}
+                  step={0.01}
                 />
               </Space.Compact>
             </Col>
@@ -462,6 +707,30 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           </Row>
         </Panel>
       </Collapse>
+
+      {/* 保存筛选条件Modal */}
+      <Modal
+        title="保存筛选条件"
+        open={saveModalVisible}
+        onOk={handleSaveFilters}
+        onCancel={() => {
+          setSaveModalVisible(false);
+          setSaveFilterName('');
+        }}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Input
+          placeholder="请输入筛选条件名称"
+          value={saveFilterName}
+          onChange={(e) => setSaveFilterName(e.target.value)}
+          onPressEnter={handleSaveFilters}
+          maxLength={50}
+        />
+        <div style={{ marginTop: 8, color: '#666', fontSize: '12px' }}>
+          保存当前所有筛选条件（包括基础筛选和高级筛选）
+        </div>
+      </Modal>
     </Card>
   );
 };

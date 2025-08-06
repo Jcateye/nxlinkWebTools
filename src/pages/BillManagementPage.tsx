@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Layout, Typography, Alert, Spin, Button, Space, message, Modal, Progress } from 'antd';
-import { DownloadOutlined, ExportOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ExportOutlined, SettingOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { BillFilters, BillRecord, PaginationInfo } from '../types/bill';
+import { BillFilters, BillRecord, PaginationInfo, BillExportFieldConfig } from '../types/bill';
 import { queryBillList, hasValidBillToken, exportBillData, exportAllBillData, exportAllBillDataInBatches, ProgressCallback, BatchExportCallback } from '../services/billApi';
 import { calculateNewLineBilling } from '../utils/billingCalculator';
 import BillFiltersComponent from '../components/bill/BillFilters';
 import AdvancedFilters from '../components/bill/AdvancedFilters';
 import BillTable from '../components/bill/BillTable';
 import TokenManager from '../components/bill/TokenManager';
+import ExportFieldSelector from '../components/bill/ExportFieldSelector';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -45,6 +46,11 @@ const getDefaultFilters = (): BillFilters => ({
     customerCurrency: '',
     callDurationRange: { min: null, max: null },
     feeDurationRange: { min: null, max: null },
+    // AI相关字段筛选
+    customerTotalPriceUSDRange: { min: null, max: null }, // AI消费(USD)
+    sipTotalCustomerOriginalPriceUSDRange: { min: null, max: null }, // 线路消费(USD)
+    sipFeeDurationRange: { min: null, max: null }, // 线路计费时长
+    // 原有字段保持兼容
     customerPriceRange: { min: null, max: null },
     customerTotalPriceRange: { min: null, max: null },
     asrCostRange: { min: null, max: null },
@@ -124,7 +130,19 @@ const loadSavedFilters = (): BillFilters => {
         advancedFilters: {
           ...defaultFilters.advancedFilters,
           ...parsed.advancedFilters,
-          // 确保新添加的字段存在
+          // 确保新添加的AI相关字段存在
+          customerTotalPriceUSDRange: {
+            ...defaultFilters.advancedFilters.customerTotalPriceUSDRange,
+            ...(parsed.advancedFilters?.customerTotalPriceUSDRange || {})
+          },
+          sipTotalCustomerOriginalPriceUSDRange: {
+            ...defaultFilters.advancedFilters.sipTotalCustomerOriginalPriceUSDRange,
+            ...(parsed.advancedFilters?.sipTotalCustomerOriginalPriceUSDRange || {})
+          },
+          sipFeeDurationRange: {
+            ...defaultFilters.advancedFilters.sipFeeDurationRange,
+            ...(parsed.advancedFilters?.sipFeeDurationRange || {})
+          },
           sizeRange: {
             ...defaultFilters.advancedFilters.sizeRange,
             ...(parsed.advancedFilters?.sizeRange || {})
@@ -190,6 +208,13 @@ const applyAdvancedFilters = (records: BillRecord[], advancedFilters: BillFilter
 
     if (!checkRange(record.callDurationSec, advancedFilters.callDurationRange)) return false;
     if (!checkRange(record.feeDurationSec, advancedFilters.feeDurationRange)) return false;
+    
+    // AI相关字段筛选
+    if (!checkRange(record.customerTotalPriceUSD, advancedFilters.customerTotalPriceUSDRange)) return false; // AI消费(USD)
+    if (!checkRange(record.sipTotalCustomerOriginalPriceUSD, advancedFilters.sipTotalCustomerOriginalPriceUSDRange)) return false; // 线路消费(USD)
+    if (!checkRange(record.sipFeeDuration, advancedFilters.sipFeeDurationRange)) return false; // 线路计费时长
+    
+    // 原有字段保持兼容
     if (!checkRange(record.customerPrice, advancedFilters.customerPriceRange)) return false;
     if (!checkRange(record.customerTotalPrice, advancedFilters.customerTotalPriceRange)) return false;
     if (!checkRange(record.asrCost, advancedFilters.asrCostRange)) return false;
@@ -245,6 +270,8 @@ const BillManagementPage: React.FC = () => {
   }); // 新增：导出进度状态
   const [isDesensitized, setIsDesensitized] = useState<boolean>(loadSavedDesensitizeState());
   const [hasSearched, setHasSearched] = useState<boolean>(false); // 新增：跟踪是否已经执行过搜索
+  const [exportFieldSelectorVisible, setExportFieldSelectorVisible] = useState<boolean>(false); // 字段选择器可见性
+  const [exportFieldConfig, setExportFieldConfig] = useState<BillExportFieldConfig | null>(null); // 当前导出字段配置
   
   // 后端分页信息（用于没有高级筛选的情况）
   const [backendPagination, setBackendPagination] = useState<PaginationInfo>({
@@ -698,16 +725,42 @@ const BillManagementPage: React.FC = () => {
     }
   };
 
+  // 根据字段配置筛选数据
+  const filterDataByFieldConfig = (data: any[], fieldConfig: BillExportFieldConfig): any[] => {
+    if (!fieldConfig) return data;
+
+    return data.map(record => {
+      const filteredRecord: any = {};
+      
+      // 根据字段配置添加相应字段
+      Object.entries(fieldConfig).forEach(([key, selected]) => {
+        if (selected && record.hasOwnProperty(key)) {
+          filteredRecord[key] = record[key];
+        }
+      });
+      
+      return filteredRecord;
+    });
+  };
+
   // 生成CSV文件的轻量级函数
-  const generateCSVFile = (data: any[], fileName: string) => {
+  const generateCSVFile = (data: any[], fileName: string, fieldConfig?: BillExportFieldConfig) => {
     if (data.length === 0) {
       console.warn('没有数据可导出');
       return;
     }
 
     try {
+      // 根据字段配置筛选数据
+      const filteredData = fieldConfig ? filterDataByFieldConfig(data, fieldConfig) : data;
+      
+      if (filteredData.length === 0 || (filteredData[0] && Object.keys(filteredData[0]).length === 0)) {
+        message.warning('没有选择任何字段进行导出');
+        return;
+      }
+
       // 获取表头
-      const headers = Object.keys(data[0]);
+      const headers = Object.keys(filteredData[0]);
       
       // 转义CSV字段的函数
       const escapeCSVField = (field: any): string => {
@@ -729,7 +782,7 @@ const BillManagementPage: React.FC = () => {
       csvLines.push(headers.map(escapeCSVField).join(','));
       
       // 添加数据行
-      for (const row of data) {
+      for (const row of filteredData) {
         const csvRow = headers.map(header => escapeCSVField(row[header])).join(',');
         csvLines.push(csvRow);
       }
@@ -741,7 +794,7 @@ const BillManagementPage: React.FC = () => {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       saveAs(blob, fileName);
       
-      console.log(`✅ CSV文件导出成功: ${fileName}`);
+      console.log(`✅ CSV文件导出成功: ${fileName}`, fieldConfig ? `已筛选字段: ${headers.length}个` : '');
     } catch (error) {
       console.error('❌ CSV导出失败:', error);
       message.error(`CSV导出失败: ${error instanceof Error ? error.message : String(error)}`);
@@ -790,6 +843,94 @@ const BillManagementPage: React.FC = () => {
       '客户名称': record.customerName || '',
       '团队名称': record.tenantName || ''
     }));
+  };
+
+  // 处理字段配置确认
+  const handleFieldConfigConfirm = (fieldConfig: BillExportFieldConfig) => {
+    setExportFieldConfig(fieldConfig);
+    setExportFieldSelectorVisible(false);
+    
+    // 导出当前页数据
+    handleExportWithConfig(fieldConfig);
+  };
+
+  // 使用字段配置进行导出
+  const handleExportWithConfig = async (fieldConfig: BillExportFieldConfig) => {
+    if (!filters.selectedCompany || !filters.selectedTeam) {
+      message.warning('请先选择公司和团队');
+      return;
+    }
+
+    setExporting(true);
+    const loadingMessage = message.loading('正在导出账单数据...', 0);
+
+    try {
+      const startDate = filters.dateRange.start || dayjs().format('YYYY-MM-DD');
+      const endDate = filters.dateRange.end || dayjs().format('YYYY-MM-DD');
+      const startTime = filters.timeRange.start || '00:00:00';
+      const endTime = filters.timeRange.end || '23:59:59';
+
+      const exportParams = {
+        customerId: filters.selectedCompany.customerId,
+        tenantId: filters.selectedTeam.id,
+        agentFlowName: filters.agentFlowName.trim(),
+        callee: filters.userNumber.trim(),
+        startTime: `${startDate} ${startTime}`,
+        endTime: `${endDate} ${endTime}`
+      };
+
+      console.log('[自定义字段导出] 开始导出，参数:', exportParams);
+      
+      let billData = await exportBillData(exportParams, 10000);
+
+      if (billData.length === 0) {
+        message.destroy();
+        message.warning('没有找到符合条件的账单数据');
+        return;
+      }
+
+      // 应用高级筛选到导出数据
+      billData = applyAdvancedFilters(billData, filters.advancedFilters);
+
+      if (billData.length === 0) {
+        message.destroy();
+        message.warning('应用高级筛选后没有符合条件的账单数据');
+        return;
+      }
+
+      // 为导出数据计算新字段
+      const enhancedBillData = billData.map(record => {
+        const newLineBillingData = calculateNewLineBilling(
+          record.callDurationSec || 0,
+          record.sipTotalCustomerOriginalPriceUSD || 0,
+          record.size || 0,
+          filters.customLineUnitPrice
+        );
+        return {
+          ...record,
+          ...newLineBillingData
+        };
+      });
+
+      // 生成文件名
+      const companyName = filters.selectedCompany.companyName.replace(/[\\/:*?"<>|]/g, '_');
+      const desensitizePrefix = isDesensitized ? '_脱敏' : '';
+      const selectedFieldsCount = Object.values(fieldConfig).filter(Boolean).length;
+      const fileName = `账单导出_${companyName}_${startDate}_${endDate}${desensitizePrefix}_${selectedFieldsCount}字段.csv`;
+
+      // 使用字段配置导出CSV
+      generateCSVFile(enhancedBillData, fileName, fieldConfig);
+      
+      message.destroy();
+      const statusText = isDesensitized ? '（用户号码已脱敏）' : '';
+      message.success(`成功导出 ${enhancedBillData.length} 条账单数据${statusText}，包含 ${selectedFieldsCount} 个字段`);
+    } catch (error) {
+      message.destroy();
+      console.error('自定义字段导出失败:', error);
+      message.error('导出账单数据失败，请稍后重试');
+    } finally {
+      setExporting(false);
+    }
   };
 
   // 处理导出全部数据
@@ -1008,6 +1149,14 @@ const BillManagementPage: React.FC = () => {
                     {exporting ? '导出中...' : `导出数据 ${isDesensitized ? '(脱敏)' : '(完整)'} - 最多10000条`}
                   </Button>
                   <Button 
+                    icon={<SettingOutlined />} 
+                    onClick={() => setExportFieldSelectorVisible(true)}
+                    disabled={!filters.selectedCompany || !filters.selectedTeam || loading || exporting || exportingAll}
+                    type="default"
+                  >
+                    自定义字段导出
+                  </Button>
+                  <Button 
                     icon={<ExportOutlined />} 
                     onClick={handleExportAll}
                     loading={exportingAll}
@@ -1171,6 +1320,14 @@ const BillManagementPage: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* 自定义字段选择器 */}
+      <ExportFieldSelector
+        visible={exportFieldSelectorVisible}
+        onCancel={() => setExportFieldSelectorVisible(false)}
+        onConfirm={handleFieldConfigConfirm}
+        initialConfig={exportFieldConfig}
+      />
     </Layout>
   );
 };

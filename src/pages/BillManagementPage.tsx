@@ -4,14 +4,14 @@ import { DownloadOutlined, ExportOutlined, SettingOutlined } from '@ant-design/i
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { BillFilters, BillRecord, PaginationInfo, BillExportFieldConfig } from '../types/bill';
+import { BillFilters, BillRecord, PaginationInfo, BillFieldConfig } from '../types/bill';
 import { queryBillList, hasValidBillToken, exportBillData, exportAllBillData, exportAllBillDataInBatches, ProgressCallback, BatchExportCallback } from '../services/billApi';
 import { calculateNewLineBilling } from '../utils/billingCalculator';
 import BillFiltersComponent from '../components/bill/BillFilters';
 import AdvancedFilters from '../components/bill/AdvancedFilters';
 import BillTable from '../components/bill/BillTable';
 import TokenManager from '../components/bill/TokenManager';
-import ExportFieldSelector from '../components/bill/ExportFieldSelector';
+import FieldSelector from '../components/bill/FieldSelector';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -270,8 +270,8 @@ const BillManagementPage: React.FC = () => {
   }); // 新增：导出进度状态
   const [isDesensitized, setIsDesensitized] = useState<boolean>(loadSavedDesensitizeState());
   const [hasSearched, setHasSearched] = useState<boolean>(false); // 新增：跟踪是否已经执行过搜索
-  const [exportFieldSelectorVisible, setExportFieldSelectorVisible] = useState<boolean>(false); // 字段选择器可见性
-  const [exportFieldConfig, setExportFieldConfig] = useState<BillExportFieldConfig | null>(null); // 当前导出字段配置
+  const [fieldSelectorVisible, setFieldSelectorVisible] = useState<boolean>(false); // 字段选择器可见性
+  const [fieldConfig, setFieldConfig] = useState<BillFieldConfig | null>(null); // 当前字段配置
   
   // 后端分页信息（用于没有高级筛选的情况）
   const [backendPagination, setBackendPagination] = useState<PaginationInfo>({
@@ -294,6 +294,19 @@ const BillManagementPage: React.FC = () => {
 
   useEffect(() => {
     setHasToken(hasValidBillToken());
+  }, []);
+
+  // 加载保存的字段配置
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('billFieldConfig');
+      if (saved) {
+        const parsedConfig = JSON.parse(saved);
+        setFieldConfig(parsedConfig);
+      }
+    } catch (error) {
+      console.warn('加载字段配置失败:', error);
+    }
   }, []);
 
   // 监听筛选条件变化，自动保存到localStorage
@@ -705,17 +718,25 @@ const BillManagementPage: React.FC = () => {
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
       
-      // 生成文件名: 账单导出_公司名_开始日期_结束日期_脱敏状态.xlsx
+      // 生成文件名: 账单导出_公司名_开始日期_结束日期_脱敏状态.csv
       const companyName = filters.selectedCompany.companyName.replace(/[\\/:*?"<>|]/g, '_');
       const desensitizePrefix = isDesensitized ? '_脱敏' : '';
-      const fileName = `账单导出_${companyName}_${startDate}_${endDate}${desensitizePrefix}.xlsx`;
+      const selectedFieldsCount = fieldConfig ? Object.values(fieldConfig).filter(Boolean).length : '全部';
+      const fileName = `账单导出_${companyName}_${startDate}_${endDate}${desensitizePrefix}_${selectedFieldsCount}字段.csv`;
       
-      // 保存文件
-      saveAs(blob, fileName);
+      // 应用脱敏逻辑到数据
+      const processedData = enhancedBillData.map(record => ({
+        ...record,
+        callee: record.callee && isDesensitized ? desensitizePhone(record.callee) : record.callee
+      }));
+
+      // 使用CSV导出
+      generateCSVFile(processedData, fileName, fieldConfig);
       
       message.destroy();
       const statusText = isDesensitized ? '（用户号码已脱敏）' : '';
-      message.success(`成功导出 ${enhancedBillData.length} 条账单数据${statusText}`);
+      const fieldText = fieldConfig ? `，已应用字段配置(${selectedFieldsCount}个字段)` : '';
+      message.success(`成功导出 ${enhancedBillData.length} 条账单数据${statusText}${fieldText}`);
     } catch (error) {
       message.destroy();
       console.error('导出账单数据失败:', error);
@@ -726,7 +747,7 @@ const BillManagementPage: React.FC = () => {
   };
 
   // 根据字段配置筛选数据
-  const filterDataByFieldConfig = (data: any[], fieldConfig: BillExportFieldConfig): any[] => {
+  const filterDataByFieldConfig = (data: any[], fieldConfig: BillFieldConfig): any[] => {
     if (!fieldConfig) return data;
 
     return data.map(record => {
@@ -743,8 +764,38 @@ const BillManagementPage: React.FC = () => {
     });
   };
 
+  // 字段名到中文表头的映射
+  const fieldHeaderMap: Record<string, string> = {
+    feeTime: '消费时间',
+    agentFlowName: 'Agent流程名称',
+    customerName: '客户名称',
+    tenantName: '团队名称',
+    callee: '用户号码',
+    caller: '线路号码',
+    callDirection: '呼叫方向',
+    callDurationSec: '通话时长(秒)',
+    feeDurationSec: 'AI计费时长(秒)',
+    sipFeeDuration: '线路计费时长(秒)',
+    size: '计费量',
+    billingCycle: 'AI计费规则',
+    sipPriceType: '线路计费规则',
+    sipTotalCustomerOriginalPriceUSD: '线路消费(USD)',
+    customerTotalPriceUSD: 'AI消费(USD)',
+    sipTotalCustomerOriginalPrice: '线路消费(原币种)',
+    customerTotalPrice: 'AI消费(原币种)',
+    totalCost: 'AI总成本',
+    asrCost: 'ASR成本',
+    ttsCost: 'TTS成本',
+    llmCost: 'LLM成本',
+    originalLineUnitPrice: '原线路单价',
+    newLineBillingCycle: '新线路计费周期',
+    newLineUnitPrice: '新线路单价',
+    newLineBillingQuantity: '新线路计费量',
+    newLineConsumption: '新线路消费'
+  };
+
   // 生成CSV文件的轻量级函数
-  const generateCSVFile = (data: any[], fileName: string, fieldConfig?: BillExportFieldConfig) => {
+  const generateCSVFile = (data: any[], fileName: string, fieldConfig?: BillFieldConfig) => {
     if (data.length === 0) {
       console.warn('没有数据可导出');
       return;
@@ -759,8 +810,9 @@ const BillManagementPage: React.FC = () => {
         return;
       }
 
-      // 获取表头
-      const headers = Object.keys(filteredData[0]);
+      // 获取字段键名和对应的中文表头
+      const fieldKeys = Object.keys(filteredData[0]);
+      const chineseHeaders = fieldKeys.map(key => fieldHeaderMap[key] || key);
       
       // 转义CSV字段的函数
       const escapeCSVField = (field: any): string => {
@@ -778,12 +830,24 @@ const BillManagementPage: React.FC = () => {
       // 构建CSV内容
       const csvLines: string[] = [];
       
-      // 添加表头
-      csvLines.push(headers.map(escapeCSVField).join(','));
+      // 添加中文表头
+      csvLines.push(chineseHeaders.map(escapeCSVField).join(','));
       
       // 添加数据行
       for (const row of filteredData) {
-        const csvRow = headers.map(header => escapeCSVField(row[header])).join(',');
+        const csvRow = fieldKeys.map(key => {
+          let value = row[key];
+          
+          // 特殊字段处理
+          if (key === 'callDirection') {
+            // 呼叫方向转换为中文
+            if (value === 1) value = '呼出';
+            else if (value === 2) value = '呼入';
+            else value = `未知(${value})`;
+          }
+          
+          return escapeCSVField(value);
+        }).join(',');
         csvLines.push(csvRow);
       }
 
@@ -794,7 +858,7 @@ const BillManagementPage: React.FC = () => {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       saveAs(blob, fileName);
       
-      console.log(`✅ CSV文件导出成功: ${fileName}`, fieldConfig ? `已筛选字段: ${headers.length}个` : '');
+      console.log(`✅ CSV文件导出成功: ${fileName}`, fieldConfig ? `已筛选字段: ${fieldKeys.length}个` : '');
     } catch (error) {
       console.error('❌ CSV导出失败:', error);
       message.error(`CSV导出失败: ${error instanceof Error ? error.message : String(error)}`);
@@ -846,16 +910,22 @@ const BillManagementPage: React.FC = () => {
   };
 
   // 处理字段配置确认
-  const handleFieldConfigConfirm = (fieldConfig: BillExportFieldConfig) => {
-    setExportFieldConfig(fieldConfig);
-    setExportFieldSelectorVisible(false);
+  const handleFieldConfigConfirm = (newFieldConfig: BillFieldConfig) => {
+    setFieldConfig(newFieldConfig);
+    setFieldSelectorVisible(false);
     
-    // 导出当前页数据
-    handleExportWithConfig(fieldConfig);
+    // 保存到localStorage
+    try {
+      localStorage.setItem('billFieldConfig', JSON.stringify(newFieldConfig));
+      message.success('字段配置已保存');
+    } catch (error) {
+      console.warn('保存字段配置失败:', error);
+      message.error('保存字段配置失败');
+    }
   };
 
   // 使用字段配置进行导出
-  const handleExportWithConfig = async (fieldConfig: BillExportFieldConfig) => {
+  const handleExportWithConfig = async (fieldConfig: BillFieldConfig) => {
     if (!filters.selectedCompany || !filters.selectedTeam) {
       message.warning('请先选择公司和团队');
       return;
@@ -1038,16 +1108,20 @@ const BillManagementPage: React.FC = () => {
           };
         });
 
-        // 转换数据为Excel友好格式
-        const excelData = convertToExcelFormat(enhancedBatchData);
+        // 应用脱敏逻辑到数据
+        const processedBatchData = enhancedBatchData.map(record => ({
+          ...record,
+          callee: record.callee && isDesensitized ? desensitizePhone(record.callee) : record.callee
+        }));
 
         // 生成文件名
+        const selectedFieldsCount = fieldConfig ? Object.values(fieldConfig).filter(Boolean).length : '全部';
         const fileName = batchInfo.totalBatches > 1 
-          ? `账单批量导出_${companyName}_${startDate}_${endDate}_第${batchInfo.batchNumber}批次_共${batchInfo.totalBatches}批次${desensitizePrefix}.csv`
-          : `账单全部导出_${companyName}_${startDate}_${endDate}${desensitizePrefix}.csv`;
+          ? `账单批量导出_${companyName}_${startDate}_${endDate}_第${batchInfo.batchNumber}批次_共${batchInfo.totalBatches}批次${desensitizePrefix}_${selectedFieldsCount}字段.csv`
+          : `账单全部导出_${companyName}_${startDate}_${endDate}${desensitizePrefix}_${selectedFieldsCount}字段.csv`;
         
         // 生成并下载文件
-        generateCSVFile(excelData, fileName);
+        generateCSVFile(processedBatchData, fileName, fieldConfig);
         downloadedFiles.push(fileName);
 
         // 更新已下载文件列表
@@ -1150,11 +1224,11 @@ const BillManagementPage: React.FC = () => {
                   </Button>
                   <Button 
                     icon={<SettingOutlined />} 
-                    onClick={() => setExportFieldSelectorVisible(true)}
+                    onClick={() => setFieldSelectorVisible(true)}
                     disabled={!filters.selectedCompany || !filters.selectedTeam || loading || exporting || exportingAll}
                     type="default"
                   >
-                    自定义字段导出
+                    自定义字段配置
                   </Button>
                   <Button 
                     icon={<ExportOutlined />} 
@@ -1179,6 +1253,7 @@ const BillManagementPage: React.FC = () => {
                 dateRange={filters.dateRange}
                 timeRange={filters.timeRange}
                 customLineUnitPrice={filters.customLineUnitPrice}
+                fieldConfig={fieldConfig}
               />
             </>
           ) : (
@@ -1322,11 +1397,11 @@ const BillManagementPage: React.FC = () => {
       </Modal>
 
       {/* 自定义字段选择器 */}
-      <ExportFieldSelector
-        visible={exportFieldSelectorVisible}
-        onCancel={() => setExportFieldSelectorVisible(false)}
+      <FieldSelector
+        visible={fieldSelectorVisible}
+        onCancel={() => setFieldSelectorVisible(false)}
         onConfirm={handleFieldConfigConfirm}
-        initialConfig={exportFieldConfig}
+        initialConfig={fieldConfig || undefined}
       />
     </Layout>
   );

@@ -82,6 +82,7 @@ export interface SceneVendorAppQueryParams {
   vendor?: string;
   status?: number;
   timbre?: string; // TTS音色搜索字段（前端过滤用）
+  model?: string; // 模型搜索字段（前端过滤用）
 }
 
 // 供应商应用编辑表单数据

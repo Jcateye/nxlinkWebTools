@@ -93,7 +93,7 @@ export default defineConfig({
         target: 'https://nxlink.nxcloud.com',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api\/hk/, ''),
+        rewrite: (path) => path.replace(/^\/api\/hk/, ''),  // 移除 /api/hk 前缀，直接访问
       },
       '/api/chl': {
         target: 'https://nxlink.nxcloud.com/chl',

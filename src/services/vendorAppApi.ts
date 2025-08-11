@@ -11,6 +11,7 @@ import {
   SceneVendorAppFormData
 } from '../types/vendorApp';
 import { getCurrentDataCenter } from '../config/apiConfig';
+import { fixApiUrl } from '../utils/apiHelper';
 
 
 
@@ -26,9 +27,19 @@ const createApiInstance = (baseURL: string) => {
     }
   });
   
-  // 请求拦截器 - 添加认证信息
+  // 请求拦截器 - 添加认证信息和修正URL
   api.interceptors.request.use(
     (config) => {
+      // 修正URL，确保使用代理路径
+      if (config.url && config.url.startsWith('http')) {
+        config.url = fixApiUrl(config.url);
+      }
+      
+      // 修正baseURL
+      if (config.baseURL && config.baseURL.startsWith('http')) {
+        config.baseURL = fixApiUrl(config.baseURL);
+      }
+      
       // 从localStorage获取认证信息
       const sessionId = localStorage.getItem('sessionId');
       if (sessionId) {

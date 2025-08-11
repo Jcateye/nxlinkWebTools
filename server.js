@@ -36,20 +36,118 @@ app.use(cors());
 // =========================
 // 1. 先挂载 API 代理，避免 body 已被解析导致流被消耗
 // =========================
+
+// 香港数据中心代理 - 直接访问根路径，因为/hk会被重定向
+app.use('/api/hk', createProxyMiddleware({
+  target: 'https://nxlink.nxcloud.com',  // 不要加 /hk
+  changeOrigin: true,
+  secure: false,
+  pathRewrite: {
+    '^/api/hk': ''  // 移除 /api/hk，直接访问根路径
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    // 设置必要的请求头，避免被重定向
+    proxyReq.setHeader('Host', 'nxlink.nxcloud.com');
+    proxyReq.setHeader('Origin', 'https://nxlink.nxcloud.com');
+    proxyReq.setHeader('Referer', 'https://nxlink.nxcloud.com');
+    
+    // 保留原始的认证和系统ID头
+    if (req.headers.authorization) {
+      proxyReq.setHeader('Authorization', req.headers.authorization);
+    }
+    if (req.headers['system_id']) {
+      proxyReq.setHeader('system_id', req.headers['system_id']);
+    }
+    
+    console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(HK): ${req.method} ${req.url}`);
+    console.log(`  目标: https://nxlink.nxcloud.com/hk${req.url.replace('/api/hk', '')}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    // 如果响应是重定向，修改Location头
+    if (proxyRes.statusCode >= 300 && proxyRes.statusCode < 400 && proxyRes.headers.location) {
+      const originalLocation = proxyRes.headers.location;
+      // 将重定向URL转换为本地代理路径
+      if (originalLocation.includes('nxlink.ai')) {
+        proxyRes.headers.location = originalLocation
+          .replace('https://nxlink.ai/hk/', '/api/hk/')
+          .replace('http://nxlink.ai/hk/', '/api/hk/');
+        console.log(`[${new Date().toLocaleTimeString()}] 🔀 修改重定向: ${originalLocation} -> ${proxyRes.headers.location}`);
+      }
+    }
+    
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
+    console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应(HK): ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`[${new Date().toLocaleTimeString()}] ❌ 代理错误(HK):`, err.message);
+    res.status(502).send('HK API 代理出错');
+  }
+}));
+
+// CHL数据中心代理
+app.use('/api/chl', createProxyMiddleware({
+  target: 'https://nxlink.nxcloud.com/chl',
+  changeOrigin: true,
+  secure: false,
+  followRedirects: false,
+  pathRewrite: {
+    '^/api/chl': ''
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Host', 'nxlink.nxcloud.com');
+    proxyReq.setHeader('Origin', 'https://nxlink.nxcloud.com');
+    console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(CHL): ${req.method} ${req.url}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    if (proxyRes.statusCode >= 300 && proxyRes.statusCode < 400 && proxyRes.headers.location) {
+      const originalLocation = proxyRes.headers.location;
+      if (originalLocation.includes('nxlink.ai')) {
+        proxyRes.headers.location = originalLocation
+          .replace('https://nxlink.ai/chl/', '/api/chl/')
+          .replace('http://nxlink.ai/chl/', '/api/chl/');
+        console.log(`[${new Date().toLocaleTimeString()}] 🔀 修改重定向: ${originalLocation} -> ${proxyRes.headers.location}`);
+      }
+    }
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
+    console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应(CHL): ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`[${new Date().toLocaleTimeString()}] ❌ 代理错误(CHL):`, err.message);
+    res.status(502).send('CHL API 代理出错');
+  }
+}));
+
+// 默认API代理
 app.use('/api', createProxyMiddleware({
   target: 'https://nxlink.nxcloud.com',
   changeOrigin: true,
+  secure: false,
+  followRedirects: false,
   pathRewrite: {
     '^/api': ''
   },
-  // 不再读取 req 流，防止 body 被消费
   onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Host', 'nxlink.nxcloud.com');
+    proxyReq.setHeader('Origin', 'https://nxlink.nxcloud.com');
     console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求: ${req.method} ${req.url}`);
   },
   onProxyRes: (proxyRes, req, res) => {
+    if (proxyRes.statusCode >= 300 && proxyRes.statusCode < 400 && proxyRes.headers.location) {
+      const originalLocation = proxyRes.headers.location;
+      if (originalLocation.includes('nxlink.ai')) {
+        proxyRes.headers.location = originalLocation
+          .replace('https://nxlink.ai/', '/api/')
+          .replace('http://nxlink.ai/', '/api/');
+        console.log(`[${new Date().toLocaleTimeString()}] 🔀 修改重定向: ${originalLocation} -> ${proxyRes.headers.location}`);
+      }
+    }
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
-    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
     console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应: ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
   },
   onError: (err, req, res) => {

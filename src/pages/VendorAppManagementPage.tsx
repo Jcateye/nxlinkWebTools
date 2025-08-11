@@ -216,11 +216,13 @@ const VendorAppManagementPage: React.FC = () => {
 
       const response = await getSceneVendorAppList(queryParams);
       
-      // TTS音色前端过滤
+      // 前端过滤逻辑
       let filteredList = response.list;
+      
+      // TTS音色前端过滤
       if (activeTab === 'TTS' && params?.timbre) {
         const timbreKeyword = params.timbre.toLowerCase();
-        filteredList = response.list.filter(item => {
+        filteredList = filteredList.filter(item => {
           // 通过 timbre 字段直接匹配
           if (item.timbre && item.timbre.toLowerCase().includes(timbreKeyword)) {
             return true;
@@ -249,6 +251,17 @@ const VendorAppManagementPage: React.FC = () => {
         });
         
         console.log(`[fetchSceneVendorApps] TTS音色过滤: "${params.timbre}" - 原始${response.list.length}条，过滤后${filteredList.length}条`);
+      }
+
+      // 模型前端过滤 (适用于 ASR 和 TTS)
+      if ((activeTab === 'ASR' || activeTab === 'TTS') && params?.model) {
+        const modelKeyword = params.model.toLowerCase();
+        const originalLength = filteredList.length;
+        filteredList = filteredList.filter(item => {
+          return item.model && item.model.toLowerCase().includes(modelKeyword);
+        });
+        
+        console.log(`[fetchSceneVendorApps] ${activeTab}模型过滤: "${params.model}" - 原始${originalLength}条，过滤后${filteredList.length}条`);
       }
       
       setSceneVendorApps(filteredList);
@@ -317,8 +330,13 @@ const VendorAppManagementPage: React.FC = () => {
 
   // 初始化数据
   useEffect(() => {
-    fetchSceneVendorApps(searchParams);
-  }, [activeTab, currentPage, pageSize, searchParams]);
+    // 防止初始化时的多次调用
+    const timeoutId = setTimeout(() => {
+      fetchSceneVendorApps(searchParams);
+    }, 100); // 添加防抖
+    
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, currentPage, pageSize, JSON.stringify(searchParams)]); // 使用JSON.stringify避免对象引用变化导致的重复渲染
 
   // 获取vendorApp映射数据（只在activeTab变化时）
   useEffect(() => {
@@ -336,13 +354,11 @@ const VendorAppManagementPage: React.FC = () => {
     // useEffect会自动触发数据加载，不需要手动调用
   };
 
-  // 处理搜索
+  // 处理搜索 - 只更新状态，让useEffect处理请求
   const handleSearch = (params: any) => {
     setSearchParams(params);
     setCurrentPage(1);
-    if (activeTab === 'TTS' || activeTab === 'ASR' || activeTab === 'LLM') {
-      fetchSceneVendorApps(params);
-    }
+    // 不直接调用fetchSceneVendorApps，让useEffect处理
   };
 
   // 处理新建
@@ -898,24 +914,45 @@ const VendorAppManagementPage: React.FC = () => {
           </Col>
         </Row>
         
-        {/* TTS专用音色搜索行 */}
-        {activeTab === 'TTS' && (
+        {/* TTS和ASR专用搜索行 */}
+        {(activeTab === 'TTS' || activeTab === 'ASR') && (
           <Row gutter={16} style={{ marginTop: 16 }}>
+            {/* TTS音色搜索 */}
+            {activeTab === 'TTS' && (
+              <Col span={6}>
+                <Input
+                  placeholder="搜索音色 (如：AmberNeural、小晓、Aria等)"
+                  allowClear
+                  prefix={<SearchOutlined />}
+                  value={searchParams.timbre}
+                  onChange={(e) => {
+                    const newParams = { ...searchParams, timbre: e.target.value };
+                    setSearchParams(newParams);
+                  }}
+                />
+              </Col>
+            )}
+            
+            {/* 模型搜索 (ASR和TTS都支持) */}
             <Col span={6}>
               <Input
-                placeholder="搜索音色 (如：AmberNeural、小晓、Aria等)"
+                placeholder={`搜索${activeTab}模型 (如：whisper、gpt、neural等)`}
                 allowClear
                 prefix={<SearchOutlined />}
-                value={searchParams.timbre}
+                value={searchParams.model}
                 onChange={(e) => {
-                  const newParams = { ...searchParams, timbre: e.target.value };
+                  const newParams = { ...searchParams, model: e.target.value };
                   setSearchParams(newParams);
                 }}
               />
             </Col>
-            <Col span={18}>
+            
+            <Col span={activeTab === 'TTS' ? 12 : 18}>
               <div style={{ color: '#666', fontSize: '12px', lineHeight: '32px' }}>
-                💡 音色搜索支持：英文名称（如 AmberNeural）、中文名称（如 小晓）、性别（男/女）等关键词（前端过滤，每页独立显示结果）。请手动逐页确认，以免遗漏数据
+                💡 {activeTab === 'TTS' 
+                  ? '音色搜索支持：英文名称（如 AmberNeural）、中文名称（如 小晓）、性别（男/女）等关键词。' 
+                  : ''
+                }模型搜索支持模型名称关键词（前端过滤，每页独立显示结果）。请手动逐页确认，以免遗漏数据
               </div>
             </Col>
           </Row>
@@ -947,15 +984,17 @@ const VendorAppManagementPage: React.FC = () => {
               <Button 
                 type="primary" 
                 icon={<SearchOutlined />}
-                onClick={() => fetchSceneVendorApps(searchParams)}
+                onClick={() => {
+                  // 触发搜索，通过更新时间戳强制刷新
+                  setSearchParams({ ...searchParams, _t: Date.now() });
+                }}
               >
                 查询
               </Button>
               <Button 
                 icon={<ReloadOutlined />}
                 onClick={() => {
-                  setSearchParams({});
-                  fetchSceneVendorApps({});
+                  setSearchParams({ _t: Date.now() }); // 重置搜索参数并刷新
                 }}
               >
                 重置

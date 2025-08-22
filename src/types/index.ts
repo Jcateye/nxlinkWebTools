@@ -185,4 +185,41 @@ export interface VoiceResponse {
 export * from './bill';
 
 // 导入供应商应用相关类型
-export * from './vendorApp'; 
+export * from './vendorApp';
+
+// 导入会话相关类型
+export * from './conversation';
+
+// NXLink 客户端登录相关类型
+export interface LoginRequest {
+  password: string;
+  email?: string;
+  phone?: string;
+  loginMethod: 0 | 1; // 0: 邮箱登录, 1: 手机号登录
+  graphVerificationCode: string;
+  key: string;
+  deviceType: string;
+  deviceUniqueIdentification: string;
+  deviceName: string;
+  deviceVersion: string;
+}
+
+export interface LoginResponse {
+  code: number;
+  message: string;
+  data: {
+    token: string;
+    lang: string;
+    time_zone_id: number;
+    time_zone: string;
+    company_domain: string | null;
+    login_type: string | null;
+  };
+  traceId: string;
+}
+
+export interface UserParams {
+  nxCloudUserID: string;
+  sourceTenantID: string;
+  targetTenantID: string;
+} 

@@ -1,104 +1,82 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, message, Alert } from 'antd';
-import { SettingOutlined } from '@ant-design/icons';
+import { Button, message, Card, Typography, Space } from 'antd';
+import { KeyOutlined } from '@ant-design/icons';
+import AuthModal from './AuthModal';
+
+const { Text } = Typography;
+const TOKEN_STORAGE_KEY = 'nxlink_client_token';
 
 const TokenManager: React.FC = () => {
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [form] = Form.useForm();
-  const [hasToken, setHasToken] = useState(false);
+  const [token, setToken] = useState<string>('');
+  const [authModalVisible, setAuthModalVisible] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('plat_token');
-    setHasToken(!!token);
-    if (token) {
-      form.setFieldsValue({ token });
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (storedToken) {
+      setToken(storedToken);
     }
-  }, [form]);
-
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      localStorage.setItem('plat_token', values.token);
-      setHasToken(true);
-      setIsModalVisible(false);
-      message.success('Token 已保存');
-    } catch (error) {
-      console.error('表单验证失败:', error);
-    }
-  };
-
-  const handleClear = () => {
-    localStorage.removeItem('plat_token');
-    form.resetFields();
-    setHasToken(false);
-    setIsModalVisible(false);
-    message.success('Token 已清除');
-  };
+  }, []);
 
   return (
-    <>
-      <Button 
-        icon={<SettingOutlined />} 
-        onClick={() => setIsModalVisible(true)}
-        type={hasToken ? "default" : "primary"}
-        danger={!hasToken}
-      >
-        {hasToken ? 'Token已设置' : '设置Token'}
-      </Button>
-      
-      <Modal
-        title="API Token 管理"
-        open={isModalVisible}
-        onOk={handleSave}
-        onCancel={() => setIsModalVisible(false)}
-        footer={[
-          <Button key="clear" onClick={handleClear} danger>
-            清除Token
-          </Button>,
-          <Button key="cancel" onClick={() => setIsModalVisible(false)}>
-            取消
-          </Button>,
-          <Button key="save" type="primary" onClick={handleSave}>
-            保存
-          </Button>,
-        ]}
-        width={600}
-      >
-        <Alert
-          message="说明"
-          description="此Token用于访问成员管理API，请从浏览器开发者工具中复制完整的authorization token。"
-          type="info"
-          style={{ marginBottom: 16 }}
-        />
-        
-        <Form form={form} layout="vertical">
-          <Form.Item 
-            label="Authorization Token" 
-            name="token"
-            rules={[{ required: true, message: '请输入Token' }]}
-          >
-            <Input.TextArea 
-              rows={6}
-              placeholder="eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50..."
-            />
-          </Form.Item>
-        </Form>
-        
-        <Alert
-          message="如何获取Token?"
-          description={
-            <div>
-              <p>1. 打开浏览器开发者工具 (F12)</p>
-              <p>2. 切换到 Network 标签</p>
-              <p>3. 在NxLink管理后台进行任意操作</p>
-              <p>4. 找到任意API请求，复制 Request Headers 中的 authorization 值</p>
+    <div>
+      <Card title="NXLink客户端通用Token" bordered={false}>
+        <div style={{ marginBottom: 16 }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              设置用于NXLink客户端所有功能的通用身份认证Token
+            </Text>
+            
+            {/* Token状态显示 */}
+            <div style={{ 
+              padding: 12, 
+              border: `1px solid ${token ? '#b7eb8f' : '#ffccc7'}`,
+              borderRadius: 6,
+              background: token ? '#f6ffed' : '#fff2f0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Space>
+                  <span style={{ color: token ? '#52c41a' : '#ff4d4f' }}>
+                    {token ? '✓' : '✗'} {token ? 'Token已设置' : '未设置Token'}
+                  </span>
+                  {token && (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {token.substring(0, 15)}...{token.substring(token.length - 8)}
+                    </Text>
+                  )}
+                </Space>
+                <Button
+                  type="primary"
+                  icon={<KeyOutlined />}
+                  onClick={() => setAuthModalVisible(true)}
+                  size="small"
+                >
+                  {token ? '重新设置' : '设置授权'}
+                </Button>
+              </div>
             </div>
-          }
-          type="warning"
-          style={{ marginTop: 16 }}
+          </Space>
+        </div>
+
+        <AuthModal
+          visible={authModalVisible}
+          onCancel={() => setAuthModalVisible(false)}
+          onSuccess={(newToken) => {
+            localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+            setToken(newToken);
+            setAuthModalVisible(false);
+            message.success('Token设置成功！');
+            
+            // 强制刷新页面以使新Token在所有API实例中生效
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }}
+          title="NXLink客户端身份认证"
+          description="设置用于NXLink客户端所有功能的通用身份认证Token"
+          currentToken={token}
         />
-      </Modal>
-    </>
+      </Card>
+    </div>
   );
 };
 

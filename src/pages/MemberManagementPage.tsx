@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, List, Input, Button, Table, Modal, Form, Checkbox, Select, Pagination, Alert, Card, message, Tooltip } from 'antd';
-import { SettingOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { Layout, List, Input, Button, Table, Modal, Form, Checkbox, Select, Pagination, Card, message, Space, Typography } from 'antd';
+import { KeyOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
 import { memberService, type MemberGroup, type Member, type Role } from '../services/memberService';
 import { useUserContext } from '../context/UserContext';
 import { getDefaultDjbHash } from '../utils/djbHash';
-import TokenManager from '../components/TokenManager';
+import AuthModal from '../components/AuthModal';
 
 const { Sider, Content } = Layout;
 const { Search } = Input;
+const { Text } = Typography;
 
 const MemberManagementPage: React.FC = () => {
   const [groups, setGroups] = useState<MemberGroup[]>([]);
@@ -26,10 +27,9 @@ const MemberManagementPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [webAccountSearchText, setWebAccountSearchText] = useState('');
   const [form] = Form.useForm();
-  const [tokenForm] = Form.useForm();
   const [hasToken, setHasToken] = useState(false);
-  const [showTokenEditor, setShowTokenEditor] = useState(false);
-  const { sessionId, faqUserParams, setFaqUserParams } = useUserContext();
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+  const { sessionId, faqUserParams, setFaqUserParams, isCollaborationMode } = useUserContext();
   const [batchInviteList, setBatchInviteList] = useState<Array<{key: string; email: string; name: string}>>([]);
 
   // 检查源租户token状态并监听变化
@@ -80,37 +80,16 @@ const MemberManagementPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [hasToken, sessionId, faqUserParams]);
 
-  // 保存token
-  const handleSaveToken = async () => {
-    try {
-      const values = await tokenForm.validateFields();
-      const token = values.sourceAuthorization?.trim();
-      
-      if (!token) {
-        setHasToken(false);
-        return;
-      }
 
-      // 更新faqUserParams
-      const newParams = {
-        sourceAuthorization: token,
-        targetAuthorization: faqUserParams?.targetAuthorization || ''
-      };
-      setFaqUserParams(newParams);
-      
-      // 保存到localStorage
-      const faqParamsKey = `faqUserParams_${sessionId}`;
-      localStorage.setItem(faqParamsKey, JSON.stringify(newParams));
-      
-      setShowTokenEditor(false);
-      // token状态会通过useEffect自动检查和更新
-    } catch (error) {
-      console.error('保存token失败:', error);
-    }
-  };
 
   // 加载分组列表
   const loadGroups = async () => {
+    // 检查是否有token，没有则不发起请求
+    if (!faqUserParams?.sourceAuthorization) {
+      console.log('没有授权token，跳过分组列表加载');
+      return;
+    }
+    
     setLoading(true);
     try {
       const data = await memberService.getMemberGroups();
@@ -128,6 +107,12 @@ const MemberManagementPage: React.FC = () => {
   // 加载成员列表
   const loadMembers = async (groupId: string, pageNum: number = 1, search: string = '') => {
     if (!groupId) return;
+    
+    // 检查是否有token，没有则不发起请求
+    if (!faqUserParams?.sourceAuthorization) {
+      console.log('没有授权token，跳过成员列表加载');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -147,6 +132,12 @@ const MemberManagementPage: React.FC = () => {
 
   // 加载角色列表
   const loadRoles = async () => {
+    // 检查是否有token，没有则不发起请求
+    if (!faqUserParams?.sourceAuthorization) {
+      console.log('没有授权token，跳过角色列表加载');
+      return;
+    }
+    
     try {
       const data = await memberService.getRoles();
       setRoles(data);
@@ -342,34 +333,29 @@ const MemberManagementPage: React.FC = () => {
   return (
     <Layout style={{ height: '100vh' }}>
       {!hasToken ? (
-        <div style={{ padding: '24px', maxWidth: 600, margin: '0 auto' }}>
-          <Card title="设置源租户参数" style={{ marginBottom: 16 }}>
-            <Alert
-              message="需要设置源租户参数"
-              description="成员管理功能使用源租户Authorization Token进行API认证，请先在下方设置token。"
-              type="warning"
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
-            
-            <Form form={tokenForm} layout="vertical">
-              <Form.Item
-                name="sourceAuthorization"
-                label="源租户Authorization Token"
-                rules={[{ required: true, message: '请输入源租户Authorization令牌' }]}
-              >
-                <Input.TextArea 
-                  rows={4} 
-                  placeholder="请输入源租户NXLink Authorization令牌" 
-                />
-              </Form.Item>
+        <div style={{ padding: '24px', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+          <Card 
+            style={{ width: '100%', maxWidth: 500, textAlign: 'center' }}
+            bodyStyle={{ padding: '40px 24px' }}
+          >
+            <Space direction="vertical" size={24} style={{ width: '100%' }}>
+              <div>
+                <KeyOutlined style={{ fontSize: 64, color: '#1890ff', marginBottom: 16 }} />
+                <div style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>需要身份认证</div>
+                <Text type="secondary">
+                  成员管理功能需要设置身份认证Token才能正常使用
+                </Text>
+              </div>
               
-              <Form.Item>
-                <Button type="primary" onClick={handleSaveToken}>
-                  保存并开始使用
-                </Button>
-              </Form.Item>
-            </Form>
+              <Button 
+                type="primary" 
+                size="large"
+                icon={<KeyOutlined />}
+                onClick={() => setAuthModalVisible(true)}
+              >
+                立即设置授权
+              </Button>
+            </Space>
           </Card>
         </div>
       ) : (
@@ -378,24 +364,25 @@ const MemberManagementPage: React.FC = () => {
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <h3 style={{ margin: 0 }}>成员分组</h3>
-                <Tooltip title="配置API认证Token">
-                  <Button 
-                    icon={<SettingOutlined />}
-                    type="primary"
-                    ghost
-                    onClick={() => {
-                      setShowTokenEditor(true);
-                      // 设置当前token值到表单
-                      const currentToken = faqUserParams?.sourceAuthorization || '';
-                      tokenForm.setFieldsValue({ sourceAuthorization: currentToken });
-                    }}
-                  >
-                    Token设置
-                  </Button>
-                </Tooltip>
+                <Button 
+                  icon={<KeyOutlined />}
+                  type="primary"
+                  size="small"
+                  onClick={() => setAuthModalVisible(true)}
+                >
+                  设置授权
+                </Button>
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>
-                <TokenManager />
+              <div style={{ fontSize: '12px', color: hasToken ? '#52c41a' : '#ff4d4f', padding: 8, background: hasToken ? '#f6ffed' : '#fff2f0', borderRadius: 4, border: `1px solid ${hasToken ? '#b7eb8f' : '#ffccc7'}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span>{hasToken ? '✓' : '✗'}</span>
+                  <span>{hasToken ? 'Token已配置' : '请配置授权Token'}</span>
+                </div>
+                {hasToken && faqUserParams?.sourceAuthorization && (
+                  <div style={{ marginTop: 4, opacity: 0.8 }}>
+                    Token: {faqUserParams.sourceAuthorization.substring(0, 10)}...
+                  </div>
+                )}
               </div>
             </div>
             <List
@@ -677,54 +664,34 @@ const MemberManagementPage: React.FC = () => {
             </Form>
           </Modal>
           
-          {/* Token编辑器 Modal */}
-          <Modal
-            title="编辑源租户Authorization Token"
-            open={showTokenEditor}
-            onOk={handleSaveToken}
-            onCancel={() => {
-              setShowTokenEditor(false);
-              tokenForm.resetFields();
+          <AuthModal
+            visible={authModalVisible}
+            onCancel={() => setAuthModalVisible(false)}
+            onSuccess={(token) => {
+              // 保存token到用户参数
+              const newParams = {
+                sourceAuthorization: token,
+                targetAuthorization: faqUserParams?.targetAuthorization || ''
+              };
+              setFaqUserParams(newParams);
+              
+              // 非协作模式下保存到localStorage
+              if (!isCollaborationMode) {
+                const storageKey = `faqUserParams_${sessionId}`;
+                localStorage.setItem(storageKey, JSON.stringify(newParams));
+              }
+              
+              setAuthModalVisible(false);
+              message.success('Token设置成功');
+              
+              // 重新加载数据
+              loadGroups();
+              loadRoles();
             }}
-            width={600}
-          >
-            <Alert
-              message="此Token将用于所有成员管理相关API的身份认证。"
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
-            <Form form={tokenForm} layout="vertical">
-              <Form.Item
-                name="sourceAuthorization"
-                label={
-                  <span>
-                    源租户Authorization Token{' '}
-                    <Tooltip 
-                      title={
-                        <div>
-                          <p>1. 登录NXLink网页界面。</p>
-                          <p>2. 按F12打开开发者工具。</p>
-                          <p>3. 切换到"应用"或"Application"标签页。</p>
-                          <p>4. 在左侧找到"存储"下的"Cookies"，并选择 `https://nxlink.nxcloud.com`。</p>
-                          <p>5. 在右侧找到名为 "token" 的记录，复制其"Cookie值"或"Value"并粘贴于此。</p>
-                        </div>
-                      }
-                    >
-                      <QuestionCircleOutlined style={{ cursor: 'pointer' }} />
-                    </Tooltip>
-                  </span>
-                }
-                rules={[{ required: true, message: '请输入源租户Authorization令牌' }]}
-                initialValue={faqUserParams?.sourceAuthorization || ''}
-              >
-                <Input.TextArea 
-                  rows={4} 
-                  placeholder="请从浏览器开发者工具中获取并粘贴Token" 
-                />
-              </Form.Item>
-            </Form>
-          </Modal>
+            title="成员管理身份认证"
+            description="设置用于成员管理功能的身份认证Token"
+            currentToken={faqUserParams?.sourceAuthorization}
+          />
         </>
       )}
     </Layout>

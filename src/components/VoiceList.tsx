@@ -55,17 +55,21 @@ const VoiceList: React.FC<VoiceListProps> = ({ formType }) => {
   const fetchVoices = async () => {
     const authorization = getAuthorization();
     if (!authorization) {
-      message.warning(`请先完成${formType === 'source' ? '源' : '目标'}租户身份认证`);
+      console.log('🚫 [VoiceList] 跳过声音列表获取：没有有效的授权token');
+      setVoices([]);
       return;
     }
 
     setLoading(true);
     try {
-      const response = await getVoiceList(authorization);
+      console.log(`🎵 [VoiceList] 开始获取${formType === 'source' ? '源' : '目标'}租户声音列表...`);
+      const response = await getVoiceList();  // 不再需要传递token，由拦截器处理
       setVoices(response.list || []);
+      console.log(`✅ [VoiceList] 成功获取${response.list?.length || 0}个声音`);
     } catch (error) {
-      console.error(`获取${formType === 'source' ? '源' : '目标'}租户声音列表失败:`, error);
+      console.error(`❌ [VoiceList] 获取${formType === 'source' ? '源' : '目标'}租户声音列表失败:`, error);
       message.error(`获取${formType === 'source' ? '源' : '目标'}租户声音列表失败`);
+      setVoices([]);
     } finally {
       setLoading(false);
     }

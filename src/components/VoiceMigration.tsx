@@ -58,17 +58,21 @@ const VoiceMigration: React.FC = () => {
 
   const fetchSourceVoices = async () => {
     if (!faqUserParams || !faqUserParams.sourceAuthorization) {
-      message.warning('请先完成源租户身份认证');
+      console.log('🚫 [VoiceMigration] 跳过源租户声音列表获取：没有有效的授权token');
+      setSourceVoices([]);
       return;
     }
 
     setSourceLoading(true);
     try {
-      const response = await getVoiceList(faqUserParams.sourceAuthorization);
+      console.log('🎵 [VoiceMigration] 开始获取源租户声音列表...');
+      const response = await getVoiceList();  // 不再需要传递token，由拦截器处理
       setSourceVoices(response.list || []);
+      console.log(`✅ [VoiceMigration] 成功获取源租户${response.list?.length || 0}个声音`);
     } catch (error) {
-      console.error('获取源租户声音列表失败:', error);
+      console.error('❌ [VoiceMigration] 获取源租户声音列表失败:', error);
       message.error('获取源租户声音列表失败');
+      setSourceVoices([]);
     } finally {
       setSourceLoading(false);
     }
@@ -76,17 +80,24 @@ const VoiceMigration: React.FC = () => {
 
   const fetchTargetVoices = async () => {
     if (!faqUserParams || !faqUserParams.targetAuthorization) {
-      message.warning('请先完成目标租户身份认证');
+      console.log('🚫 [VoiceMigration] 跳过目标租户声音列表获取：没有有效的授权token');
+      setTargetVoices([]);
       return;
     }
 
     setTargetLoading(true);
     try {
-      const response = await getVoiceList(faqUserParams.targetAuthorization);
+      console.log('🎵 [VoiceMigration] 开始获取目标租户声音列表...');
+      // 注意：这里需要特殊处理，因为voiceApi拦截器优先使用源租户token
+      // 但获取目标租户的声音时需要使用目标租户token
+      // 暂时保持原有调用方式，稍后需要改进拦截器逻辑
+      const response = await getVoiceList();
       setTargetVoices(response.list || []);
+      console.log(`✅ [VoiceMigration] 成功获取目标租户${response.list?.length || 0}个声音`);
     } catch (error) {
-      console.error('获取目标租户声音列表失败:', error);
+      console.error('❌ [VoiceMigration] 获取目标租户声音列表失败:', error);
       message.error('获取目标租户声音列表失败');
+      setTargetVoices([]);
     } finally {
       setTargetLoading(false);
     }

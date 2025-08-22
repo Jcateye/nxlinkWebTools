@@ -70,10 +70,16 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
       : faqUserParams.targetAuthorization;
   };
 
-  // 加载语言列表
+  // 加载语言列表（仅在有授权token时）
   useEffect(() => {
-    fetchLanguageList();
-  }, []);
+    const auth = formType === 'source'
+      ? faqUserParams?.sourceAuthorization
+      : faqUserParams?.targetAuthorization;
+    
+    if (auth) {
+      fetchLanguageList();
+    }
+  }, [faqUserParams, formType]);
 
   // 获取语言列表
   const fetchLanguageList = async () => {
@@ -84,7 +90,7 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
         : faqUserParams?.targetAuthorization;
         
       if (!auth) {
-        message.error(`${formType === 'source' ? '源' : '目标'}租户授权信息缺失`);
+        console.log(`🚫 [FaqImport] 跳过语言列表获取：${formType === 'source' ? '源' : '目标'}租户授权信息缺失`);
         return;
       }
       
@@ -164,7 +170,7 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
         : faqUserParams?.targetAuthorization;
         
       if (!auth) {
-        message.error(`${formType === 'source' ? '源' : '目标'}租户授权信息缺失`);
+        console.log(`🚫 [FaqImport] 跳过分组列表获取：${formType === 'source' ? '源' : '目标'}租户授权信息缺失`);
         return [];
       }
       

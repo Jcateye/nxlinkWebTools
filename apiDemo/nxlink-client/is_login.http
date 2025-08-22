@@ -1,19 +1,20 @@
-curl 'https://nxlink.nxcloud.com/admin/saas_plat/user/is_login' \
+curl 'https://app.nxlink.ai/admin/saas_plat/user/is_login' \
   -X 'PUT' \
   -H 'accept: application/json, text/plain, */*' \
   -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
-  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4MDlmYTAzZTRiMDE4ZjBmNDU4NjUyNCJ9.qaln5Qkt44X1P2Ix549wXAM_wLlBObJwd54lVmnehdw' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjIyLCJkZXZpY2VVbmlxdWVJZGVudGlmaWNhdGlvbiI6IjVmZTdiNjcwLWMxMjAtMTFlZi1hOWM1LTI1YTA0MDM0OWQ5YiIsInV1SWQiOiI2OGE2ZTAwOGU0YjAxZmFkYjJhODhjYWEifQ.RDQ7Uzhax7wBuaNc4ayZcffh2fTW4s24pT4t14vJ-g4' \
   -H 'cache-control: no-cache' \
   -H 'content-length: 0' \
-  -H 'createts: 1745570906555' \
-  -H 'currentdomain: nxlink.nxcloud.com' \
+  -b 'nx-utc=UTC+08:00; nx-zone=105; company_domain=null; locale=zh-CN; company_domain=null; plat_token=eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjIyLCJkZXZpY2VVbmlxdWVJZGVudGlmaWNhdGlvbiI6IjVmZTdiNjcwLWMxMjAtMTFlZi1hOWM1LTI1YTA0MDM0OWQ5YiIsInV1SWQiOiI2OGE2ZTAwOGU0YjAxZmFkYjJhODhjYWEifQ.RDQ7Uzhax7wBuaNc4ayZcffh2fTW4s24pT4t14vJ-g4; isLogin=1; JSESSIONID=9C475C37C0EEADBCA9E3E1DE4341CF87' \
+  -H 'createts: 1755766792953' \
+  -H 'currentdomain: app.nxlink.ai' \
   -H 'dnt: 1' \
   -H 'lang: zh_CN' \
-  -H 'origin: https://nxlink.nxcloud.com' \
+  -H 'origin: https://app.nxlink.ai' \
   -H 'pragma: no-cache' \
   -H 'priority: u=1, i' \
-  -H 'referer: https://nxlink.nxcloud.com/admin/' \
-  -H 'sec-ch-ua: "Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"' \
+  -H 'referer: https://app.nxlink.ai/admin/' \
+  -H 'sec-ch-ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"' \
   -H 'sec-ch-ua-mobile: ?0' \
   -H 'sec-ch-ua-platform: "macOS"' \
   -H 'sec-fetch-dest: empty' \
@@ -21,39 +22,48 @@ curl 'https://nxlink.nxcloud.com/admin/saas_plat/user/is_login' \
   -H 'sec-fetch-site: same-origin' \
   -H 'system_id: 5' \
   -H 'time_zone: UTC+08:00' \
-  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
 
-  # response
+  #Response
+
   {
     "code": 0,
     "message": "",
     "data": {
         "state": 1,
         "userInfo": {
-            "id": 8428,
-            "phone": "85255311705",
-            "email": "degenxu@nxcloud.com",
-            "nickname": "Degen-DEV",
-            "company": "NX777777001086-WhatsApp内部测试用",
-            "defaultTenantId": 4,
-            "customerId": 12882,
-            "customerCode": "NX777777001086",
-            "customerType": null,
-            "roleName": "客服专员",
-            "tenantName": "客户测试环境（勿删）",
-            "tenantNickName": "Degenxu@nxcloud.com",
+            "id": 22,
+            "phone": "8617770033772",
+            "email": "xu.xunjian@nxcloud.com",
+            "nickname": "徐勋健",
+            "company": "NX77777178086-牛信产研部-深圳",
+            "defaultTenantId": 1,
+            "customerId": 9622,
+            "customerCode": "NX77777178086",
+            "customerType": 3,
+            "roleName": "管理员",
+            "tenantName": "营销云租户（内部使用）",
+            "tenantNickName": "勋健",
             "systemRoles": [
                 {
+                    "system_id": 2,
+                    "role_id": 5,
+                    "role_name": "管理员",
+                    "tenant_id": null,
+                    "role_unique_key": null,
+                    "is_default": null
+                },
+                {
                     "system_id": 1,
-                    "role_id": 3,
-                    "role_name": "客服专员",
+                    "role_id": 2,
+                    "role_name": "管理员",
                     "tenant_id": null,
                     "role_unique_key": null,
                     "is_default": null
                 },
                 {
                     "system_id": 5,
-                    "role_id": 57,
+                    "role_id": 36,
                     "role_name": "管理员",
                     "tenant_id": null,
                     "role_unique_key": "8",
@@ -61,18 +71,18 @@ curl 'https://nxlink.nxcloud.com/admin/saas_plat/user/is_login' \
                 }
             ],
             "source": 0,
-            "shaPwd": "866abc45472bd0c0a06029620420c0e6",
-            "uuid": "6809fa03e4b018f0f4586524"
+            "shaPwd": null,
+            "uuid": "68a6e008e4b01fadb2a88caa"
         },
         "isLoginUser": null,
         "isTenantOwner": false,
         "textSeat": true,
         "voiceSeat": true,
         "bundleExpire": false,
-        "currency": "CNY",
+        "currency": "USD",
         "companyDomain": null,
         "loginType": null,
         "tokenRemainSec": 17999
     },
-    "traceId": "fa75d9fee1b24fcd9729c295bc05b423"
+    "traceId": "cb2550f20ff344ceb3f7c87bd8e41ce3"
 }

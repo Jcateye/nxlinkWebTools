@@ -17,6 +17,8 @@ import MemberManagementPage from './pages/MemberManagementPage';
 import PromptValidationPage from './pages/PromptValidationPage';
 import VendorAppManagementPage from './pages/VendorAppManagementPage';
 import PhoneNumberValidator from './components/PhoneNumberValidator';
+import ConversationManagementPage from './pages/ConversationManagementPage';
+import TokenManager from './components/TokenManager';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
@@ -105,7 +107,9 @@ const AppContent = () => {
       'member': '成员管理',
       'prompt': '提示词验证',
       'phone': '电话号码检测',
-      'vendor-app': '供应商应用管理'
+      'vendor-app': '供应商应用管理',
+      'conversation': '会话管理',
+      'settings': '通用设置',
     };
     return titles[activeMenu] || 'NxLink 管理工具';
   };
@@ -209,6 +213,10 @@ const AppContent = () => {
         return <PhoneNumberValidator />;
       case 'vendor-app':
         return <VendorAppManagementPage />;
+      case 'conversation':
+        return <ConversationManagementPage />;
+      case 'settings':
+        return <TokenManager />;
       default:
         return (
           <Card>
@@ -295,6 +303,19 @@ const AppContent = () => {
             </Menu.Item>
             <Menu.Item key="member" icon={<TeamOutlined />}>
               成员管理
+            </Menu.Item>
+            <Menu.Item key="conversation" icon={<CommentOutlined />}>
+              会话管理
+            </Menu.Item>
+          </SubMenu>
+
+          <SubMenu
+            key="client-settings"
+            icon={<SettingOutlined />}
+            title="客户端设置"
+          >
+            <Menu.Item key="settings">
+              通用设置
             </Menu.Item>
           </SubMenu>
           

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, message, Typography, Tag, Space, Dropdown, Menu, Spin } from 'antd';
-import { DownOutlined, SwapOutlined } from '@ant-design/icons';
+import { Form, Button, Card, message, Typography, Tag, Space, Dropdown, Menu, Spin } from 'antd';
+import { DownOutlined, SwapOutlined, KeyOutlined, LogoutOutlined } from '@ant-design/icons';
 import { FaqUserParams } from '../types';
 import { useUserContext } from '../context/UserContext';
 import axios from 'axios';
-import { getTenantList, switchTenant } from '../services/api';
+import { getTenantList, switchTenant, nxlinkClientLogout, nxlinkClientIsLogin } from '../services/api';
+import AuthModal from './AuthModal';
+import UserInfoCard from './UserInfoCard';
 
 const { Text } = Typography;
 
@@ -69,7 +71,7 @@ loginApi.interceptors.response.use(
 
 const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) => {
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
   const { faqUserParams, setFaqUserParams, sessionId, isCollaborationMode, activeCollaborationSession } = useUserContext();
   
   // 添加状态用于存储公司和团队信息
@@ -81,8 +83,58 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [tenantDropdownVisible, setTenantDropdownVisible] = useState(false);
 
-  // 组件加载时从本地存储加载参数
+  // 组件加载时从本地存储加载参数并验证
   useEffect(() => {
+    const loadAndValidateTokens = async () => {
+      if (isCollaborationMode) return;
+      
+      try {
+        const persistedSource = localStorage.getItem('nxlink_source_token') || '';
+        const persistedTarget = localStorage.getItem('nxlink_target_token') || '';
+        
+        let validSourceToken = '';
+        let validTargetToken = '';
+        
+        // 验证源租户token
+        if (persistedSource) {
+          try {
+            await verifyToken(persistedSource, true);
+            validSourceToken = persistedSource;
+            console.log('✅ 源租户持久化token验证成功');
+          } catch (e) {
+            console.warn('❌ 源租户持久化token验证失败，已清除');
+            localStorage.removeItem('nxlink_source_token');
+          }
+        }
+        
+        // 验证目标租户token
+        if (persistedTarget) {
+          try {
+            await verifyToken(persistedTarget, false);
+            validTargetToken = persistedTarget;
+            console.log('✅ 目标租户持久化token验证成功');
+          } catch (e) {
+            console.warn('❌ 目标租户持久化token验证失败，已清除');
+            localStorage.removeItem('nxlink_target_token');
+          }
+        }
+        
+        // 只使用验证通过的token
+        if (validSourceToken || validTargetToken) {
+          const newParams = {
+            sourceAuthorization: validSourceToken || faqUserParams?.sourceAuthorization || '',
+            targetAuthorization: validTargetToken || faqUserParams?.targetAuthorization || ''
+          };
+          setFaqUserParams(newParams);
+          const storageKey = `faqUserParams_${sessionId}`;
+          localStorage.setItem(storageKey, JSON.stringify(newParams));
+        }
+      } catch (e) {
+        console.error('自动登录token验证流程异常:', e);
+      }
+    };
+    
+    loadAndValidateTokens();
     if (isCollaborationMode && activeCollaborationSession) {
       // 协作模式下从会话中读取
       const params = activeCollaborationSession.faqUserParams;
@@ -123,266 +175,124 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
     }
   }, [form, sessionId, formType, isCollaborationMode, activeCollaborationSession]);
 
+  // 监听授权状态变化，清理对应的公司信息
+  useEffect(() => {
+    if (formType === 'source') {
+      // 如果源租户授权被清除，清理源租户公司信息
+      if (!faqUserParams?.sourceAuthorization) {
+        console.log('🧹 [FaqParamsForm] 清理源租户公司信息');
+        setSourceCompanyInfo(null);
+        // 同时清理本地存储的公司信息
+        if (!isCollaborationMode) {
+          const sourceInfoKey = `sourceCompanyInfo_${sessionId}`;
+          localStorage.removeItem(sourceInfoKey);
+        }
+      }
+    } else {
+      // 如果目标租户授权被清除，清理目标租户公司信息
+      if (!faqUserParams?.targetAuthorization) {
+        console.log('🧹 [FaqParamsForm] 清理目标租户公司信息');
+        setTargetCompanyInfo(null);
+        // 同时清理本地存储的公司信息
+        if (!isCollaborationMode) {
+          const targetInfoKey = `targetCompanyInfo_${sessionId}`;
+          localStorage.removeItem(targetInfoKey);
+        }
+      }
+    }
+  }, [faqUserParams, formType, sessionId, isCollaborationMode]);
+
+  // 处理登出操作
+  const handleLogout = async () => {
+    const currentToken = formType === 'source' ? faqUserParams?.sourceAuthorization : faqUserParams?.targetAuthorization;
+    
+    if (!currentToken) {
+      message.warning('没有可登出的授权信息');
+      return;
+    }
+
+    try {
+      console.log(`🚪 [FaqParamsForm] 开始登出${formType === 'source' ? '源' : '目标'}租户...`);
+      
+      // 调用登出API
+      await nxlinkClientLogout(currentToken);
+      
+      // 清理本地状态
+      const newParams = {
+        sourceAuthorization: formType === 'source' ? '' : (faqUserParams?.sourceAuthorization || ''),
+        targetAuthorization: formType === 'target' ? '' : (faqUserParams?.targetAuthorization || '')
+      };
+      setFaqUserParams(newParams);
+      
+      // 清理本地存储
+      if (!isCollaborationMode) {
+        const storageKey = `faqUserParams_${sessionId}`;
+        localStorage.setItem(storageKey, JSON.stringify(newParams));
+        
+        // 清理公司信息和持久化token
+        if (formType === 'source') {
+          const sourceInfoKey = `sourceCompanyInfo_${sessionId}`;
+          localStorage.removeItem(sourceInfoKey);
+          setSourceCompanyInfo(null);
+          // 清除持久化的源租户token
+          localStorage.removeItem('nxlink_source_token');
+        } else {
+          const targetInfoKey = `targetCompanyInfo_${sessionId}`;
+          localStorage.removeItem(targetInfoKey);
+          setTargetCompanyInfo(null);
+          // 清除持久化的目标租户token
+          localStorage.removeItem('nxlink_target_token');
+        }
+      }
+      
+      message.success(`${formType === 'source' ? '源' : '目标'}租户登出成功`);
+    } catch (error: any) {
+      console.error(`❌ [FaqParamsForm] 登出失败:`, error);
+      // 即使登出API失败，也清理本地状态（可能token已过期）
+      const newParams = {
+        sourceAuthorization: formType === 'source' ? '' : (faqUserParams?.sourceAuthorization || ''),
+        targetAuthorization: formType === 'target' ? '' : (faqUserParams?.targetAuthorization || '')
+      };
+      setFaqUserParams(newParams);
+      
+      if (!isCollaborationMode) {
+        const storageKey = `faqUserParams_${sessionId}`;
+        localStorage.setItem(storageKey, JSON.stringify(newParams));
+      }
+      
+      message.success('已清理本地授权信息');
+    }
+  };
+
   // 验证用户token
   const verifyToken = async (token: string, isSource: boolean) => {
     try {
       console.log(`验证${isSource ? '源' : '目标'}租户token...`);
       
-      // 尝试直接访问原始URL
-      const url = 'https://nxlink.nxcloud.com/admin/saas_plat/user/is_login';
-      console.log(`开始请求: ${url}`);
+      // 使用统一的 nxlinkClientIsLogin 方法
+      const response = await nxlinkClientIsLogin(token);
       
-      const headers = {
-        'authorization': token,
-        'system_id': '5',
-        'time_zone': 'UTC+08:00',
-        'Content-Type': ''  // 显式设置为空
-      };
-      
-      try {
-        console.log(`使用直接URL方式请求: ${url}`);
-        // 明确传入空数据，并设置 transformRequest 以防止默认行为
-        const response = await loginApi.put(url, '', { 
-          headers,
-          transformRequest: [(data, headers) => {
-            // 确保不会设置默认的 Content-Type
-            if (headers) {
-              headers['Content-Type'] = '';
-            }
-            return data;
-          }]
-        });
-        
-        const info = response.data?.data?.userInfo;
-        if (info) {
-          // 打印API响应的用户信息，以便调试
-          console.log('API响应用户信息:', info);
-          console.log('defaultTenantId:', info.defaultTenantId);
-          
-          const { company, tenantName, email, phone } = info;
-          // 获取customerCode (tenantID)和defaultTenantId
-          const customerCode = info.customerCode || '未知';
-          const tenantId = info.defaultTenantId || info.id || null;
-          
-          // 保存公司和团队信息到状态，增加email和phone
-          const companyInfo = { 
-            company, 
-            tenantName, 
-            customerCode, 
-            defaultTenantId: tenantId,
-            email,
-            phone
-          };
-          if (isSource) {
-            setSourceCompanyInfo(companyInfo);
-            // 缓存信息
-            localStorage.setItem(`sourceCompanyInfo_${sessionId}`, JSON.stringify(companyInfo));
-          } else {
-            setTargetCompanyInfo(companyInfo);
-            // 缓存信息
-            localStorage.setItem(`targetCompanyInfo_${sessionId}`, JSON.stringify(companyInfo));
-          }
-          
-          message.success(`${isSource ? '源' : '目标'}租户验证成功 - 公司: ${company || '-'}，团队: ${tenantName || '-'}`);
-          return true;
-        } else {
-          message.warning(`${isSource ? '源' : '目标'}租户响应成功但未获取到用户信息`);
-          return false;
-        }
-      } catch (directErr: any) {
-        console.error(`直接URL方式请求失败:`, directErr.message);
-        
-        // 如果直接请求失败，尝试使用fetch API
-        try {
-          console.log(`尝试使用fetch API请求`);
-          const fetchResponse = await fetch(url, {
-            method: 'PUT',
-            headers: {
-              'authorization': token,
-              'system_id': '5',
-              'time_zone': 'UTC+08:00'
-            }
-          });
-          
-          if (fetchResponse.ok) {
-            const data = await fetchResponse.json();
-            console.log(`fetch请求成功:`, JSON.stringify(data, null, 2));
-            
-            const fetchInfo = data?.data?.userInfo;
-            if (fetchInfo) {
-              // 打印fetch请求返回的用户信息
-              console.log('Fetch响应用户信息:', fetchInfo);
-              console.log('Fetch defaultTenantId:', fetchInfo.defaultTenantId);
-              
-              const { company, tenantName, email, phone } = fetchInfo;
-              // 获取customerCode (tenantID)和defaultTenantId
-              const customerCode = fetchInfo.customerCode || '未知';
-              const tenantId = fetchInfo.defaultTenantId || fetchInfo.id || null;
-              
-              // 保存公司和团队信息到状态，增加email和phone
-              const companyInfo = { 
-                company, 
-                tenantName, 
-                customerCode, 
-                defaultTenantId: tenantId,
-                email,
-                phone
-              };
-              if (isSource) {
-                setSourceCompanyInfo(companyInfo);
-                // 缓存信息
-                localStorage.setItem(`sourceCompanyInfo_${sessionId}`, JSON.stringify(companyInfo));
-              } else {
-                setTargetCompanyInfo(companyInfo);
-                // 缓存信息
-                localStorage.setItem(`targetCompanyInfo_${sessionId}`, JSON.stringify(companyInfo));
-              }
-              
-              message.success(`${isSource ? '源' : '目标'}租户验证成功 - 公司: ${company || '-'}，团队: ${tenantName || '-'}`);
-              return true;
-            }
-          } else {
-            throw new Error(`状态码: ${fetchResponse.status}`);
-          }
-        } catch (fetchErr: any) {
-          console.error(`fetch请求也失败了:`, fetchErr.message);
-          
-          // 最后尝试使用代理请求
-          try {
-            console.log(`尝试使用代理方式请求: /api/admin/saas_plat/user/is_login`);
-            const proxyResponse = await axios({
-              method: 'put',
-              url: '/api/admin/saas_plat/user/is_login',
-              headers: {
-                'authorization': token,
-                'system_id': '5',
-                'time_zone': 'UTC+08:00'
-              },
-              data: '',
-              transformRequest: [(data, headers) => {
-                if (headers) {
-                  delete headers['Content-Type'];
-                }
-                return data;
-              }]
-            });
-            
-            console.log(`代理请求成功:`, JSON.stringify(proxyResponse.data, null, 2));
-            
-            const proxyInfo = proxyResponse.data?.data?.userInfo;
-            if (proxyInfo) {
-              // 打印代理请求返回的用户信息
-              console.log('代理响应用户信息:', proxyInfo);
-              console.log('代理 defaultTenantId:', proxyInfo.defaultTenantId);
-              
-              const { company, tenantName, email, phone } = proxyInfo;
-              // 获取customerCode (tenantID)和defaultTenantId
-              const customerCode = proxyInfo.customerCode || '未知';
-              const tenantId = proxyInfo.defaultTenantId || proxyInfo.id || null;
-              
-              // 保存公司和团队信息到状态，增加email和phone
-              const companyInfo = { 
-                company, 
-                tenantName, 
-                customerCode, 
-                defaultTenantId: tenantId,
-                email,
-                phone
-              };
-              if (isSource) {
-                setSourceCompanyInfo(companyInfo);
-                // 缓存信息
-                localStorage.setItem(`sourceCompanyInfo_${sessionId}`, JSON.stringify(companyInfo));
-              } else {
-                setTargetCompanyInfo(companyInfo);
-                // 缓存信息
-                localStorage.setItem(`targetCompanyInfo_${sessionId}`, JSON.stringify(companyInfo));
-              }
-              
-              message.success(`${isSource ? '源' : '目标'}租户验证成功 - 公司: ${company || '-'}，团队: ${tenantName || '-'}`);
-              return true;
-            } else {
-              message.warning(`${isSource ? '源' : '目标'}租户响应成功但未获取到用户信息`);
-              return false;
-            }
-          } catch (proxyErr: any) {
-            console.error(`代理方式请求也失败了:`, proxyErr.message);
-            throw proxyErr;
-          }
-        }
+      if (response.code === 0 && response.data) {
+        // 只验证token有效性，不处理用户信息
+        // 用户信息由 UserInfoCard 组件统一处理
+        console.log(`${isSource ? '源' : '目标'}租户token验证成功`);
+        return true;
+      } else {
+        console.error(`${isSource ? '源' : '目标'}租户token验证失败`);
+        return false;
       }
     } catch (err: any) {
       console.error(`${isSource ? '源' : '目标'}租户验证失败:`, err.response?.data || err.message);
-      
-      // 清除对应的公司信息
-      if (isSource) {
-        setSourceCompanyInfo(null);
-        localStorage.removeItem(`sourceCompanyInfo_${sessionId}`);
-      } else {
-        setTargetCompanyInfo(null);
-        localStorage.removeItem(`targetCompanyInfo_${sessionId}`);
-      }
-      
-      // 提取错误信息
-      let errorMsg = '验证失败';
-      if (err.response?.data?.message) {
-        errorMsg = err.response.data.message;
-      } else if (err.response?.data?.code) {
-        errorMsg = `错误代码: ${err.response.data.code}`;
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-      
-      message.error(`${isSource ? '源' : '目标'}租户验证失败: ${errorMsg}`);
       return false;
     }
   };
 
   const handleSubmit = async (values: FaqUserParams) => {
-    setLoading(true);
-    try {
-      // 验证源租户token
-      if (values.sourceAuthorization) {
-        await verifyToken(values.sourceAuthorization, true);
-      }
-      
-      // 验证目标租户token
-      if (values.targetAuthorization) {
-        await verifyToken(values.targetAuthorization, false);
-      }
-
-      // 合并保存参数到上下文和本地存储
-      const newParams: FaqUserParams = {
-        sourceAuthorization: values.sourceAuthorization ?? faqUserParams?.sourceAuthorization ?? '',
-        targetAuthorization: values.targetAuthorization ?? faqUserParams?.targetAuthorization ?? ''
-      };
-      setFaqUserParams(newParams);
-      if (!isCollaborationMode) {
-        // 非协作模式下才写本地存储
-        const storageKey = `faqUserParams_${sessionId}`;
-        localStorage.setItem(storageKey, JSON.stringify(newParams));
-      }
-
-      message.success('身份信息保存成功');
-    } catch (error) {
-      message.error('保存身份信息失败');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    // 现在身份认证通过AuthModal处理，这个函数主要用于其他逻辑
+    console.log('Form submission (mainly for validation):', values);
   };
 
-  // 尝试自动保存，只在必填字段有值时执行
-  const tryAutoSave = () => {
-    const values = form.getFieldsValue() as FaqUserParams;
-    const { sourceAuthorization, targetAuthorization } = values;
-    if (
-      (formType === 'source' && sourceAuthorization) ||
-      (formType === 'target' && targetAuthorization)
-    ) {
-      handleSubmit(values);
-    }
-  };
+
 
   // 渲染公司和团队信息标签
   const renderCompanyInfo = (info: {company?: string, tenantName?: string, customerCode?: string, defaultTenantId?: number, email?: string, phone?: string} | null) => {
@@ -539,55 +449,147 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
-        onBlurCapture={tryAutoSave}
       >
         {formType === 'source' && (
-          <Form.Item
-            name="sourceAuthorization"
-            label={
-              <>
-                源租户Authorization
-                <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
-                  获取路径: NXLink网页界面-开发者工具(F12)-应用（Application）-左边目录的Cookies-nxlink域名下Name是"token"的Value
-                </Text>
-              </>
-            }
-            rules={[{ required: false, message: '请输入源租户Authorization令牌' }]}
-          >
-            <Input.TextArea 
-              rows={3} 
-              placeholder="请输入源租户NXLink Authorization令牌（可选，如过期会自动清除）" 
-            />
-          </Form.Item>
+          <div style={{ 
+            padding: 16, 
+            border: '1px solid #d9d9d9', 
+            borderRadius: 8, 
+            background: '#fafafa',
+            marginBottom: 16
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Text strong style={{ fontSize: 16 }}>源租户身份认证</Text>
+                <div style={{ marginTop: 4 }}>
+                  {faqUserParams?.sourceAuthorization ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ 
+                        display: 'inline-block', 
+                        width: 8, 
+                        height: 8, 
+                        borderRadius: '50%', 
+                        background: '#52c41a' 
+                      }}></span>
+                      <Text type="success" style={{ fontSize: 12 }}>已授权</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {faqUserParams.sourceAuthorization.substring(0, 15)}...
+                      </Text>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ 
+                        display: 'inline-block', 
+                        width: 8, 
+                        height: 8, 
+                        borderRadius: '50%', 
+                        background: '#ff4d4f' 
+                      }}></span>
+                      <Text type="danger" style={{ fontSize: 12 }}>未授权</Text>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Space size={8}>
+                <Button
+                  type="primary"
+                  icon={<KeyOutlined />}
+                  onClick={() => setAuthModalVisible(true)}
+                  size="small"
+                >
+                  {faqUserParams?.sourceAuthorization ? '重新授权' : '设置授权'}
+                </Button>
+                {faqUserParams?.sourceAuthorization && (
+                  <Button
+                    type="default"
+                    danger
+                    icon={<LogoutOutlined />}
+                    onClick={handleLogout}
+                    size="small"
+                  >
+                    登出
+                  </Button>
+                )}
+              </Space>
+            </div>
+          </div>
+        )}
+
+        {/* 用户信息显示 - 仅在源租户已授权时显示 */}
+        {formType === 'source' && faqUserParams?.sourceAuthorization && (
+          <div style={{ marginBottom: 16 }}>
+            <UserInfoCard compact={true} showRefresh={false} />
+          </div>
         )}
 
         {formType === 'target' && (
-          <Form.Item
-            name="targetAuthorization"
-            label={
-              <>
-                目标租户Authorization
-                <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
-                  获取路径: 使用目标租户账号登录后，NXLink网页界面-开发者工具(F12)-应用（Application）-左边目录的Cookies-nxlink域名下Name是"token"的Value
-                </Text>
-              </>
-            }
-            rules={[{ required: false, message: '请输入目标租户Authorization令牌' }]}
-          >
-            <Input.TextArea 
-              rows={3} 
-              placeholder="请输入目标租户NXLink Authorization令牌（可选，如过期会自动清除）" 
-            />
-          </Form.Item>
+          <div style={{ 
+            padding: 16, 
+            border: '1px solid #d9d9d9', 
+            borderRadius: 8, 
+            background: '#fafafa',
+            marginBottom: 16
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Text strong style={{ fontSize: 16 }}>目标租户身份认证</Text>
+                <div style={{ marginTop: 4 }}>
+                  {faqUserParams?.targetAuthorization ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ 
+                        display: 'inline-block', 
+                        width: 8, 
+                        height: 8, 
+                        borderRadius: '50%', 
+                        background: '#52c41a' 
+                      }}></span>
+                      <Text type="success" style={{ fontSize: 12 }}>已授权</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {faqUserParams.targetAuthorization.substring(0, 15)}...
+                      </Text>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ 
+                        display: 'inline-block', 
+                        width: 8, 
+                        height: 8, 
+                        borderRadius: '50%', 
+                        background: '#ff4d4f' 
+                      }}></span>
+                      <Text type="danger" style={{ fontSize: 12 }}>未授权</Text>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Space size={8}>
+                <Button
+                  type="primary"
+                  icon={<KeyOutlined />}
+                  onClick={() => setAuthModalVisible(true)}
+                  size="small"
+                >
+                  {faqUserParams?.targetAuthorization ? '重新授权' : '设置授权'}
+                </Button>
+                {faqUserParams?.targetAuthorization && (
+                  <Button
+                    type="default"
+                    danger
+                    icon={<LogoutOutlined />}
+                    onClick={handleLogout}
+                    size="small"
+                  >
+                    登出
+                  </Button>
+                )}
+              </Space>
+            </div>
+          </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Button type="primary" htmlType="submit" loading={loading}>
-            保存身份信息
-          </Button>
-          
-          {/* 切换租户按钮 - 放在红色区域 */}
-          {(formType === 'source' ? !!faqUserParams?.sourceAuthorization : !!faqUserParams?.targetAuthorization) && (
+        {/* 切换租户功能 - 仅在已授权时显示 */}
+        {(formType === 'source' ? !!faqUserParams?.sourceAuthorization : !!faqUserParams?.targetAuthorization) && (
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
             <Dropdown 
               overlay={tenantMenu} 
               onVisibleChange={(visible) => {
@@ -599,14 +601,75 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
             >
               <Button 
                 icon={<SwapOutlined />} 
-                style={{ marginLeft: 16 }}
+                size="small"
+                type="dashed"
               >
                 切换租户
               </Button>
             </Dropdown>
-          )}
-        </div>
+          </div>
+        )}
       </Form>
+
+      <AuthModal
+        visible={authModalVisible}
+        onCancel={() => setAuthModalVisible(false)}
+        onSuccess={async (token, method, remember) => {
+          // 保存token到用户参数
+          const newParams = {
+            sourceAuthorization: formType === 'source' ? token : (faqUserParams?.sourceAuthorization || ''),
+            targetAuthorization: formType === 'target' ? token : (faqUserParams?.targetAuthorization || '')
+          };
+          setFaqUserParams(newParams);
+          
+          // 清理对应的公司信息，等待重新获取
+          if (formType === 'source') {
+            console.log('🧹 [FaqParamsForm] 重新授权，清理源租户公司信息');
+            setSourceCompanyInfo(null);
+          } else {
+            console.log('🧹 [FaqParamsForm] 重新授权，清理目标租户公司信息');
+            setTargetCompanyInfo(null);
+          }
+          
+          // 非协作模式下保存到localStorage
+          if (!isCollaborationMode) {
+            const storageKey = `faqUserParams_${sessionId}`;
+            localStorage.setItem(storageKey, JSON.stringify(newParams));
+            
+            // 无论是否勾选自动登录，都更新持久化的token
+            // 这样确保持久化的token始终是最新的
+            if (formType === 'source') {
+              if (remember) {
+                localStorage.setItem('nxlink_source_token', token);
+              } else {
+                localStorage.removeItem('nxlink_source_token');
+              }
+            } else {
+              if (remember) {
+                localStorage.setItem('nxlink_target_token', token);
+              } else {
+                localStorage.removeItem('nxlink_target_token');
+              }
+            }
+            
+            // 同时清理本地存储的公司信息
+            if (formType === 'source') {
+              const sourceInfoKey = `sourceCompanyInfo_${sessionId}`;
+              localStorage.removeItem(sourceInfoKey);
+            } else {
+              const targetInfoKey = `targetCompanyInfo_${sessionId}`;
+              localStorage.removeItem(targetInfoKey);
+            }
+          }
+          
+          // 关闭弹窗
+          setAuthModalVisible(false);
+          message.success('身份认证设置成功');
+        }}
+        title={`${formType === 'source' ? '源' : '目标'}租户身份认证`}
+        description={`为${formType === 'source' ? '源' : '目标'}租户设置身份认证Token，您可以选择登录获取或手动输入`}
+        currentToken={formType === 'source' ? faqUserParams?.sourceAuthorization : faqUserParams?.targetAuthorization}
+      />
     </Card>
   );
 };

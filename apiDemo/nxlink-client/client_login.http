@@ -1,0 +1,63 @@
+
+# login by email
+curl 'https://nxlink.nxcloud.com/admin/saas_plat/user/login' \
+  -X 'PUT' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'authorization;' \
+  -H 'lang: zh_CN' \
+  -H 'Referer: https://nxlink.nxcloud.com/admin/' \
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'createTs: 1755746279694' \
+  -H 'Content-Type: application/json;charset=UTF-8' \
+  -H 'DNT: 1' \
+  --data-raw '{"password":"test123456","graphVerificationCode":"","key":"70851b50-a9a5-4327-b6f9-a7803dffa066","deviceType":"Browser","deviceUniqueIdentification":"905b4760-4905-11ef-be41-979290a07b66","deviceName":"Chrome","deviceVersion":"138.0.0.0","loginMethod":0,"email":"xu.xunjian@nxcloud.com"}'
+
+  #response
+
+  {
+    "code": 0,
+    "message": "",
+    "data": {
+        "token": "eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjIyLCJkZXZpY2VVbmlxdWVJZGVudGlmaWNhdGlvbiI6IjkwNWI0NzYwLTQ5MDUtMTFlZi1iZTQxLTk3OTI5MGEwN2I2NiIsInV1SWQiOiI2OGE2OGZlN2U0YjAxZmFkYjJhODg4N2YifQ.TN9grK6FBV_aPQTjCtbimjCCVveFt_Lr44L_AMMYS8w",
+        "lang": "zh_CN",
+        "time_zone_id": 105,
+        "time_zone": "UTC+08:00",
+        "company_domain": null,
+        "login_type": null
+    },
+    "traceId": "30bb3ad7c4434b8c8ccb3826cfff2b6a"
+}
+
+
+#login by phone number
+curl 'https://nxlink.nxcloud.com/admin/saas_plat/user/login' \
+  -X 'PUT' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'authorization;' \
+  -H 'lang: zh_CN' \
+  -H 'Referer: https://nxlink.nxcloud.com/admin/' \
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'createTs: 1755746506757' \
+  -H 'Content-Type: application/json;charset=UTF-8' \
+  -H 'DNT: 1' \
+  --data-raw '{"password":"a12345678","graphVerificationCode":"","key":"d84b1c42-93b1-4a33-8e0e-75c5c94b04dd","deviceType":"Browser","deviceUniqueIdentification":"905b4760-4905-11ef-be41-979290a07b66","deviceName":"Chrome","deviceVersion":"138.0.0.0","loginMethod":1,"phone":"8613751030137"}'
+
+#response failed
+{
+    "code": 12005,
+    "message": "密码错误",
+    "data": null,
+    "traceId": "e058177949544ee8b602e1a5db816c91"
+}

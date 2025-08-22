@@ -1,5 +1,6 @@
 import axios, { InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 import { message } from 'antd';
+import { requestDeduper } from '../utils/requestDeduper';
 import { 
   ApiResponse, 
   TagGroup, 
@@ -14,7 +15,9 @@ import {
   TagGroupAddRequest,
   TagAddRequest,
   TagUserParams,
-  FaqUserParams
+  FaqUserParams,
+  ConversationListResponse,
+  ConversationDetailResponse,
 } from '../types';
 import requestLimiter from '../utils/requestLimiter';
 import { API_LIMIT_CONFIG, API_CONFIG } from '../config/apiConfig';
@@ -41,6 +44,29 @@ const faqApi = axios.create({
 
 // 创建用于Voice API请求的axios实例
 const voiceApi = axios.create({
+  baseURL: '/api',
+  timeout: 30000,
+  headers: {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json;charset=UTF-8',
+    'system_id': '5',
+    'time_zone': 'UTC+08:00',
+  }
+});
+
+// 为NXLink客户端功能创建一个通用的axios实例
+const nxlinkClientApi = axios.create({
+  baseURL: API_CONFIG.baseURL,
+  timeout: API_CONFIG.timeout,
+  headers: {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json;charset=UTF-8',
+    'system_id': '5',
+    'time_zone': 'UTC+08:00',
+  }
+});
+
+const conversationApi = axios.create({
   baseURL: '/api',
   timeout: 30000,
   headers: {
@@ -116,19 +142,57 @@ tagApi.interceptors.request.use(
   }
 );
 
+// NXLink客户端通用请求拦截器
+nxlinkClientApi.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem('nxlink_client_token');
+    if (token) {
+      config.headers.authorization = token;
+    }
+    return config;
+  },
+  (error: any) => {
+    logRequestError(error, 'NXLink Client API 请求拦截器');
+    return Promise.reject(error);
+  }
+);
+
+
 // FAQ API请求拦截器
 faqApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 使用会话ID获取对应的FAQ用户参数
+    // 优先从会话中获取FAQ专用的授权token
     const sessionId = localStorage.getItem('sessionId');
+    let faqToken = '';
+    
     if (sessionId) {
       const storageKey = `faqUserParams_${sessionId}`;
       const faqUserParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
       
-      if (faqUserParams.sourceAuthorization) {
-        config.headers.authorization = faqUserParams.sourceAuthorization;
-        config.headers.system_id = '5';
-      }
+          // 根据请求路径或URL参数判断使用哪个token
+    // 对于源租户相关的请求，使用sourceAuthorization
+    // 对于目标租户相关的请求，使用targetAuthorization
+    faqToken = faqUserParams.sourceAuthorization || faqUserParams.targetAuthorization || '';
+  }
+  
+  // 如果没有会话中的token，再尝试使用持久化的token
+  if (!faqToken) {
+    // 优先使用持久化的源租户token
+    faqToken = localStorage.getItem('nxlink_source_token') || '';
+  }
+  if (!faqToken) {
+    // 最后尝试使用全局登录token
+    faqToken = localStorage.getItem('nxlink_client_token') || '';
+  }
+
+    // 设置授权头
+    if (faqToken) {
+      config.headers.authorization = faqToken;
+      config.headers.system_id = '5';
+      config.headers.time_zone = 'UTC+08:00';
+      config.headers.lang = 'zh_CN';
+    } else {
+      console.warn('🚫 [FAQ API] 没有找到有效的授权token');
     }
     
     // 开发模式下输出请求信息
@@ -146,6 +210,119 @@ faqApi.interceptors.request.use(
   }
 );
 
+// Voice API请求拦截器
+voiceApi.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // 优先从会话中获取FAQ专用的授权token（与FAQ API使用相同的token优先级）
+    const sessionId = localStorage.getItem('sessionId');
+    let voiceToken = '';
+    
+    if (sessionId) {
+      const storageKey = `faqUserParams_${sessionId}`;
+      const faqUserParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      
+          // 对于声音管理，优先使用源租户的token，因为声音通常在源租户管理
+    voiceToken = faqUserParams.sourceAuthorization || faqUserParams.targetAuthorization || '';
+  }
+  
+  // 如果没有会话中的token，再尝试使用持久化的token
+  if (!voiceToken) {
+    // 优先使用持久化的源租户token
+    voiceToken = localStorage.getItem('nxlink_source_token') || '';
+  }
+  if (!voiceToken) {
+    // 最后尝试使用全局登录token
+    voiceToken = localStorage.getItem('nxlink_client_token') || '';
+  }
+
+    // 设置授权头
+    if (voiceToken) {
+      config.headers.authorization = voiceToken;
+      config.headers.system_id = '5';
+      config.headers.time_zone = 'UTC+08:00';
+      config.headers.lang = 'zh_CN';
+    } else {
+      console.warn('🚫 [Voice API] 没有找到有效的授权token');
+    }
+    
+    // 开发模式下输出请求信息
+    if (process.env.NODE_ENV === 'development' && API_CONFIG.verboseLogging) {
+      console.log('[Voice API 请求]', config.method?.toUpperCase(), config.url);
+      console.log('[Voice API 请求参数]', config.params || {});
+      console.log('[Voice API 请求头]', config.headers || {});
+    }
+    
+    return config;
+  },
+  (error: any) => {
+    logRequestError(error, 'Voice API 请求拦截器');
+    return Promise.reject(error);
+  }
+);
+
+conversationApi.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // 优先从会话中获取FAQ专用的授权token（与FAQ API使用相同的token优先级）
+    const sessionId = localStorage.getItem('sessionId');
+    let conversationToken = '';
+    
+    if (sessionId) {
+      const storageKey = `faqUserParams_${sessionId}`;
+      const faqUserParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      
+          // 会话管理使用源租户的身份信息
+    conversationToken = faqUserParams.sourceAuthorization || '';
+  }
+  
+  // 如果没有会话中的token，再尝试使用持久化的token
+  if (!conversationToken) {
+    // 优先使用持久化的源租户token
+    conversationToken = localStorage.getItem('nxlink_source_token') || '';
+  }
+  if (!conversationToken) {
+    // 最后尝试使用全局登录token
+    conversationToken = localStorage.getItem('nxlink_client_token') || '';
+  }
+
+    // 设置授权头
+    if (conversationToken) {
+      config.headers.authorization = conversationToken;
+      config.headers.system_id = '5';
+      config.headers.time_zone = 'UTC+08:00';
+      config.headers.lang = 'zh_CN';
+    } else {
+      console.warn('🚫 [Conversation API] 没有找到有效的授权token');
+    }
+    
+    // 开发模式下输出请求信息
+    if (process.env.NODE_ENV === 'development' && API_CONFIG.verboseLogging) {
+      console.log('[Conversation API 请求]', config.method?.toUpperCase(), config.url);
+      console.log('[Conversation API 请求参数]', config.params || {});
+      console.log('[Conversation API 请求头]', config.headers || {});
+    }
+    
+    return config;
+  },
+  (error: any) => {
+    logRequestError(error, 'Conversation API 请求拦截器');
+    return Promise.reject(error);
+  }
+);
+
+conversationApi.interceptors.response.use(
+  (response) => {
+    if (process.env.NODE_ENV === 'development' && API_CONFIG.verboseLogging) {
+      console.log('[Conversation API 响应状态]', response.status);
+      console.log('[Conversation API 响应数据]', response.data);
+    }
+    return response;
+  },
+  (error) => {
+    return Promise.reject(logRequestError(error, 'Conversation API 响应'));
+  }
+);
+
+
 // 添加响应拦截器
 tagApi.interceptors.response.use(
   (response) => {
@@ -158,6 +335,29 @@ tagApi.interceptors.response.use(
   },
   (error) => {
     return Promise.reject(logRequestError(error, 'Tag API 响应'));
+  }
+);
+
+// NXLink客户端通用响应拦截器
+nxlinkClientApi.interceptors.response.use(
+  (response) => {
+    if (process.env.NODE_ENV === 'development' && API_CONFIG.verboseLogging) {
+      console.log('[NXLink Client API 响应状态]', response.status);
+      console.log('[NXLink Client API 响应数据]', response.data);
+    }
+    const resData = response.data as ApiResponse<any>;
+    if (resData.code !== 0) {
+      const errMsg = resData.message || '服务器返回错误';
+      console.error(`❌ [API] 请求失败: ${errMsg}`);
+      if (typeof window !== 'undefined' && window.document) {
+        message.error(errMsg, 3);
+      }
+      return Promise.reject(new Error(errMsg));
+    }
+    return response;
+  },
+  (error) => {
+    return Promise.reject(logRequestError(error, 'NXLink Client API 响应'));
   }
 );
 
@@ -1402,7 +1602,6 @@ export const renameTagGroup = (
 
 // 获取Voice列表
 export const getVoiceList = async (
-  token: string,
   pageNumber: number = 1,
   pageSize: number = 16
 ): Promise<VoiceResponse> => {
@@ -1417,9 +1616,6 @@ export const getVoiceList = async (
             page_number: pageNumber,
             page_size: pageSize
           },
-          headers: {
-            'authorization': token
-          }
         }
       );
       
@@ -1451,6 +1647,52 @@ export const playVoiceSample = async (url: string): Promise<void> => {
     console.error('播放声音样本失败', error);
     throw error;
   }
+};
+
+// ==================== Conversation相关API ====================
+export const getConversationList = async (
+  pageNumber: number = 1,
+  pageSize: number = 10,
+  filters: {
+    phone?: string;
+    tags?: number[];
+    start_time?: string;
+    end_time?: string;
+    callId?: string;
+  } = {}
+): Promise<ConversationListResponse> => {
+  return createRateLimitedRequest('getConversationList', async () => {
+    try {
+      const response = await nxlinkClientApi.post<ConversationListResponse>(
+        '/admin/nx_flow_manager/conversation',
+        {
+          page_number: pageNumber,
+          page_size: pageSize,
+          ...filters,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('获取会话列表失败', error);
+      throw error;
+    }
+  });
+};
+
+export const getConversationDetail = async (
+  conversationId: string
+): Promise<ConversationDetailResponse> => {
+  return createRateLimitedRequest('getConversationDetail', async () => {
+    try {
+      const response = await nxlinkClientApi.get<ConversationDetailResponse>(
+        `/admin/nx_flow_manager/conversation/messages?conversationId=${conversationId}&pageSize=9999&pageNumber=1`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('获取会话详情失败', error);
+      throw error;
+    }
+  });
 };
 
 // 获取租户列表
@@ -1523,4 +1765,154 @@ export const switchTenant = async (token: string, tenantId: number): Promise<boo
       throw error;
     }
   });
+};
+
+// NXLink 客户端登录相关API
+export const nxlinkClientLogin = async (loginData: {
+  password: string;
+  email?: string;
+  phone?: string;
+  loginMethod: 0 | 1; // 0: 邮箱登录, 1: 手机号登录
+  key: string;
+  deviceUniqueIdentification: string;
+}): Promise<any> => {
+  try {
+    const requestData = {
+      ...loginData,
+      graphVerificationCode: "",
+      deviceType: "Browser",
+      deviceName: "Chrome",
+      deviceVersion: navigator.userAgent.split('Chrome/')[1]?.split(' ')[0] || "Unknown"
+    };
+
+    console.log('NXLink 客户端登录请求:', requestData);
+    
+    const response = await nxlinkClientApi.put('/admin/saas_plat/user/login', requestData, {
+      headers: {
+        'system_id': '5',
+        'time_zone': 'UTC+08:00',
+        'lang': 'zh_CN',
+        'currentdomain': 'nxlink.nxcloud.com',
+        'Content-Type': 'application/json;charset=UTF-8'
+      }
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('NXLink 客户端登录失败:', error);
+    throw error;
+  }
+};
+
+// 生成设备唯一标识
+export const generateDeviceId = (): string => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 15);
+  return `${timestamp}-${random}`;
+};
+
+// 生成登录key
+export const generateLoginKey = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+// NXLink 客户端登出
+export const nxlinkClientLogout = async (token: string): Promise<any> => {
+  try {
+    console.log('🚪 [nxlinkClientLogout] 开始登出...');
+    const response = await nxlinkClientApi.put('/admin/saas_plat/user/logout', '', {
+      headers: {
+        'authorization': token,
+        'system_id': '5',
+        'time_zone': 'UTC+08:00',
+        'lang': 'zh_CN',
+        'currentdomain': 'nxlink.nxcloud.com',
+        'Content-Length': '0'
+      }
+    });
+    console.log('✅ [nxlinkClientLogout] 登出成功:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ [nxlinkClientLogout] 登出失败:', error);
+    throw error;
+  }
+};
+
+// NXLink 客户端检查登录状态并获取用户信息
+export const nxlinkClientIsLogin = async (token?: string): Promise<any> => {
+  try {
+    console.log('🔍 [nxlinkClientIsLogin] 检查登录状态并获取用户信息...');
+    // 如果未显式传入token，按照优先级从本地获取
+    let effectiveToken = token || '';
+    if (!effectiveToken) {
+      // 1) 优先使用会话内的FAQ源租户token（最新的）
+      const sessionId = localStorage.getItem('sessionId') || '';
+      if (sessionId) {
+        try {
+          const storageKey = `faqUserParams_${sessionId}`;
+          const faqParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          effectiveToken = faqParams?.sourceAuthorization || '';
+        } catch (_) {}
+      }
+    }
+    if (!effectiveToken) {
+      // 2) 其次使用持久化的源租户token
+      effectiveToken = localStorage.getItem('nxlink_source_token') || '';
+    }
+    if (!effectiveToken) {
+      // 3) 最后尝试全局登录token（通用设置）
+      effectiveToken = localStorage.getItem('nxlink_client_token') || '';
+    }
+    if (!effectiveToken) {
+      throw new Error('没有可用的授权Token');
+    }
+    
+    // 使用去重器，避免重复请求
+    const requestKey = `is_login_${effectiveToken.substring(0, 20)}`;
+    return await requestDeduper.dedupedRequest(requestKey, async () => {
+      const response = await nxlinkClientApi.put('/admin/saas_plat/user/is_login', '', {
+      headers: {
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6',
+        'authorization': effectiveToken,
+        'cache-control': 'no-cache',
+        'content-length': '0',
+        'content-type': '',  // 显式设置为空，防止axios自动设置
+        'createts': Date.now().toString(),
+        'currentdomain': 'app.nxlink.ai',
+        'dnt': '1',
+        'lang': 'zh_CN',
+        'origin': 'https://app.nxlink.ai',
+        'pragma': 'no-cache',
+        'priority': 'u=1, i',
+        'referer': 'https://app.nxlink.ai/admin/',
+        'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'system_id': '5',
+        'time_zone': 'UTC+08:00',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+      },
+      transformRequest: [(data, headers) => {
+        // 确保不会设置默认的 Content-Type
+        if (headers) {
+          headers['Content-Type'] = '';
+        }
+        return data;
+      }]
+    });
+      console.log('✅ [nxlinkClientIsLogin] 获取用户信息成功:', response.data);
+      return response.data;
+    });
+  } catch (error: any) {
+    console.error('❌ [nxlinkClientIsLogin] 获取用户信息失败:', error);
+    throw error;
+  }
 }; 

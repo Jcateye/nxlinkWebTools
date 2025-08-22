@@ -5,7 +5,7 @@ import LLMConfig from '../components/promptValidation/LLMConfig';
 import PromptManagement from '../components/promptValidation/PromptManagement';
 import BatchTest from '../components/promptValidation/BatchTest';
 import TestResults from '../components/promptValidation/TestResults';
-import TokenManager from '../components/TokenManager';
+
 
 const { Content } = Layout;
 const { TabPane } = Tabs;
@@ -21,7 +21,6 @@ const PromptValidationPage: React.FC = () => {
           title={
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Title level={4} style={{ margin: 0 }}>提示词验证系统</Title>
-              <TokenManager />
             </div>
           }
           style={{ height: '100%' }}

@@ -94,12 +94,12 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
     }
   }, [faqUserParams]);
 
-  // 当选择语言变化时，加载FAQ列表
+  // 当选择语言变化时，加载FAQ列表（需要先有授权token）
   useEffect(() => {
-    if (selectedLanguageId > 0) {
+    if (selectedLanguageId > 0 && faqUserParams?.targetAuthorization) {
       fetchFaqList();
     }
-  }, [selectedLanguageId]);
+  }, [selectedLanguageId, faqUserParams?.targetAuthorization]);
 
   // 过滤FAQ
   useEffect(() => {

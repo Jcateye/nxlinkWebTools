@@ -1,0 +1,507 @@
+curl 'https://nxlink.nxcloud.com/admin/nx_flow_manager/conversation' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4OWQ3NjRiZTRiMDFmYWRiMmE4MWQwNiJ9.6AhnG4BXa-JOFjDjIpBgVtkJOGN7J0Nq7ErmX2FIvU0' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: application/json;charset=UTF-8' \
+  -b '__bid_n=189d541141e1152a1cdb95; fblo_1407008009801826=y; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%2C%22%24latest_referrer%22%3A%22%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTg5ZDU0MGJlZjA5MDItMDJmNDQ1NjNmMTFjNGRlLTFhNTI1NjM0LTE4OTI5NzAtMTg5ZDU0MGJlZjExNWI5In0%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%7D; Hm_lvt_f8f3199714771c412f9dd352ddb23ee5=1730860407,1733282228; _ga=GA1.1.1521398006.1691499938; _gcl_au=1.1.1391561557.1751359578; nx-utc=UTC+08:00; nx-zone=105; company_domain=null; locale=zh-CN; _ga_8KK14YS12T=GS2.1.s1754553222$o555$g0$t1754553222$j60$l0$h0; _ga_95Z6D5L9D8=GS2.1.s1754553222$o333$g0$t1754553222$j60$l0$h0; company_domain=null; plat_token=eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4OWQ3NjRiZTRiMDFmYWRiMmE4MWQwNiJ9.6AhnG4BXa-JOFjDjIpBgVtkJOGN7J0Nq7ErmX2FIvU0; isLogin=1; login_type=null; sipInfo={%22domain%22:%22slave-sgp-cc.nxcloud.com%22%2C%22wssurl%22:%22wss://slave-sgp-cc.nxcloud.com/SINGAPORE/v2%22%2C%22ccToken%22:%22eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4OWQ3NjRiZTRiMDFmYWRiMmE4MWQwNiJ9.6AhnG4BXa-JOFjDjIpBgVtkJOGN7J0Nq7ErmX2FIvU0%22%2C%22ccQueue%22:null%2C%22sipNum%22:%22NX77777178086A0038014%22%2C%22email%22:%22degenxu@nxcloud.com%22%2C%22utcDate%22:%222025/08/14%22%2C%22agentType%22:2}; JSESSIONID=C918E3D2517C731ABF9BEA7081433AAA' \
+  -H 'createts: 1755153177264' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'dnt: 1' \
+  -H 'lang: zh_CN' \
+  -H 'origin: https://nxlink.nxcloud.com' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/' \
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' \
+  --data-raw '{"phone":null,"tags":[],"page_number":1,"page_size":10,"timeZone":"UTC+08:00","start_time":null,"end_time":null,"callId":""}'
+
+  # response
+
+  {
+    "code": 0,
+    "message": "success",
+    "traceId": "cee6c1214772415ea37e08db7709097a",
+    "data": {
+        "code": 0,
+        "message": null,
+        "traceId": null,
+        "total": 1226,
+        "page_number": 1,
+        "page_size": 10,
+        "list": [
+            {
+                "id": 1284247,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755071898,
+                "updated_at": 1755071948,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "5af6b7d1-cee5-4501-8299-6883eb06820d",
+                "tags": [
+                    {
+                        "id": 1720,
+                        "name": "DG - Customer is interested",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1715,
+                        "name": "DG - Effective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client expressed interest in learning more about the new games offered by BingoPlus and agreed to receive information about them. Follow-up calls should focus on providing detailed information about the games and assisting the client in claiming the bonus.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/5af6b7d1-cee5-4501-8299-6883eb06820d.wav"
+            },
+            {
+                "id": 1284245,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755071778,
+                "updated_at": 1755071840,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "955b6e80-a845-4ed7-8902-db9c9e142e55",
+                "tags": [
+                    {
+                        "id": 1720,
+                        "name": "DG - Customer is interested",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1715,
+                        "name": "DG - Effective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client expressed interest in the BingoPlus game and agreed to claim the bonus offered. The conversation was effective in engaging the client. Follow-up calls should focus on ensuring the client successfully logs in and utilizes the bonus, and provide additional information about the game features.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/955b6e80-a845-4ed7-8902-db9c9e142e55.wav"
+            },
+            {
+                "id": 1284236,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755071663,
+                "updated_at": 1755071708,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "eb632a0a-707a-4b1d-b365-629274e4cbda",
+                "tags": [
+                    {
+                        "id": 1720,
+                        "name": "DG - Customer is interested",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1715,
+                        "name": "DG - Effective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client expressed interest in trying the new game and claiming the bonus offered by BingoPlus. The conversation was effective in engaging the client. Follow-up calls should focus on providing more details about the game and assisting the client in claiming the bonus.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/eb632a0a-707a-4b1d-b365-629274e4cbda.wav"
+            },
+            {
+                "id": 1284234,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755071527,
+                "updated_at": 1755071579,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "0536988f-621e-49b0-886a-39a09879e83a",
+                "tags": [
+                    {
+                        "id": 1720,
+                        "name": "DG - Customer is interested",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1715,
+                        "name": "DG - Effective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client expressed interest in trying out the new games offered by BingoPlus. They are open to receiving more information about the games and bonuses. Follow-up calls should focus on providing detailed information about the games and assisting the client in claiming their bonus.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/0536988f-621e-49b0-886a-39a09879e83a.wav"
+            },
+            {
+                "id": 1284232,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755071479,
+                "updated_at": 1755071514,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "d0e3cd77-2a12-43af-94b6-d786aa241c03",
+                "tags": [
+                    {
+                        "id": 1712,
+                        "name": "DG - Customer intention is unclear",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1714,
+                        "name": "DG - Ineffective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client did not provide any clear response or indication of interest in the game or the bonus offer. The conversation was ineffective as the customer's intention remains unclear. Follow-up calls should aim to engage the client more effectively and clarify their interest in the game or bonus offer.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/d0e3cd77-2a12-43af-94b6-d786aa241c03.wav"
+            },
+            {
+                "id": 1284227,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755071424,
+                "updated_at": 1755071462,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "4efdf150-1cea-4479-b7c0-9dae5875db25",
+                "tags": [
+                    {
+                        "id": 1712,
+                        "name": "DG - Customer intention is unclear",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1714,
+                        "name": "DG - Ineffective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client did not provide a clear response to the offer of a bonus and new game introduction. The conversation was ineffective as the client's intention remains unclear. Follow-up suggestion: Attempt to re-engage the client with a clearer offer and ask direct questions to gauge their interest in the game and bonus.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/4efdf150-1cea-4479-b7c0-9dae5875db25.wav"
+            },
+            {
+                "id": 1284219,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755071279,
+                "updated_at": 1755071340,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "745fdd35-ba7a-41f3-8fc1-973efa02cdd4",
+                "tags": [
+                    {
+                        "id": 1720,
+                        "name": "DG - Customer is interested",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1715,
+                        "name": "DG - Effective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client expressed interest in trying out the new game and claiming the bonus offered by BingoPlus. The conversation was effective in engaging the client. Follow-up calls should focus on assisting the client with accessing the game and utilizing the bonus.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/745fdd35-ba7a-41f3-8fc1-973efa02cdd4.wav"
+            },
+            {
+                "id": 1284206,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755070849,
+                "updated_at": 1755071002,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "1c03d9eb-8e1e-4d17-b450-1dd3e6e3ecc6",
+                "tags": [
+                    {
+                        "id": 1720,
+                        "name": "DG - Customer is interested",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1715,
+                        "name": "DG - Effective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client expressed interest in trying out the games and inquired about demo games and login procedures. They are interested in claiming the bonus and exploring the game offerings. Follow-up suggestions include providing detailed instructions on accessing demo games and assisting with the login process to ensure the client can claim their bonus and start playing.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/1c03d9eb-8e1e-4d17-b450-1dd3e6e3ecc6.wav"
+            },
+            {
+                "id": 1284176,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 624,
+                "auto_flow_name": "NXAI-PHL-tagalog-Theta",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755070415,
+                "updated_at": 1755070589,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "aec648a5-7d06-461c-91c2-7c796349db99",
+                "tags": [
+                    {
+                        "id": 1720,
+                        "name": "DG - Customer is interested",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1716,
+                        "name": "DG - Specific Feedback",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client expressed interest in claiming the bonus and inquired about logging into their account. They also showed interest in the games offered by BingoPlus and asked about demo versions, indicating potential interest in trying the games. Follow-up suggestions include providing more detailed information about the games and addressing the client's request for demo versions.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/aec648a5-7d06-461c-91c2-7c796349db99.wav"
+            },
+            {
+                "id": 1284097,
+                "user_id": 25513,
+                "group_id": null,
+                "customer_id": 0,
+                "auto_flow_id": 607,
+                "auto_flow_name": "NXAI-PHL-tagalog-Upsilon",
+                "status": 2,
+                "source": 2,
+                "source_channel": 10,
+                "response_time": null,
+                "solve_time": null,
+                "score": null,
+                "problem_type": null,
+                "first_message": null,
+                "messages_count": null,
+                "created_at": 1755069557,
+                "updated_at": 1755069688,
+                "remark": null,
+                "country_code": null,
+                "customer_phone": "10209316660",
+                "business_phone": "0000",
+                "relate_session_id": "88b1bdb8-1d96-4966-8140-9f83c09bed22",
+                "tags": [
+                    {
+                        "id": 1720,
+                        "name": "DG - Customer is interested",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    },
+                    {
+                        "id": 1715,
+                        "name": "DG - Effective Conversation",
+                        "group_id": null,
+                        "group_name": null,
+                        "describes": null,
+                        "created_at": null,
+                        "updated_at": null
+                    }
+                ],
+                "conv_summary": "The client expressed interest in learning more about the games offered by BingoPlus and agreed to register to claim the bonus. Follow-up calls should focus on assisting the client with any registration issues and providing more information about the games.",
+                "call_audio_url": "https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/88b1bdb8-1d96-4966-8140-9f83c09bed22.wav"
+            }
+        ],
+        "ext": null,
+        "notEmpty": true,
+        "totalPages": 1226,
+        "empty": false
+    }
+}

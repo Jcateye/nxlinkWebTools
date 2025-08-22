@@ -30,6 +30,14 @@ const UserInfoDisplay: React.FC = () => {
 
   // 获取用户信息
   const fetchUserInfo = async () => {
+    // 如果没有任何授权token，则不请求
+    if (!tagUserParams?.authorization && !faqUserParams?.sourceAuthorization) {
+      console.log('🚫 [UserInfoDisplay] 跳过用户信息获取：没有有效的授权token');
+      setTagUserInfo(null);
+      setFaqUserInfo(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     

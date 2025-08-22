@@ -1,0 +1,464 @@
+curl 'https://nxlink.nxcloud.com/admin/nx_flow_manager/conversation/messages?conversationId=5af6b7d1-cee5-4501-8299-6883eb06820d&pageSize=9999&pageNumber=1' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6' \
+  -H 'authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4OWQ3NjRiZTRiMDFmYWRiMmE4MWQwNiJ9.6AhnG4BXa-JOFjDjIpBgVtkJOGN7J0Nq7ErmX2FIvU0' \
+  -H 'cache-control: no-cache' \
+  -b '__bid_n=189d541141e1152a1cdb95; fblo_1407008009801826=y; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%2C%22%24latest_referrer%22%3A%22%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTg5ZDU0MGJlZjA5MDItMDJmNDQ1NjNmMTFjNGRlLTFhNTI1NjM0LTE4OTI5NzAtMTg5ZDU0MGJlZjExNWI5In0%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%22189d540bef0902-02f44563f11c4de-1a525634-1892970-189d540bef115b9%22%7D; Hm_lvt_f8f3199714771c412f9dd352ddb23ee5=1730860407,1733282228; _ga=GA1.1.1521398006.1691499938; _gcl_au=1.1.1391561557.1751359578; nx-utc=UTC+08:00; nx-zone=105; company_domain=null; locale=zh-CN; _ga_8KK14YS12T=GS2.1.s1754553222$o555$g0$t1754553222$j60$l0$h0; _ga_95Z6D5L9D8=GS2.1.s1754553222$o333$g0$t1754553222$j60$l0$h0; company_domain=null; plat_token=eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4OWQ3NjRiZTRiMDFmYWRiMmE4MWQwNiJ9.6AhnG4BXa-JOFjDjIpBgVtkJOGN7J0Nq7ErmX2FIvU0; isLogin=1; login_type=null; sipInfo={%22domain%22:%22slave-sgp-cc.nxcloud.com%22%2C%22wssurl%22:%22wss://slave-sgp-cc.nxcloud.com/SINGAPORE/v2%22%2C%22ccToken%22:%22eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjg0MjgsImRldmljZVVuaXF1ZUlkZW50aWZpY2F0aW9uIjoiOTA1YjQ3NjAtNDkwNS0xMWVmLWJlNDEtOTc5MjkwYTA3YjY2IiwidXVJZCI6IjY4OWQ3NjRiZTRiMDFmYWRiMmE4MWQwNiJ9.6AhnG4BXa-JOFjDjIpBgVtkJOGN7J0Nq7ErmX2FIvU0%22%2C%22ccQueue%22:null%2C%22sipNum%22:%22NX77777178086A0038014%22%2C%22email%22:%22degenxu@nxcloud.com%22%2C%22utcDate%22:%222025/08/14%22%2C%22agentType%22:2}; JSESSIONID=C918E3D2517C731ABF9BEA7081433AAA' \
+  -H 'createts: 1755153250678' \
+  -H 'currentdomain: nxlink.nxcloud.com' \
+  -H 'dnt: 1' \
+  -H 'lang: zh_CN' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://nxlink.nxcloud.com/admin/' \
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'system_id: 5' \
+  -H 'time_zone: UTC+08:00' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+
+
+  #response
+  {
+    "code": 0,
+    "message": "success",
+    "traceId": "5136370183b24bb7aa609810d63a7e7e",
+    "data": [
+        {
+            "id": null,
+            "msgId": "53fcc1c3-a167-46e6-b2b7-1b27c32af2d0",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 0,
+            "msgInfo": "{\"audio_url\":\"https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/5af6b7d1-cee5-4501-8299-6883eb06820d.wav\"}",
+            "others": null,
+            "createTs": 1755071898586
+        },
+        {
+            "id": null,
+            "msgId": "83c2eb86-d525-4f9e-811f-dd5f503da135",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 1,
+            "msgInfo": "{\"audio_url\":\"https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/5af6b7d1-cee5-4501-8299-6883eb06820d.wav\"}",
+            "others": null,
+            "createTs": 1755071898589
+        },
+        {
+            "id": null,
+            "msgId": "7c3be8f8-166e-4a37-a1d2-7b34fa4e8309",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 2,
+            "msgInfo": "{\"audio_url\":\"https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/5af6b7d1-cee5-4501-8299-6883eb06820d.wav\"}",
+            "others": null,
+            "createTs": 1755071898668
+        },
+        {
+            "id": null,
+            "msgId": "697969c7-50dd-4dce-81d4-7047e3fb2847",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 3,
+            "msgInfo": "{\"audio_url\":\"https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/5af6b7d1-cee5-4501-8299-6883eb06820d.wav\"}",
+            "others": null,
+            "createTs": 1755071899854
+        },
+        {
+            "id": null,
+            "msgId": "28a1fa8c-43ba-44e2-9e96-7bc6820a44bf",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 200,
+            "msgInfo": "{\"name\":\"NXAI-PHL-tagalog-Theta\"}",
+            "others": null,
+            "createTs": 1755071899855
+        },
+        {
+            "id": null,
+            "msgId": "b32d36b2-7256-4930-8636-c47e4a7992b0",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 216,
+            "msgInfo": "{\"name\":\"1.Opening - Greeting\"}",
+            "others": null,
+            "createTs": 1755071899858
+        },
+        {
+            "id": null,
+            "msgId": "845b121b-ad48-44c0-b91d-4558bebcd0d6",
+            "conversationId": 1284247,
+            "customerId": 0,
+            "autoFlowId": 624,
+            "direction": 2,
+            "msgType": 34,
+            "msgInfo": "{\"audio_url\":\"https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/tts/cache/c3b5d71cfc6f5b7bf9b540cc509d13e5.wav\",\"name\":\"1.Opening - Greeting\",\"text\":\"Kamusta Madam ako po ay si Susan mula sa BingoPlus.\"}",
+            "others": null,
+            "createTs": 1755071899871
+        },
+        {
+            "id": null,
+            "msgId": "337b230a-307d-4df9-8c84-b1244a6c8ec6",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 304,
+            "msgInfo": "{\"end_time_ms\":1755071900140,\"start_time_ms\":1755071900140,\"time_ms\":269}",
+            "others": null,
+            "createTs": 1755071900142
+        },
+        {
+            "id": null,
+            "msgId": "a7dae635-dbc7-459a-9a64-5c274c44f6fc",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": null,
+            "msgInfo": null,
+            "others": null,
+            "createTs": 1755071900193
+        },
+        {
+            "id": null,
+            "msgId": "0780d4d5-8999-43da-8e59-8073fcb36403",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 1,
+            "msgType": 24,
+            "msgInfo": "{\"ignore_type\":3,\"text\":\"Hello Shuzan.\"}",
+            "others": null,
+            "createTs": 1755071904619
+        },
+        {
+            "id": null,
+            "msgId": "bab7fc82-9ff8-456f-b445-ae4bd7657094",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 1,
+            "msgType": 21,
+            "msgInfo": "{\"timeout_ms\":0}",
+            "others": null,
+            "createTs": 1755071906865
+        },
+        {
+            "id": null,
+            "msgId": "c3bf24a9-d84b-4055-977b-c57de16041ac",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 201,
+            "msgInfo": "{\"name\":\"2.Product Intro - Main Offer\"}",
+            "others": null,
+            "createTs": 1755071906887
+        },
+        {
+            "id": null,
+            "msgId": "77e22c0f-ff59-474c-aafb-e78496e81519",
+            "conversationId": 1284247,
+            "customerId": 0,
+            "autoFlowId": 624,
+            "direction": 2,
+            "msgType": 31,
+            "msgInfo": "{\"name\":\"2.Product Intro - Main Offer\",\"text\":\"Uy Madam meron po kaming bagong laro, at 50 Pesos na bonus na naghihintay para sa inyo—walang kinakailangang deposito. Gusto mo po bang makuha ito ngayon?\"}",
+            "others": null,
+            "createTs": 1755071906909
+        },
+        {
+            "id": null,
+            "msgId": "87e2cf1a-209e-4f09-ac2a-152b8044ed5a",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 304,
+            "msgInfo": "{\"end_time_ms\":1755071906911,\"start_time_ms\":1755071906911,\"time_ms\":2}",
+            "others": null,
+            "createTs": 1755071906920
+        },
+        {
+            "id": null,
+            "msgId": "5eac2e59-0ab5-4e54-8e56-0b9017dd8405",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 306,
+            "msgInfo": "{\"end_time_ms\":1755071906994,\"start_time_ms\":1755071906873,\"time_ms\":121}",
+            "others": null,
+            "createTs": 1755071906996
+        },
+        {
+            "id": null,
+            "msgId": "8dda1dd8-9a98-48ab-be80-7a35f0d55198",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 1,
+            "msgType": 24,
+            "msgInfo": "{\"ignore_type\":3,\"text\":\" Oo sige.\"}",
+            "others": null,
+            "createTs": 1755071917675
+        },
+        {
+            "id": null,
+            "msgId": "adc72a2e-0917-4d09-8257-b772d8b4b0bf",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 1,
+            "msgType": 21,
+            "msgInfo": "{\"timeout_ms\":0}",
+            "others": null,
+            "createTs": 1755071923027
+        },
+        {
+            "id": null,
+            "msgId": "96b0c09b-6a8e-4057-94f4-b34b6c72a7d5",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 201,
+            "msgInfo": "{\"name\":\"2.Product Intro - Main Offer\"}",
+            "others": null,
+            "createTs": 1755071923043
+        },
+        {
+            "id": null,
+            "msgId": "54c8e2bd-1995-4ced-b71f-576e664641bf",
+            "conversationId": 1284247,
+            "customerId": 0,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 307,
+            "msgInfo": "{\"branches\":[{\"flowNodeID\":\"ee0ad23c-2767-4a82-99d8-e0b9e0800660\",\"flowNodeName\":\"Interested\",\"flowNodeStepId\":\"b85900d2-3db3-4d32-9a32-3e8ce90faf39\",\"prompt\":\"\",\"selected\":false,\"type\":1},{\"flowNodeID\":\"958ddc81-5ee5-4352-ac5f-8271abb2929f\",\"flowNodeName\":\"Not interested\",\"flowNodeStepId\":\"8b9c6568-e172-4224-81fd-e61066d2ee12\",\"prompt\":\"\",\"selected\":false,\"type\":1},{\"flowNodeID\":\"bec67d12-3677-47c1-ba9d-1db43e0a7405\",\"flowNodeName\":\"Complain\",\"flowNodeStepId\":\"84ee3db1-38c5-473f-893b-d7b4c0dde576\",\"prompt\":\"\",\"selected\":false,\"type\":1},{\"flowNodeID\":\"fda324b4-d6cf-40ea-9d07-967765c6aa73\",\"flowNodeName\":\"Busy\",\"flowNodeStepId\":\"d70427b7-e958-48e9-82c3-917d16228b74\",\"flowType\":9,\"prompt\":\"\",\"selected\":false,\"subType\":2,\"type\":1},{\"flowNodeID\":\"1ea3eaea-0dd3-45e5-9443-5d3fa911ea9f\",\"flowNodeName\":\"Abuse\",\"flowNodeStepId\":\"719cebb7-98dc-481c-b5ae-632906c917bf\",\"flowType\":1,\"prompt\":\"\",\"selected\":false,\"subType\":13,\"type\":1},{\"flowNodeID\":\"3d87828d-36b3-4878-88f0-572e8d447ea3\",\"flowNodeName\":\"Voicemail\",\"flowNodeStepId\":\"375f3010-5bc7-11f0-aaff-5359347f5ca8\",\"flowType\":1,\"prompt\":\"\",\"selected\":false,\"subType\":13,\"type\":1},{\"flowNodeID\":\"5dfe2715-26fc-4306-813e-93790d7dac6e\",\"flowNodeName\":\"2.Product Intro - Main Offer\",\"flowNodeStepId\":\"04d8b870-5882-11f0-bc2e-794e8c593d49\",\"flowType\":9,\"prompt\":\"\",\"selected\":true,\"subType\":0,\"type\":0}],\"flowNodeName\":\"2.Product Intro - Main Offer\"}",
+            "others": null,
+            "createTs": 1755071923079
+        },
+        {
+            "id": null,
+            "msgId": "7e06db23-7123-4e2c-baf5-e32e34f00dba",
+            "conversationId": 1284247,
+            "customerId": 0,
+            "autoFlowId": 624,
+            "direction": 2,
+            "msgType": 31,
+            "msgInfo": "{\"name\":\"2.Product Intro - Main Offer\",\"text\":\"Hi Madam! Susan po ito mula sa BingoPlus. May mga bagong laro kami na puwede mong subukan. Interested ka bang malaman ang tungkol dito?\"}",
+            "others": null,
+            "createTs": 1755071923083
+        },
+        {
+            "id": null,
+            "msgId": "87c26dff-3bb1-4f1c-b2cd-e2fc0a707333",
+            "conversationId": 1284247,
+            "customerId": 0,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 303,
+            "msgInfo": "{\"end_time_ms\":1755071923097,\"start_time_ms\":1755071923060,\"time_ms\":37}",
+            "others": null,
+            "createTs": 1755071923097
+        },
+        {
+            "id": null,
+            "msgId": "fb599515-e7bc-47b8-aa49-b454dfd87632",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 304,
+            "msgInfo": "{\"end_time_ms\":1755071923458,\"start_time_ms\":1755071923458,\"time_ms\":361}",
+            "others": null,
+            "createTs": 1755071923461
+        },
+        {
+            "id": null,
+            "msgId": "4ba0f261-6399-459d-96aa-6f62715a6850",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 306,
+            "msgInfo": "{\"end_time_ms\":1755071923596,\"start_time_ms\":1755071923034,\"time_ms\":562}",
+            "others": null,
+            "createTs": 1755071923599
+        },
+        {
+            "id": null,
+            "msgId": "a9b8a0f2-8d95-4b79-9108-fa424a7b774a",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 1,
+            "msgType": 21,
+            "msgInfo": "{\"timeout_ms\":0}",
+            "others": null,
+            "createTs": 1755071938393
+        },
+        {
+            "id": null,
+            "msgId": "cf03543d-3573-4014-8b1c-6a670a0643be",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 201,
+            "msgInfo": "{\"name\":\"2.Product Intro - Main Offer\"}",
+            "others": null,
+            "createTs": 1755071938409
+        },
+        {
+            "id": null,
+            "msgId": "ca961d90-2aea-4e88-8aa7-e82bd965efec",
+            "conversationId": 1284247,
+            "customerId": 0,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 302,
+            "msgInfo": "{\"max_count\":3,\"name\":\"2.Product Intro - Main Offer\"}",
+            "others": null,
+            "createTs": 1755071938418
+        },
+        {
+            "id": null,
+            "msgId": "24285f15-ccf3-479a-baa5-ec47c1818d84",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 201,
+            "msgInfo": "{\"name\":\"3.Interested - Guide to Claim\"}",
+            "others": null,
+            "createTs": 1755071938419
+        },
+        {
+            "id": null,
+            "msgId": "907823ed-79f0-4209-a873-399523c52f5f",
+            "conversationId": 1284247,
+            "customerId": 0,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 302,
+            "msgInfo": "{\"max_count\":3,\"name\":\"3.Interested - Guide to Claim\"}",
+            "others": null,
+            "createTs": 1755071938428
+        },
+        {
+            "id": null,
+            "msgId": "fc08c2f7-665b-416c-b1ed-2233fea89308",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 214,
+            "msgInfo": "{\"name\":\"8.End\"}",
+            "others": null,
+            "createTs": 1755071938429
+        },
+        {
+            "id": null,
+            "msgId": "7c8be95b-adb4-4233-b28c-c9ca7e7627d4",
+            "conversationId": 1284247,
+            "customerId": 0,
+            "autoFlowId": 624,
+            "direction": 2,
+            "msgType": 34,
+            "msgInfo": "{\"audio_url\":\"https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/tts/cache/3813f275af637463591133d18ec771c3.wav\",\"name\":\"8.End\",\"text\":\"Salamat po sa oras nyo. Magandang araw po sa'yo!\"}",
+            "others": null,
+            "createTs": 1755071938441
+        },
+        {
+            "id": null,
+            "msgId": "f591e108-e937-4e90-bf2c-20de4279941d",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 304,
+            "msgInfo": "{\"end_time_ms\":1755071938819,\"start_time_ms\":1755071938819,\"time_ms\":378}",
+            "others": null,
+            "createTs": 1755071938822
+        },
+        {
+            "id": null,
+            "msgId": "9cf5bc95-97f8-4957-b7eb-968009d7f849",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 306,
+            "msgInfo": "{\"end_time_ms\":1755071938891,\"start_time_ms\":1755071938400,\"time_ms\":491}",
+            "others": null,
+            "createTs": 1755071938894
+        },
+        {
+            "id": null,
+            "msgId": "aaedee64-8ae6-4f15-b819-941f4655241a",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 33,
+            "msgInfo": "{\"audio_url\":\"https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/5af6b7d1-cee5-4501-8299-6883eb06820d.wav\"}",
+            "others": null,
+            "createTs": 1755071942309
+        },
+        {
+            "id": null,
+            "msgId": "96d7b2bf-c37f-4181-a963-c8c38c50eb68",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 43,
+            "msgInfo": "{\"audio_url\":\"https://nxai-hk-1259196162.cos.ap-hongkong.myqcloud.com/20250813/2962/5af6b7d1-cee5-4501-8299-6883eb06820d.wav\"}",
+            "others": null,
+            "createTs": 1755071942310
+        },
+        {
+            "id": null,
+            "msgId": "4b2a7dca-4b03-4ad6-9c5f-d4e06361ce59",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 63,
+            "msgInfo": "{\"tag\":\"[\\\"DG - Effective Conversation\\\",\\\"DG - Customer is interested\\\"]\"}",
+            "others": null,
+            "createTs": 1755071943414
+        },
+        {
+            "id": null,
+            "msgId": "000e342e-d8d3-4ad1-a5be-e2239397cd45",
+            "conversationId": 1284247,
+            "customerId": null,
+            "autoFlowId": 624,
+            "direction": 3,
+            "msgType": 64,
+            "msgInfo": "{\"summarize\":\"The client expressed interest in learning more about the new games offered by BingoPlus and agreed to receive information about them. Follow-up calls should focus on providing detailed information about the games and assisting the client in claiming the bonus.\"}",
+            "others": null,
+            "createTs": 1755071943416
+        }
+    ]
+}

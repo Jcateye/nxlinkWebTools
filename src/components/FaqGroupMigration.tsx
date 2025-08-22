@@ -130,12 +130,12 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
     }
   }, [faqUserParams]);
 
-  // 当选择语言变化时，加载FAQ列表
+  // 当选择语言变化时，加载FAQ列表（需要先有授权token）
   useEffect(() => {
-    if (selectedLanguageId > 0) {
+    if (selectedLanguageId > 0 && faqUserParams?.sourceAuthorization) {
       fetchFaqList();
     }
-  }, [selectedLanguageId]);
+  }, [selectedLanguageId, faqUserParams?.sourceAuthorization]);
 
   // 过滤FAQ
   useEffect(() => {
@@ -228,7 +228,10 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
 
   // 获取FAQ列表
   const fetchFaqList = async () => {
-    if (!faqUserParams || !selectedLanguageId) return;
+    if (!faqUserParams?.sourceAuthorization || !selectedLanguageId) {
+      console.log('🚫 [FaqGroupMigration] 跳过FAQ列表获取：缺少授权token或语言ID');
+      return;
+    }
     
     setLoading(true);
     try {

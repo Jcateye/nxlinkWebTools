@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs } from 'antd';
 import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined } from '@ant-design/icons';
 import TagParamsForm from './components/TagParamsForm';
@@ -18,7 +18,7 @@ import PromptValidationPage from './pages/PromptValidationPage';
 import VendorAppManagementPage from './pages/VendorAppManagementPage';
 import PhoneNumberValidator from './components/PhoneNumberValidator';
 import ConversationManagementPage from './pages/ConversationManagementPage';
-import TokenManager from './components/TokenManager';
+import NXLinkTokenManager from './components/NXLinkTokenManager';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
@@ -216,7 +216,7 @@ const AppContent = () => {
       case 'conversation':
         return <ConversationManagementPage />;
       case 'settings':
-        return <TokenManager />;
+        return <NXLinkTokenManager />;
       default:
         return (
           <Card>

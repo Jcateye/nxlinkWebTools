@@ -1663,7 +1663,7 @@ export const getConversationList = async (
 ): Promise<ConversationListResponse> => {
   return createRateLimitedRequest('getConversationList', async () => {
     try {
-      const response = await nxlinkClientApi.post<ConversationListResponse>(
+      const response = await conversationApi.post<ConversationListResponse>(
         '/admin/nx_flow_manager/conversation',
         {
           page_number: pageNumber,
@@ -1684,7 +1684,7 @@ export const getConversationDetail = async (
 ): Promise<ConversationDetailResponse> => {
   return createRateLimitedRequest('getConversationDetail', async () => {
     try {
-      const response = await nxlinkClientApi.get<ConversationDetailResponse>(
+      const response = await conversationApi.get<ConversationDetailResponse>(
         `/admin/nx_flow_manager/conversation/messages?conversationId=${conversationId}&pageSize=9999&pageNumber=1`
       );
       return response.data;

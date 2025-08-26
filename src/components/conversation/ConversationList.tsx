@@ -3,6 +3,7 @@ import { Table, Spin, Alert, Tooltip, Input, Button, Row, Col, DatePicker } from
 import { ColumnsType } from 'antd/es/table';
 import { getConversationList } from '../../services/api';
 import { Conversation, ConversationListResponse } from '../../types';
+import { useUserContext } from '../../context/UserContext';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -13,7 +14,7 @@ interface ConversationListProps {
 
 const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversation }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     current: 1,
@@ -22,8 +23,15 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   });
   const [searchCallId, setSearchCallId] = useState<string>('');
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const { faqUserParams } = useUserContext();
 
   const fetchConversations = async (page: number, pageSize: number, callId?: string, startTime?: string, endTime?: string) => {
+    // 检查是否有源租户的token
+    if (!faqUserParams?.sourceAuthorization) {
+      setError('请先完成身份认证');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
@@ -51,8 +59,10 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   };
 
   useEffect(() => {
-    fetchConversations(pagination.current, pagination.pageSize);
-  }, []);
+    if (faqUserParams?.sourceAuthorization) {
+      fetchConversations(pagination.current, pagination.pageSize);
+    }
+  }, [faqUserParams?.sourceAuthorization]);
 
   const handleTableChange = (pagination: any) => {
     const startTime = dateRange?.[0]?.format('YYYY-MM-DD HH:mm:ss');

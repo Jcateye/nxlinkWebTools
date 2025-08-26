@@ -82,6 +82,7 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [tenantDropdownVisible, setTenantDropdownVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // 组件加载时从本地存储加载参数并验证
   useEffect(() => {

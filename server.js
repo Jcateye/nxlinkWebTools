@@ -121,6 +121,34 @@ app.use('/api/chl', createProxyMiddleware({
   }
 }));
 
+// OpenAPI 平台代理（防止命中默认 /api 代理导致 301 循环重定向）
+app.use('/api/openapi', createProxyMiddleware({
+  // 目标为根域名，通过 pathRewrite 将 /api/openapi 映射为 /openapi
+  target: 'https://api-westus.nxlink.ai',
+  changeOrigin: true,
+  secure: false,
+  followRedirects: true,
+  pathRewrite: {
+    '^/api': '' // /api/openapi/xxx -> /openapi/xxx
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Host', 'api-westus.nxlink.ai');
+    proxyReq.setHeader('Origin', 'https://api-westus.nxlink.ai');
+    console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(OpenAPI): ${req.method} ${req.url}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    // OpenAPI 直连，不对返回的 Location 做任何重写，避免循环
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
+    console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应(OpenAPI): ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`[${new Date().toLocaleTimeString()}] ❌ 代理错误(OpenAPI):`, err.message);
+    res.status(502).send('OpenAPI 代理出错');
+  }
+}));
+
 // 默认API代理
 app.use('/api', createProxyMiddleware({
   target: 'https://nxlink.nxcloud.com',

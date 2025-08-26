@@ -151,10 +151,18 @@ export const COLLABORATION_API_BASE_URL = 'http://localhost:3020';
 
 /**
  * OpenAPI平台配置
+ * 
+ * 配置优先级：
+ * 1. 环境变量 (VITE_OPENAPI_*)
+ * 2. 项目配置文件中的默认值
+ * 3. 硬编码的兜底值
+ * 
+ * 注意：为了安全，前端不直接暴露真实的默认值
  */
 export const OPENAPI_CONFIG = {
-  // 预设的OpenAPI鉴权信息
+  // 预设的OpenAPI鉴权信息（前端显示用占位符，实际值在后台）
   defaultAuth: {
+    // 前端显示占位符，实际值从环境变量或后台配置读取
     accessKey: import.meta.env.VITE_OPENAPI_ACCESS_KEY || '',
     accessSecret: import.meta.env.VITE_OPENAPI_ACCESS_SECRET || '',
     bizType: import.meta.env.VITE_OPENAPI_BIZ_TYPE || '8'

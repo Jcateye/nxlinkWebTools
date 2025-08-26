@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { buildOpenApiHeaders, nowTs } from '../utils/openApiAuth';
-import { API_CONFIG } from '../config/apiConfig';
+import { API_CONFIG, OPENAPI_CONFIG } from '../config/apiConfig';
 import {
   TaskListQuery,
   CallRecordQuery,
@@ -37,8 +37,26 @@ export function loadOpenApiAuth(): OpenApiAuthConfig | null {
 }
 
 function ensureAuth(): OpenApiAuthConfig {
-  const cfg = loadOpenApiAuth();
-  if (!cfg) throw new Error('未配置OpenAPI鉴权，请先在OpenAPI设置中填写 accessKey/accessSecret/bizType');
+  // 优先使用用户保存的配置
+  let cfg = loadOpenApiAuth();
+  
+  if (!cfg) {
+    // 如果没有用户配置，尝试使用环境变量配置
+    const envConfig = OPENAPI_CONFIG.defaultAuth;
+    
+    if (envConfig.accessKey && envConfig.accessSecret) {
+      // 使用环境变量配置，但不在前端显示
+      cfg = {
+        accessKey: envConfig.accessKey,
+        accessSecret: envConfig.accessSecret,
+        bizType: envConfig.bizType || '8'
+      };
+      console.log('使用环境变量配置的OpenAPI鉴权信息');
+    } else {
+      throw new Error('未配置OpenAPI鉴权，请先在OpenAPI设置中填写 accessKey/accessSecret/bizType');
+    }
+  }
+  
   return cfg;
 }
 

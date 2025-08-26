@@ -64,8 +64,8 @@ const DEFAULT_CONFIG: ProjectConfig = {
   },
   
   openapi: {
-    accessKey: 'your-openapi-access-key',                    // 占位符，需要在环境中配置真实值
-    accessSecret: 'your-openapi-access-secret',              // 占位符，需要在环境中配置真实值
+    accessKey: 'AK-764887602601150724-2786',                    // 占位符，需要在环境中配置真实值
+    accessSecret: '0de4a159402a4e3494f76669ac92d6e6',              // 占位符，需要在环境中配置真实值
     bizType: '8',                                            // 业务类型，通常为8（语音业务）
     baseUrl: 'https://api-westus.nxlink.ai'                 // OpenAPI服务地址
   },

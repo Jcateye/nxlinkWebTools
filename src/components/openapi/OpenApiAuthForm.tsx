@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Form, Input, Button, Space, message } from 'antd';
 import { loadOpenApiAuth, saveOpenApiAuth, OpenApiAuthConfig } from '../../services/openApiService';
+import { OPENAPI_CONFIG } from '../../config/apiConfig';
 
 interface Props {
   onSaved?: (cfg: OpenApiAuthConfig) => void;
@@ -15,8 +16,18 @@ export default function OpenApiAuthForm({ onSaved }: Props) {
     if (cfg) {
       form.setFieldsValue(cfg);
       setIsConfigured(true);
+    } else {
+      // 如果没有保存的配置，使用默认配置
+      const defaultConfig = OPENAPI_CONFIG.defaultAuth;
+      if (defaultConfig.accessKey && defaultConfig.accessSecret) {
+        form.setFieldsValue(defaultConfig);
+        // 自动保存默认配置
+        saveOpenApiAuth(defaultConfig);
+        setIsConfigured(true);
+        onSaved?.(defaultConfig);
+      }
     }
-  }, [form]);
+  }, [form, onSaved]);
 
   const onFinish = (values: OpenApiAuthConfig) => {
     try {

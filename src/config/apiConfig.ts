@@ -147,4 +147,21 @@ export const setCurrentDataCenter = (dataCenter: DataCenter): void => {
 /**
  * 协作模式API配置
  */
-export const COLLABORATION_API_BASE_URL = 'http://localhost:3020'; 
+export const COLLABORATION_API_BASE_URL = 'http://localhost:3020';
+
+/**
+ * OpenAPI平台配置
+ */
+export const OPENAPI_CONFIG = {
+  // 预设的OpenAPI鉴权信息
+  defaultAuth: {
+    accessKey: import.meta.env.VITE_OPENAPI_ACCESS_KEY || '',
+    accessSecret: import.meta.env.VITE_OPENAPI_ACCESS_SECRET || '',
+    bizType: import.meta.env.VITE_OPENAPI_BIZ_TYPE || '8'
+  },
+  // 外部平台调用我们API时的认证配置
+  externalApiKeys: [
+    import.meta.env.VITE_EXTERNAL_API_KEY_1 || 'demo-api-key-1',
+    import.meta.env.VITE_EXTERNAL_API_KEY_2 || 'demo-api-key-2'
+  ]
+}; 

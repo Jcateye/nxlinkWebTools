@@ -1,0 +1,1575 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "nxai-bot",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "对外api外呼任务管理"
+    },
+    {
+      "name": "对外api查询任务的通话记录"
+    },
+    {
+      "name": "对外api通话详情管理"
+    }
+  ],
+  "paths": {
+    "/openapi/task/list": {
+      "post": {
+        "summary": "查询外呼任务列表",
+        "deprecated": false,
+        "description": "分页查询外呼任务列表",
+        "operationId": "pageCallTaskInfoUsingPOST",
+        "tags": [
+          "对外api外呼任务管理"
+        ],
+        "parameters": [
+          {
+            "name": "accessKey",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{accessKey}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bizType",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{bizType}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{action}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accessSecret",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{accessSecret}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ts",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{ts}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sign",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{sign}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "createEndTs": {
+                    "type": "integer",
+                    "description": "创建结束时间戳 (单位秒)",
+                    "format": "int32"
+                  },
+                  "createStartTs": {
+                    "type": "integer",
+                    "description": "创建开始时间戳 (单位秒)",
+                    "format": "int32"
+                  },
+                  "maxCallsAnsweredRate": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number",
+                    "description": "最大接通率",
+                    "format": "double",
+                    "example": 100
+                  },
+                  "maxTaskTotalQuantity": {
+                    "type": "integer",
+                    "description": "最大任务总量",
+                    "format": "int32",
+                    "example": 1000
+                  },
+                  "minCallsAnsweredRate": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number",
+                    "description": "最小接通率",
+                    "format": "double",
+                    "example": 50
+                  },
+                  "minTaskTotalQuantity": {
+                    "type": "integer",
+                    "description": "最小任务总量",
+                    "format": "int32",
+                    "example": 100
+                  },
+                  "pageNumber": {
+                    "type": "integer",
+                    "description": "页码",
+                    "format": "int32",
+                    "example": 1
+                  },
+                  "pageSize": {
+                    "type": "integer",
+                    "description": "每页大小",
+                    "format": "int32",
+                    "example": 10
+                  },
+                  "taskName": {
+                    "type": "string",
+                    "description": "任务名称"
+                  },
+                  "taskStatus": {
+                    "type": "integer",
+                    "description": "任务状态",
+                    "format": "int32"
+                  }
+                },
+                "required": [
+                  "pageNumber",
+                  "pageSize"
+                ]
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page2Response%C2%ABCallTaskInfoVO%E5%AF%B9%E8%B1%A1%C2%BB"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [],
+        "x-codeSamples": [
+          {
+            "label": "Java",
+            "lang": "java",
+            "source": "import java.net.http.*;\nimport java.net.URI;\nimport java.io.IOException;\n\npublic class ApiClient {\n    public static void main(String[] args) throws IOException, InterruptedException {\n        HttpClient client = HttpClient.newHttpClient();\n        \n        String json = \"{\\\"createEndTs\\\":1,\\\"createStartTs\\\":1,\\\"maxCallsAnsweredRate\\\":100,\\\"maxTaskTotalQuantity\\\":1000,\\\"minCallsAnsweredRate\\\":50,\\\"minTaskTotalQuantity\\\":100,\\\"pageNumber\\\":1,\\\"pageSize\\\":10,\\\"taskName\\\":\\\"string\\\",\\\"taskStatus\\\":1}\";\n        \n        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()\n            .uri(URI.create(\"{{url}}\"))\n            .header(\"accessKey\", \"{{accessKey}}\")\n            .header(\"bizType\", \"{{bizType}}\")\n            .header(\"action\", \"{{action}}\")\n            .header(\"accessSecret\", \"{{accessSecret}}\")\n            .header(\"ts\", \"{{ts}}\")\n            .header(\"sign\", \"{{sign}}\")\n            .header(\"Content-Type\", \"application/json\")\n            .POST(HttpRequest.BodyPublishers.ofString(json));\n            \n        HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());\n        \n        System.out.println(\"状态码: \" + response.statusCode());\n        System.out.println(\"响应体: \" + response.body());\n    }\n}"
+          },
+          {
+            "label": "C#",
+            "lang": "csharp",
+            "source": "using System;\nusing System.Net.Http;\nusing System.Text;\nusing System.Threading.Tasks;\n\nclass Program\n{\n    private static readonly HttpClient client = new HttpClient();\n    \n    static async Task Main(string[] args)\n    {\n        try\n        {\n            client.DefaultRequestHeaders.Add(\"accessKey\", \"{{accessKey}}\");\n            client.DefaultRequestHeaders.Add(\"bizType\", \"{{bizType}}\");\n            client.DefaultRequestHeaders.Add(\"action\", \"{{action}}\");\n            client.DefaultRequestHeaders.Add(\"accessSecret\", \"{{accessSecret}}\");\n            client.DefaultRequestHeaders.Add(\"ts\", \"{{ts}}\");\n            client.DefaultRequestHeaders.Add(\"sign\", \"{{sign}}\");\n            \n            var json = \"{\\\"createEndTs\\\":1,\\\"createStartTs\\\":1,\\\"maxCallsAnsweredRate\\\":100,\\\"maxTaskTotalQuantity\\\":1000,\\\"minCallsAnsweredRate\\\":50,\\\"minTaskTotalQuantity\\\":100,\\\"pageNumber\\\":1,\\\"pageSize\\\":10,\\\"taskName\\\":\\\"string\\\",\\\"taskStatus\\\":1}\";\n            var content = new StringContent(json, Encoding.UTF8, \"application/json\");\n            \n            var response = await client.PostAsync(\"{{url}}\", content);\n            \n            Console.WriteLine($\"状态码: {response.StatusCode}\");\n            var responseContent = await response.Content.ReadAsStringAsync();\n            Console.WriteLine($\"响应体: {responseContent}\");\n        }\n        catch (Exception ex)\n        {\n            Console.WriteLine($\"请求失败: {ex.Message}\");\n        }\n    }\n}"
+          }
+        ]
+      }
+    },
+    "/openapi/call/append": {
+      "post": {
+        "summary": "任务追加号码",
+        "deprecated": false,
+        "description": "",
+        "operationId": "appendCallUsingPOST",
+        "tags": [
+          "对外api查询任务的通话记录"
+        ],
+        "parameters": [
+          {
+            "name": "accessKey",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{accessKey}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bizType",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{bizType}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{action}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accessSecret",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{accessSecret}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ts",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{ts}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sign",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{sign}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "autoFlowId": {
+                    "type": "integer",
+                    "description": "机器人id",
+                    "format": "int64"
+                  },
+                  "countryCode": {
+                    "type": "string",
+                    "description": "国码"
+                  },
+                  "list": {
+                    "type": "array",
+                    "description": "追加号码信息",
+                    "items": {
+                      "$ref": "#/components/schemas/CallInfoList"
+                    }
+                  },
+                  "taskId": {
+                    "type": "string",
+                    "description": "任务id"
+                  }
+                }
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SingleResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [],
+        "x-codeSamples": [
+          {
+            "label": "Java",
+            "lang": "java",
+            "source": "import java.net.http.*;\nimport java.net.URI;\nimport java.io.IOException;\n\npublic class ApiClient {\n    public static void main(String[] args) throws IOException, InterruptedException {\n        HttpClient client = HttpClient.newHttpClient();\n        \n        String json = \"{\\\"autoFlowId\\\":1,\\\"countryCode\\\":\\\"string\\\",\\\"taskId\\\":\\\"string\\\"}\";\n        \n        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()\n            .uri(URI.create(\"{{url}}\"))\n            .header(\"accessKey\", \"{{accessKey}}\")\n            .header(\"bizType\", \"{{bizType}}\")\n            .header(\"action\", \"{{action}}\")\n            .header(\"accessSecret\", \"{{accessSecret}}\")\n            .header(\"ts\", \"{{ts}}\")\n            .header(\"sign\", \"{{sign}}\")\n            .header(\"Content-Type\", \"application/json\")\n            .POST(HttpRequest.BodyPublishers.ofString(json));\n            \n        HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());\n        \n        System.out.println(\"状态码: \" + response.statusCode());\n        System.out.println(\"响应体: \" + response.body());\n    }\n}"
+          },
+          {
+            "label": "C#",
+            "lang": "csharp",
+            "source": "using System;\nusing System.Net.Http;\nusing System.Text;\nusing System.Threading.Tasks;\n\nclass Program\n{\n    private static readonly HttpClient client = new HttpClient();\n    \n    static async Task Main(string[] args)\n    {\n        try\n        {\n            client.DefaultRequestHeaders.Add(\"accessKey\", \"{{accessKey}}\");\n            client.DefaultRequestHeaders.Add(\"bizType\", \"{{bizType}}\");\n            client.DefaultRequestHeaders.Add(\"action\", \"{{action}}\");\n            client.DefaultRequestHeaders.Add(\"accessSecret\", \"{{accessSecret}}\");\n            client.DefaultRequestHeaders.Add(\"ts\", \"{{ts}}\");\n            client.DefaultRequestHeaders.Add(\"sign\", \"{{sign}}\");\n            \n            var json = \"{\\\"autoFlowId\\\":1,\\\"countryCode\\\":\\\"string\\\",\\\"taskId\\\":\\\"string\\\"}\";\n            var content = new StringContent(json, Encoding.UTF8, \"application/json\");\n            \n            var response = await client.PostAsync(\"{{url}}\", content);\n            \n            Console.WriteLine($\"状态码: {response.StatusCode}\");\n            var responseContent = await response.Content.ReadAsStringAsync();\n            Console.WriteLine($\"响应体: {responseContent}\");\n        }\n        catch (Exception ex)\n        {\n            Console.WriteLine($\"请求失败: {ex.Message}\");\n        }\n    }\n}"
+          }
+        ]
+      }
+    },
+    "/openapi/order/delete": {
+      "post": {
+        "summary": "删除号码名单",
+        "deprecated": false,
+        "description": "",
+        "operationId": "operateCallRecordsUsingPOST_1",
+        "tags": [
+          "对外api通话详情管理"
+        ],
+        "parameters": [
+          {
+            "name": "accessKey",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{accessKey}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bizType",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{bizType}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{action}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accessSecret",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{accessSecret}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ts",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{ts}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sign",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{sign}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactId": {
+                    "type": "string",
+                    "description": "名单id"
+                  },
+                  "taskId": {
+                    "type": "string",
+                    "description": "任务ID"
+                  }
+                }
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [],
+        "x-codeSamples": [
+          {
+            "label": "Java",
+            "lang": "java",
+            "source": "import java.net.http.*;\nimport java.net.URI;\nimport java.io.IOException;\n\npublic class ApiClient {\n    public static void main(String[] args) throws IOException, InterruptedException {\n        HttpClient client = HttpClient.newHttpClient();\n        \n        String json = \"{\\\"contactId\\\":\\\"string\\\",\\\"taskId\\\":\\\"string\\\"}\";\n        \n        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()\n            .uri(URI.create(\"{{url}}\"))\n            .header(\"accessKey\", \"{{accessKey}}\")\n            .header(\"bizType\", \"{{bizType}}\")\n            .header(\"action\", \"{{action}}\")\n            .header(\"accessSecret\", \"{{accessSecret}}\")\n            .header(\"ts\", \"{{ts}}\")\n            .header(\"sign\", \"{{sign}}\")\n            .header(\"Content-Type\", \"application/json\")\n            .POST(HttpRequest.BodyPublishers.ofString(json));\n            \n        HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());\n        \n        System.out.println(\"状态码: \" + response.statusCode());\n        System.out.println(\"响应体: \" + response.body());\n    }\n}"
+          },
+          {
+            "label": "C#",
+            "lang": "csharp",
+            "source": "using System;\nusing System.Net.Http;\nusing System.Text;\nusing System.Threading.Tasks;\n\nclass Program\n{\n    private static readonly HttpClient client = new HttpClient();\n    \n    static async Task Main(string[] args)\n    {\n        try\n        {\n            client.DefaultRequestHeaders.Add(\"accessKey\", \"{{accessKey}}\");\n            client.DefaultRequestHeaders.Add(\"bizType\", \"{{bizType}}\");\n            client.DefaultRequestHeaders.Add(\"action\", \"{{action}}\");\n            client.DefaultRequestHeaders.Add(\"accessSecret\", \"{{accessSecret}}\");\n            client.DefaultRequestHeaders.Add(\"ts\", \"{{ts}}\");\n            client.DefaultRequestHeaders.Add(\"sign\", \"{{sign}}\");\n            \n            var json = \"{\\\"contactId\\\":\\\"string\\\",\\\"taskId\\\":\\\"string\\\"}\";\n            var content = new StringContent(json, Encoding.UTF8, \"application/json\");\n            \n            var response = await client.PostAsync(\"{{url}}\", content);\n            \n            Console.WriteLine($\"状态码: {response.StatusCode}\");\n            var responseContent = await response.Content.ReadAsStringAsync();\n            Console.WriteLine($\"响应体: {responseContent}\");\n        }\n        catch (Exception ex)\n        {\n            Console.WriteLine($\"请求失败: {ex.Message}\");\n        }\n    }\n}"
+          }
+        ]
+      }
+    },
+    "/openapi/call/list": {
+      "post": {
+        "summary": "查询外呼记录",
+        "deprecated": false,
+        "description": "",
+        "operationId": "pageCallRecordsUsingPOST",
+        "tags": [
+          "对外api查询任务的通话记录"
+        ],
+        "parameters": [
+          {
+            "name": "accessKey",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{accessKey}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bizType",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{bizType}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{action}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accessSecret",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{accessSecret}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ts",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{ts}}",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sign",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "example": "{{sign}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "callId": {
+                    "type": "string",
+                    "description": "通话ID"
+                  },
+                  "callResult": {
+                    "type": "integer",
+                    "description": "通话结果",
+                    "format": "int32"
+                  },
+                  "endTs": {
+                    "type": "integer",
+                    "description": "结束时间戳 (单位秒)",
+                    "format": "int32"
+                  },
+                  "maxElapsed": {
+                    "type": "integer",
+                    "description": "最大通话时长(秒)",
+                    "format": "int64"
+                  },
+                  "minElapsed": {
+                    "type": "integer",
+                    "description": "最小通话时长(秒)",
+                    "format": "int64"
+                  },
+                  "pageNumber": {
+                    "type": "integer",
+                    "description": "页码",
+                    "format": "int32"
+                  },
+                  "pageSize": {
+                    "type": "integer",
+                    "description": "每页大小，10-1000",
+                    "format": "int32"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "电话号码"
+                  },
+                  "startTs": {
+                    "type": "integer",
+                    "description": "创建开始时间戳 (单位秒)",
+                    "format": "int32"
+                  },
+                  "taskId": {
+                    "type": "string",
+                    "description": "任务ID"
+                  },
+                  "userIntent": {
+                    "type": "string",
+                    "description": "会话标签"
+                  }
+                },
+                "required": [
+                  "pageNumber",
+                  "pageSize"
+                ]
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page2Response%C2%AB%E5%AE%A2%E6%88%B7%E9%80%9A%E8%AF%9D%E8%AE%B0%E5%BD%95%E8%AF%A6%E6%83%85%C2%BB"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [],
+        "x-codeSamples": [
+          {
+            "label": "Java",
+            "lang": "java",
+            "source": "import java.net.http.*;\nimport java.net.URI;\nimport java.io.IOException;\n\npublic class ApiClient {\n    public static void main(String[] args) throws IOException, InterruptedException {\n        HttpClient client = HttpClient.newHttpClient();\n        \n        String json = \"{\\\"callId\\\":\\\"string\\\",\\\"callResult\\\":1,\\\"endTs\\\":1,\\\"maxElapsed\\\":1,\\\"minElapsed\\\":1,\\\"pageNumber\\\":1,\\\"pageSize\\\":1,\\\"phone\\\":\\\"string\\\",\\\"startTs\\\":1,\\\"taskId\\\":\\\"string\\\",\\\"userIntent\\\":\\\"string\\\"}\";\n        \n        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()\n            .uri(URI.create(\"{{url}}\"))\n            .header(\"accessKey\", \"{{accessKey}}\")\n            .header(\"bizType\", \"{{bizType}}\")\n            .header(\"action\", \"{{action}}\")\n            .header(\"accessSecret\", \"{{accessSecret}}\")\n            .header(\"ts\", \"{{ts}}\")\n            .header(\"sign\", \"{{sign}}\")\n            .header(\"Content-Type\", \"application/json\")\n            .POST(HttpRequest.BodyPublishers.ofString(json));\n            \n        HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());\n        \n        System.out.println(\"状态码: \" + response.statusCode());\n        System.out.println(\"响应体: \" + response.body());\n    }\n}"
+          },
+          {
+            "label": "C#",
+            "lang": "csharp",
+            "source": "using System;\nusing System.Net.Http;\nusing System.Text;\nusing System.Threading.Tasks;\n\nclass Program\n{\n    private static readonly HttpClient client = new HttpClient();\n    \n    static async Task Main(string[] args)\n    {\n        try\n        {\n            client.DefaultRequestHeaders.Add(\"accessKey\", \"{{accessKey}}\");\n            client.DefaultRequestHeaders.Add(\"bizType\", \"{{bizType}}\");\n            client.DefaultRequestHeaders.Add(\"action\", \"{{action}}\");\n            client.DefaultRequestHeaders.Add(\"accessSecret\", \"{{accessSecret}}\");\n            client.DefaultRequestHeaders.Add(\"ts\", \"{{ts}}\");\n            client.DefaultRequestHeaders.Add(\"sign\", \"{{sign}}\");\n            \n            var json = \"{\\\"callId\\\":\\\"string\\\",\\\"callResult\\\":1,\\\"endTs\\\":1,\\\"maxElapsed\\\":1,\\\"minElapsed\\\":1,\\\"pageNumber\\\":1,\\\"pageSize\\\":1,\\\"phone\\\":\\\"string\\\",\\\"startTs\\\":1,\\\"taskId\\\":\\\"string\\\",\\\"userIntent\\\":\\\"string\\\"}\";\n            var content = new StringContent(json, Encoding.UTF8, \"application/json\");\n            \n            var response = await client.PostAsync(\"{{url}}\", content);\n            \n            Console.WriteLine($\"状态码: {response.StatusCode}\");\n            var responseContent = await response.Content.ReadAsStringAsync();\n            Console.WriteLine($\"响应体: {responseContent}\");\n        }\n        catch (Exception ex)\n        {\n            Console.WriteLine($\"请求失败: {ex.Message}\");\n        }\n    }\n}"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CallStatInfoVO对象": {
+        "title": "CallStatInfoVO对象",
+        "type": "object",
+        "properties": {
+          "answerCallCount": {
+            "type": "integer",
+            "description": "接通通话数，通话结束时统计",
+            "format": "int32"
+          },
+          "answerOrderCount": {
+            "type": "integer",
+            "description": "接通订单数，订单结束时统计",
+            "format": "int32"
+          },
+          "answerRate": {
+            "type": "string",
+            "description": "接通率 (已接通通话数/总通话数)"
+          },
+          "autoFlowId": {
+            "type": "integer",
+            "description": "机器人id",
+            "format": "int64"
+          },
+          "avgCallDuration": {
+            "type": "integer",
+            "description": "平均通话时长(秒) (通话总时长/接通通话数)",
+            "format": "int32"
+          },
+          "avgManualDuration": {
+            "type": "integer",
+            "description": "平均人工通话时长(秒) (转人工通话总时长/转人工接听通话数)",
+            "format": "int32"
+          },
+          "createTs": {
+            "type": "integer",
+            "description": "创建秒级时间戳",
+            "format": "int64"
+          },
+          "dialProgress": {
+            "type": "string",
+            "description": "外呼进度 (已拨打订单数/总订单数)"
+          },
+          "dialedOrderCount": {
+            "type": "integer",
+            "description": "已拨打订单数一个订单打完第一次电话时统计",
+            "format": "int32"
+          },
+          "finishOrderCount": {
+            "type": "integer",
+            "description": "完成订单数，订单结束时统计",
+            "format": "int32"
+          },
+          "finishRate": {
+            "type": "string",
+            "description": "完成率 (完成订单数/总订单数)"
+          },
+          "id": {
+            "type": "integer",
+            "description": "参与id",
+            "format": "int64"
+          },
+          "manualAnswerCount": {
+            "type": "integer",
+            "description": "转人工接听通话数量",
+            "format": "int32"
+          },
+          "manualAnswerRate": {
+            "type": "string",
+            "description": "人工转接成功率 (转人工接听通话数/(转人工接听通话数+转人工失败通话数))"
+          },
+          "manualElapsed": {
+            "type": "integer",
+            "description": "转人工通话总时长，秒",
+            "format": "int32"
+          },
+          "manualFailCount": {
+            "type": "integer",
+            "description": "转人工失败通话数量",
+            "format": "int32"
+          },
+          "taskId": {
+            "type": "string",
+            "description": "任务id"
+          },
+          "totalCallCount": {
+            "type": "integer",
+            "description": "总通话数，通话结束时统计",
+            "format": "int32"
+          },
+          "totalCallElapsed": {
+            "type": "integer",
+            "description": "通话总时长，秒",
+            "format": "int32"
+          },
+          "totalOrderCount": {
+            "type": "integer",
+            "description": "总订单数,导入时统计",
+            "format": "int32"
+          }
+        }
+      },
+      "CallTaskInfoVO对象": {
+        "title": "CallTaskInfoVO对象",
+        "type": "object",
+        "properties": {
+          "agentGroupId": {
+            "type": "string",
+            "description": "坐席组id"
+          },
+          "autoFlowId": {
+            "type": "integer",
+            "description": "机器人id",
+            "format": "int64"
+          },
+          "autoFlowName": {
+            "type": "string",
+            "description": "机器人名称"
+          },
+          "createTs": {
+            "type": "integer",
+            "description": "创建秒级时间戳",
+            "format": "int64"
+          },
+          "funcFlag": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "id": {
+            "type": "integer",
+            "description": "参与id",
+            "format": "int64"
+          },
+          "importType": {
+            "type": "integer",
+            "description": "导入用户的类型",
+            "format": "int32"
+          },
+          "maxCall": {
+            "type": "integer",
+            "description": "最大并发",
+            "format": "int32"
+          },
+          "maxRingTime": {
+            "type": "integer",
+            "description": "响铃时长设置 / 秒",
+            "format": "int32"
+          },
+          "orderMaxCall": {
+            "type": "integer",
+            "description": "拨打次数",
+            "format": "int64"
+          },
+          "pauseReason": {
+            "type": "integer",
+            "description": "暂停原因",
+            "format": "int32"
+          },
+          "replayInterval": {
+            "type": "integer",
+            "description": "重播时间",
+            "format": "int64"
+          },
+          "routeId": {
+            "type": "string",
+            "description": "任务选择的路由"
+          },
+          "shutdownAt": {
+            "type": "integer",
+            "description": "startup_type=2 定时任务暂停时间戳",
+            "format": "int64"
+          },
+          "startupAt": {
+            "type": "integer",
+            "description": "谁启动，startup_type=2时候启动时间戳",
+            "format": "int64"
+          },
+          "startupBy": {
+            "type": "string",
+            "description": "谁启动，startup_type=1时候启动人"
+          },
+          "startupType": {
+            "type": "integer",
+            "description": "启动方式，0:none,1:手动启动,2:定时启动,3:立即启动",
+            "format": "int32"
+          },
+          "statInfo": {
+            "description": "统计信息",
+            "$ref": "#/components/schemas/CallStatInfoVO%E5%AF%B9%E8%B1%A1"
+          },
+          "strategyId": {
+            "type": "string",
+            "description": "策略id"
+          },
+          "taskCallbackUrl": {
+            "type": "string",
+            "description": "回调url"
+          },
+          "taskDesc": {
+            "type": "string",
+            "description": "任务描述"
+          },
+          "taskId": {
+            "type": "string",
+            "description": "任务id"
+          },
+          "taskKeep": {
+            "type": "integer",
+            "description": "任务是否保活，0:不保活，1:保活",
+            "format": "int32"
+          },
+          "taskName": {
+            "type": "string",
+            "description": "任务名称"
+          },
+          "taskStatus": {
+            "type": "integer",
+            "description": "任务状态",
+            "format": "int32"
+          },
+          "userTaskId": {
+            "type": "string",
+            "description": "用户定义的任务id"
+          },
+          "weekDay": {
+            "type": "string",
+            "description": "星期几启动,组合值"
+          },
+          "zoneSecond": {
+            "type": "integer",
+            "description": "拨打时区",
+            "format": "int32"
+          }
+        }
+      },
+      "CallAppendUpdateCmd对象": {
+        "title": "CallAppendUpdateCmd对象",
+        "type": "object",
+        "properties": {
+          "autoFlowId": {
+            "type": "integer",
+            "description": "机器人id",
+            "format": "int64"
+          },
+          "countryCode": {
+            "type": "string",
+            "description": "国码"
+          },
+          "list": {
+            "type": "array",
+            "description": "追加号码信息",
+            "items": {
+              "$ref": "#/components/schemas/CallInfoList"
+            }
+          },
+          "taskId": {
+            "type": "string",
+            "description": "任务id"
+          },
+          "tenantId": {
+            "type": "integer",
+            "description": "租户id",
+            "format": "int64"
+          }
+        }
+      },
+      "CallInfoList": {
+        "title": "CallInfoList",
+        "type": "object",
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "description": "名单id"
+          },
+          "name": {
+            "type": "string",
+            "description": "名称"
+          },
+          "params": {
+            "type": "array",
+            "description": "变量信息",
+            "items": {
+              "$ref": "#/components/schemas/Params"
+            }
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "号码"
+          }
+        }
+      },
+      "OpenCallPageQry": {
+        "title": "OpenCallPageQry",
+        "required": [
+          "pageNumber",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "callId": {
+            "type": "string",
+            "description": "通话ID"
+          },
+          "callResult": {
+            "type": "integer",
+            "description": "通话结果",
+            "format": "int32"
+          },
+          "endTs": {
+            "type": "integer",
+            "description": "结束时间戳 (单位秒)",
+            "format": "int32"
+          },
+          "maxElapsed": {
+            "type": "integer",
+            "description": "最大通话时长(秒)",
+            "format": "int64"
+          },
+          "minElapsed": {
+            "type": "integer",
+            "description": "最小通话时长(秒)",
+            "format": "int64"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "description": "页码",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页大小，10-1000",
+            "format": "int32"
+          },
+          "phone": {
+            "type": "string",
+            "description": "电话号码"
+          },
+          "startTs": {
+            "type": "integer",
+            "description": "创建开始时间戳 (单位秒)",
+            "format": "int32"
+          },
+          "taskId": {
+            "type": "string",
+            "description": "任务ID"
+          },
+          "tenantId": {
+            "type": "integer",
+            "description": "租户ID",
+            "format": "int64"
+          },
+          "userIntent": {
+            "type": "string",
+            "description": "会话标签"
+          }
+        }
+      },
+      "SingleResponse": {
+        "title": "SingleResponse",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "data": {
+            "type": "object",
+            "properties": {}
+          },
+          "message": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        }
+      },
+      "ParamsInfo": {
+        "title": "ParamsInfo",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "变量key"
+          },
+          "name": {
+            "type": "string",
+            "description": "变量名"
+          },
+          "value": {
+            "type": "string",
+            "description": "默认值"
+          }
+        }
+      },
+      "OpenCallTaskInfoCommonQry": {
+        "title": "OpenCallTaskInfoCommonQry",
+        "required": [
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "createEndTs": {
+            "type": "integer",
+            "description": "创建结束时间戳 (单位秒)",
+            "format": "int32"
+          },
+          "createStartTs": {
+            "type": "integer",
+            "description": "创建开始时间戳 (单位秒)",
+            "format": "int32"
+          },
+          "maxCallsAnsweredRate": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+            "description": "最大接通率",
+            "format": "double",
+            "example": 100
+          },
+          "maxTaskTotalQuantity": {
+            "type": "integer",
+            "description": "最大任务总量",
+            "format": "int32",
+            "example": 1000
+          },
+          "minCallsAnsweredRate": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+            "description": "最小接通率",
+            "format": "double",
+            "example": 50
+          },
+          "minTaskTotalQuantity": {
+            "type": "integer",
+            "description": "最小任务总量",
+            "format": "int32",
+            "example": 100
+          },
+          "pageNumber": {
+            "type": "integer",
+            "description": "页码",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页大小",
+            "format": "int32",
+            "example": 10
+          },
+          "taskName": {
+            "type": "string",
+            "description": "任务名称"
+          },
+          "taskStatus": {
+            "type": "integer",
+            "description": "任务状态",
+            "format": "int32"
+          },
+          "tenantId": {
+            "type": "integer",
+            "description": "租户id",
+            "format": "int64"
+          }
+        }
+      },
+      "OpenOrderCmd": {
+        "title": "OpenOrderCmd",
+        "type": "object",
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "description": "名单id"
+          },
+          "taskId": {
+            "type": "string",
+            "description": "任务ID"
+          },
+          "tenantId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Page2Response«CallTaskInfoVO对象»": {
+        "title": "Page2Response«CallTaskInfoVO对象»",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallTaskInfoVO%E5%AF%B9%E8%B1%A1"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        }
+      },
+      "Page2Response«客户通话记录详情»": {
+        "title": "Page2Response«客户通话记录详情»",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/%E5%AE%A2%E6%88%B7%E9%80%9A%E8%AF%9D%E8%AE%B0%E5%BD%95%E8%AF%A6%E6%83%85"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        }
+      },
+      "客户通话记录详情": {
+        "title": "客户通话记录详情",
+        "type": "object",
+        "properties": {
+          "agentGroupId": {
+            "type": "string",
+            "description": "坐席组Id"
+          },
+          "agentGroupName": {
+            "type": "string",
+            "description": "坐席组"
+          },
+          "agentId": {
+            "type": "string",
+            "description": "座机账号Id"
+          },
+          "agentName": {
+            "type": "string",
+            "description": "座机账号"
+          },
+          "attributes": {
+            "type": "array",
+            "description": "变量信息",
+            "items": {
+              "$ref": "#/components/schemas/ParamsInfo"
+            }
+          },
+          "autoFlowId": {
+            "type": "integer",
+            "description": "机器人id",
+            "format": "int64"
+          },
+          "autoFlowName": {
+            "type": "string",
+            "description": "ai agent 名称"
+          },
+          "callAnswer": {
+            "type": "integer",
+            "description": "接听通话秒级时间戳",
+            "format": "int64"
+          },
+          "callAudioUrl": {
+            "type": "string",
+            "description": "通话url"
+          },
+          "callCallbackUrl": {
+            "type": "string",
+            "description": "通话结束回调url"
+          },
+          "callElapsed": {
+            "type": "integer",
+            "description": "通话时长,单位为秒",
+            "format": "int64"
+          },
+          "callEnd": {
+            "type": "integer",
+            "description": "结束通话秒级时间戳",
+            "format": "int64"
+          },
+          "callId": {
+            "type": "string",
+            "description": "通话ID"
+          },
+          "callResult": {
+            "type": "integer",
+            "description": "通话结果",
+            "format": "int32"
+          },
+          "callRingTime": {
+            "type": "integer",
+            "description": "振铃时长",
+            "format": "int64"
+          },
+          "callStart": {
+            "type": "integer",
+            "description": "开始通话秒级时间戳",
+            "format": "int64"
+          },
+          "callStatus": {
+            "type": "integer",
+            "description": "通话状态",
+            "format": "int32"
+          },
+          "callSummary": {
+            "type": "string",
+            "description": "通话摘要"
+          },
+          "calleePhone": {
+            "type": "string",
+            "description": "号码"
+          },
+          "callerPhone": {
+            "type": "string",
+            "description": "主叫号码"
+          },
+          "contactId": {
+            "type": "string",
+            "description": "名单id"
+          },
+          "createTs": {
+            "type": "integer",
+            "description": "创建秒级时间戳",
+            "format": "int64"
+          },
+          "hangupReason": {
+            "type": "string",
+            "description": "挂断原因"
+          },
+          "id": {
+            "type": "integer",
+            "description": "参与id",
+            "format": "int64"
+          },
+          "lineId": {
+            "type": "string",
+            "description": "通话选择的线路"
+          },
+          "manualCallAnswer": {
+            "type": "integer",
+            "description": "人工通话接通秒级时间戳",
+            "format": "int32"
+          },
+          "manualCallEnd": {
+            "type": "integer",
+            "description": "人工通话结束秒级时间戳",
+            "format": "int32"
+          },
+          "manualCallStart": {
+            "type": "integer",
+            "description": "人工通话开始秒级时间戳",
+            "format": "int32"
+          },
+          "manualCallStatus": {
+            "type": "integer",
+            "description": "人工通话状态",
+            "format": "int32"
+          },
+          "manualElapsed": {
+            "type": "integer",
+            "description": "人工通话时长",
+            "format": "int32"
+          },
+          "opTs": {
+            "type": "integer",
+            "description": "操作秒级时间戳",
+            "format": "int32"
+          },
+          "orderCallbackUrl": {
+            "type": "string",
+            "description": "订单结束回调url"
+          },
+          "orderHead": {
+            "type": "integer",
+            "description": "标识，首通的标识，0:no,1:yes",
+            "format": "int32"
+          },
+          "orderTail": {
+            "type": "integer",
+            "description": "标识，最后一通的标识,0:no,1:yes",
+            "format": "int32"
+          },
+          "realPhone": {
+            "type": "string",
+            "description": "真实号码"
+          },
+          "routeId": {
+            "type": "string",
+            "description": "通话选择的路由"
+          },
+          "sipAddr": {
+            "type": "string",
+            "description": "线路地址"
+          },
+          "sipCode": {
+            "type": "string",
+            "description": "sip code"
+          },
+          "taskId": {
+            "type": "string",
+            "description": "任务id"
+          },
+          "turnTime": {
+            "type": "integer",
+            "description": "对话轮次",
+            "format": "int32"
+          },
+          "userIntent": {
+            "type": "string",
+            "description": "用户意图"
+          }
+        }
+      },
+      "Params": {
+        "title": "Params",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "变量名称"
+          },
+          "value": {
+            "type": "string",
+            "description": "变量值"
+          }
+        }
+      }
+    },
+    "securitySchemes": {}
+  },
+  "servers": [
+    {
+      "url": "http://prod-cn.your-api-server.com",
+      "description": "正式环境"
+    }
+  ],
+  "security": []
+}

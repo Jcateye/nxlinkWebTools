@@ -101,6 +101,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/chl/, ''),
       },
+      '/api/openapi': {
+        target: 'https://api-westus.nxlink.ai',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
       '/api': {
         target: 'https://nxlink.nxcloud.com',
         changeOrigin: true,

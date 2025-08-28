@@ -39,7 +39,7 @@ interface FormWebhookData {
  * 表单数据推送接收接口
  * POST /api/webhook/form-submission
  */
-router.post('/form-submission', express.json(), async (req, res) => {
+router.post('/form-submission', express.json(), async (req, res): Promise<any> => {
   try {
     const webhookData: FormWebhookData = req.body;
 
@@ -354,7 +354,7 @@ router.get('/form-mapping', (req, res) => {
  * 更新表单映射配置（仅用于开发调试）
  * POST /api/webhook/update-mapping
  */
-router.post('/update-mapping', express.json(), async (req, res): Promise<void> => {
+router.post('/update-mapping', express.json(), async (req, res): Promise<any> => {
   const { formId, taskId, formName, description } = req.body;
 
   if (!formId || !taskId) {

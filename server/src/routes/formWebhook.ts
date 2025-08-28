@@ -1,5 +1,4 @@
 import express from 'express';
-import { appendNumbers } from './openapi';
 import { getTaskIdByFormId, isValidFormId, getAvailableFormMappings } from '../../../config/form-mapping.config';
 
 const router = express.Router();
@@ -84,7 +83,10 @@ router.post('/form-submission', express.json(), async (req, res) => {
     }
 
     // 构建追加号码的数据
-    const phoneData = {
+    const phoneData: {
+      phoneNumber: string;
+      params: Array<{ name: string; value: string }>;
+    } = {
       phoneNumber: phoneNumber,
       params: []
     };
@@ -208,7 +210,7 @@ router.post('/form-submission', express.json(), async (req, res) => {
 /**
  * 处理追加号码的逻辑（从openapi.ts复制并修改）
  */
-async function processAppendNumbers(req: any) {
+async function processAppendNumbers(req: any): Promise<any> {
   const { taskId, phoneNumbers, autoFlowId, countryCode } = req.body;
 
   // 这里需要导入必要的函数和配置
@@ -352,7 +354,7 @@ router.get('/form-mapping', (req, res) => {
  * 更新表单映射配置（仅用于开发调试）
  * POST /api/webhook/update-mapping
  */
-router.post('/update-mapping', express.json(), async (req, res) => {
+router.post('/update-mapping', express.json(), async (req, res): Promise<void> => {
   const { formId, taskId, formName, description } = req.body;
 
   if (!formId || !taskId) {

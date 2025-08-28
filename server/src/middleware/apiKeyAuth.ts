@@ -1,16 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-import { PROJECT_CONFIG } from '../../../config/project.config';
+import { PROJECT_CONFIG, ExternalApiKeyConfig } from '../../../config/project.config';
 
 /**
  * API Key认证中间件
- * 验证外部平台调用时携带的API Key
+ * 验证外部平台调用时携带的API Key，并提供对应的OpenAPI配置
  */
-
-// 从项目配置中获取有效的API Keys
-const VALID_API_KEYS = PROJECT_CONFIG.externalApiKeys;
 
 export interface AuthenticatedRequest extends Request {
   apiKey?: string;
+  apiKeyConfig?: ExternalApiKeyConfig;
 }
 
 export function apiKeyAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -25,17 +23,27 @@ export function apiKeyAuth(req: AuthenticatedRequest, res: Response, next: NextF
     });
   }
 
-  // 验证API Key是否有效
-  if (!VALID_API_KEYS.includes(apiKey)) {
+  // 查找匹配的API Key配置
+  const apiKeyConfig = PROJECT_CONFIG.externalApiKeys.find(config => config.apiKey === apiKey);
+
+  if (!apiKeyConfig) {
     return res.status(403).json({
       code: 403,
-      message: 'Invalid API Key',
-      error: 'INVALID_API_KEY'
+      message: `Invalid API Key: ${apiKey}`,
+      error: 'INVALID_API_KEY',
+      availableKeys: PROJECT_CONFIG.externalApiKeys.map(config => ({
+        alias: config.alias,
+        description: config.description
+      }))
     });
   }
 
-  // 将API Key添加到请求对象中，供后续使用
+  // 将API Key和对应的配置信息附加到请求对象
   req.apiKey = apiKey;
+  req.apiKeyConfig = apiKeyConfig;
+  
+  console.log(`[${new Date().toLocaleTimeString()}] 🔑 API Key认证成功: ${apiKeyConfig.alias} (${apiKey})`);
+  
   next();
 }
 

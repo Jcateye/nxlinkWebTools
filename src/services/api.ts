@@ -1,6 +1,7 @@
 import axios, { InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 import { message } from 'antd';
 import { requestDeduper } from '../utils/requestDeduper';
+import { isTokenExpired, cleanupAllExpiredTokens, EXPIRED_TOKEN_MESSAGES } from '../utils/tokenCleaner';
 import { 
   ApiResponse, 
   TagGroup, 
@@ -191,6 +192,9 @@ faqApi.interceptors.request.use(
       config.headers.system_id = '5';
       config.headers.time_zone = 'UTC+08:00';
       config.headers.lang = 'zh_CN';
+      
+      // 在请求配置中记录使用的token，用于后续错误处理
+      (config as any)._usedToken = faqToken;
     } else {
       console.warn('🚫 [FAQ API] 没有找到有效的授权token');
     }
@@ -241,6 +245,9 @@ voiceApi.interceptors.request.use(
       config.headers.system_id = '5';
       config.headers.time_zone = 'UTC+08:00';
       config.headers.lang = 'zh_CN';
+      
+      // 在请求配置中记录使用的token，用于后续错误处理
+      (config as any)._usedToken = voiceToken;
     } else {
       console.warn('🚫 [Voice API] 没有找到有效的授权token');
     }
@@ -257,6 +264,39 @@ voiceApi.interceptors.request.use(
   (error: any) => {
     logRequestError(error, 'Voice API 请求拦截器');
     return Promise.reject(error);
+  }
+);
+
+// Voice API响应拦截器
+voiceApi.interceptors.response.use(
+  (response) => {
+    if (process.env.NODE_ENV === 'development' && API_CONFIG.verboseLogging) {
+      console.log('[Voice API 响应状态]', response.status);
+      console.log('[Voice API 响应数据]', response.data);
+    }
+    
+    // 检查响应中的错误码，处理token过期
+    const resData = response.data as ApiResponse<any>;
+    if (resData && resData.code !== 0 && isTokenExpired(response)) {
+      const usedToken = (response.config as any)?._usedToken;
+      if (usedToken) {
+        console.log('🔍 [Voice API] 检测到token过期，开始清理...');
+        cleanupAllExpiredTokens(usedToken);
+      }
+    }
+    
+    return response;
+  },
+  (error) => {
+    // 处理HTTP错误状态码的token过期情况
+    if (error.response && isTokenExpired(error.response)) {
+      const usedToken = (error.config as any)?._usedToken;
+      if (usedToken) {
+        console.log('🔍 [Voice API] 检测到HTTP token过期，开始清理...');
+        cleanupAllExpiredTokens(usedToken);
+      }
+    }
+    return Promise.reject(logRequestError(error, 'Voice API 响应'));
   }
 );
 
@@ -290,6 +330,9 @@ conversationApi.interceptors.request.use(
       config.headers.system_id = '5';
       config.headers.time_zone = 'UTC+08:00';
       config.headers.lang = 'zh_CN';
+      
+      // 在请求配置中记录使用的token，用于后续错误处理
+      (config as any)._usedToken = conversationToken;
     } else {
       console.warn('🚫 [Conversation API] 没有找到有效的授权token');
     }
@@ -315,9 +358,28 @@ conversationApi.interceptors.response.use(
       console.log('[Conversation API 响应状态]', response.status);
       console.log('[Conversation API 响应数据]', response.data);
     }
+    
+    // 检查响应中的错误码，处理token过期
+    const resData = response.data as ApiResponse<any>;
+    if (resData && resData.code !== 0 && isTokenExpired(response)) {
+      const usedToken = (response.config as any)?._usedToken;
+      if (usedToken) {
+        console.log('🔍 [Conversation API] 检测到token过期，开始清理...');
+        cleanupAllExpiredTokens(usedToken);
+      }
+    }
+    
     return response;
   },
   (error) => {
+    // 处理HTTP错误状态码的token过期情况
+    if (error.response && isTokenExpired(error.response)) {
+      const usedToken = (error.config as any)?._usedToken;
+      if (usedToken) {
+        console.log('🔍 [Conversation API] 检测到HTTP token过期，开始清理...');
+        cleanupAllExpiredTokens(usedToken);
+      }
+    }
     return Promise.reject(logRequestError(error, 'Conversation API 响应'));
   }
 );
@@ -372,7 +434,16 @@ faqApi.interceptors.response.use(
     // 超过code不为0的请求，并返回友好提示
     if (resData.code !== 0) {
       const errMsg = resData.message || '服务器返回错误';
-      console.error(`❌ [API] 请求失败: ${errMsg}`);
+      console.error(`❌ [FAQ API] 请求失败: ${errMsg}`);
+      
+      // 检查是否是token过期错误
+      if (isTokenExpired(response)) {
+        const usedToken = (response.config as any)?._usedToken;
+        if (usedToken) {
+          console.log('🔍 [FAQ API] 检测到token过期，开始清理...');
+          cleanupAllExpiredTokens(usedToken);
+        }
+      }
       
       // 使用 antd message 提示，不再使用require
       if (typeof window !== 'undefined' && window.document) {
@@ -383,6 +454,14 @@ faqApi.interceptors.response.use(
     return response;
   },
   (error) => {
+    // 处理HTTP错误状态码的token过期情况
+    if (error.response && isTokenExpired(error.response)) {
+      const usedToken = (error.config as any)?._usedToken;
+      if (usedToken) {
+        console.log('🔍 [FAQ API] 检测到HTTP token过期，开始清理...');
+        cleanupAllExpiredTokens(usedToken);
+      }
+    }
     return Promise.reject(logRequestError(error, 'FAQ API 响应'));
   }
 );
@@ -1913,6 +1992,18 @@ export const nxlinkClientIsLogin = async (token?: string): Promise<any> => {
     });
   } catch (error: any) {
     console.error('❌ [nxlinkClientIsLogin] 获取用户信息失败:', error);
+    
+    // 检查是否是token过期错误，如果是则清理过期token
+    if (error.response && isTokenExpired(error.response)) {
+      console.log('🔍 [nxlinkClientIsLogin] 检测到token过期，开始清理...');
+      cleanupAllExpiredTokens(effectiveToken);
+    } else if (error.message && EXPIRED_TOKEN_MESSAGES.some(msg => 
+      error.message.toLowerCase().includes(msg.toLowerCase())
+    )) {
+      console.log('🔍 [nxlinkClientIsLogin] 检测到token过期消息，开始清理...');
+      cleanupAllExpiredTokens(effectiveToken);
+    }
+    
     throw error;
   }
 }; 

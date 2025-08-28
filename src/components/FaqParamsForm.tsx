@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Form, Button, Card, message, Typography, Tag, Space, Dropdown, Menu, Spin } from 'antd';
-import { DownOutlined, SwapOutlined, KeyOutlined, LogoutOutlined } from '@ant-design/icons';
+import { SwapOutlined, KeyOutlined, LogoutOutlined } from '@ant-design/icons';
 import { FaqUserParams } from '../types';
 import { useUserContext } from '../context/UserContext';
 import axios from 'axios';
@@ -82,7 +82,23 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [tenantDropdownVisible, setTenantDropdownVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+
+  // 监听token过期事件
+  useEffect(() => {
+    const handleTokenExpired = (event: CustomEvent) => {
+      console.log('🔔 [FaqParamsForm] 收到token过期事件:', event.detail);
+      // 强制重新渲染组件，更新UI状态
+      setSourceCompanyInfo(null);
+      setTargetCompanyInfo(null);
+    };
+
+    window.addEventListener('tokenExpired', handleTokenExpired as EventListener);
+    
+    return () => {
+      window.removeEventListener('tokenExpired', handleTokenExpired as EventListener);
+    };
+  }, []);
 
   // 组件加载时从本地存储加载参数并验证
   useEffect(() => {
@@ -277,10 +293,10 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
         // 只验证token有效性，不处理用户信息
         // 用户信息由 UserInfoCard 组件统一处理
         console.log(`${isSource ? '源' : '目标'}租户token验证成功`);
-        return true;
-      } else {
+              return true;
+            } else {
         console.error(`${isSource ? '源' : '目标'}租户token验证失败`);
-        return false;
+              return false;
       }
     } catch (err: any) {
       console.error(`${isSource ? '源' : '目标'}租户验证失败:`, err.response?.data || err.message);
@@ -355,7 +371,6 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
   // 处理租户切换
   const handleSwitchTenant = async (tenant: Tenant) => {
     try {
-      setLoading(true);
       const token = formType === 'source' 
         ? faqUserParams?.sourceAuthorization 
         : faqUserParams?.targetAuthorization;
@@ -392,7 +407,6 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
       console.error('切换租户失败:', error);
       message.error('切换租户失败');
     } finally {
-      setLoading(false);
       setTenantDropdownVisible(false);
     }
   };
@@ -475,7 +489,7 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
                       <Text type="success" style={{ fontSize: 12 }}>已授权</Text>
                       <Text type="secondary" style={{ fontSize: 11 }}>
                         {faqUserParams.sourceAuthorization.substring(0, 15)}...
-                      </Text>
+                </Text>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -547,7 +561,7 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
                       <Text type="success" style={{ fontSize: 12 }}>已授权</Text>
                       <Text type="secondary" style={{ fontSize: 11 }}>
                         {faqUserParams.targetAuthorization.substring(0, 15)}...
-                      </Text>
+                </Text>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -589,7 +603,7 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
         )}
 
         {/* 切换租户功能 - 仅在已授权时显示 */}
-        {(formType === 'source' ? !!faqUserParams?.sourceAuthorization : !!faqUserParams?.targetAuthorization) && (
+          {(formType === 'source' ? !!faqUserParams?.sourceAuthorization : !!faqUserParams?.targetAuthorization) && (
           <div style={{ marginTop: 16, textAlign: 'center' }}>
             <Dropdown 
               overlay={tenantMenu} 
@@ -609,13 +623,13 @@ const FaqParamsForm: React.FC<FaqParamsFormProps> = ({ formType = 'source' }) =>
               </Button>
             </Dropdown>
           </div>
-        )}
+          )}
       </Form>
 
       <AuthModal
         visible={authModalVisible}
         onCancel={() => setAuthModalVisible(false)}
-        onSuccess={async (token, method, remember) => {
+        onSuccess={async (token, _method, remember) => {
           // 保存token到用户参数
           const newParams = {
             sourceAuthorization: formType === 'source' ? token : (faqUserParams?.sourceAuthorization || ''),

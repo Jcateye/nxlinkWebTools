@@ -3,6 +3,20 @@
  * 集中管理所有环境变量和配置项
  */
 
+export interface OpenApiConfig {
+  accessKey: string;
+  accessSecret: string;
+  bizType: string;
+  baseUrl: string;
+}
+
+export interface ExternalApiKeyConfig {
+  apiKey: string;
+  alias: string;
+  description?: string;
+  openapi: OpenApiConfig;
+}
+
 export interface ProjectConfig {
   // 服务器配置
   server: {
@@ -14,16 +28,11 @@ export interface ProjectConfig {
     logLevel: string;
   };
   
-  // OpenAPI配置
-  openapi: {
-    accessKey: string;
-    accessSecret: string;
-    bizType: string;
-    baseUrl: string;
-  };
+  // 默认 OpenAPI 配置（向后兼容）
+  openapi: OpenApiConfig;
   
-  // 外部API Key配置
-  externalApiKeys: string[];
+  // 多租户 API Key 配置
+  externalApiKeys: ExternalApiKeyConfig[];
   
   // 数据库配置
   database: {
@@ -71,8 +80,28 @@ const DEFAULT_CONFIG: ProjectConfig = {
   },
   
   externalApiKeys: [
-    'demo-api-key-1',                                        // 演示用API Key
-    'demo-api-key-2'                                         // 演示用API Key
+    {
+      apiKey: 'demo-api-key-1',
+      alias: '演示平台1',
+      description: '演示用API Key 1',
+      openapi: {
+        accessKey: 'your-openapi-access-key-1',
+        accessSecret: 'your-openapi-access-secret-1',
+        bizType: '8',
+        baseUrl: 'https://api-westus.nxlink.ai'
+      }
+    },
+    {
+      apiKey: 'demo-api-key-2',
+      alias: '演示平台2',
+      description: '演示用API Key 2',
+      openapi: {
+        accessKey: 'your-openapi-access-key-2',
+        accessSecret: 'your-openapi-access-secret-2',
+        bizType: '8',
+        baseUrl: 'https://api-westus.nxlink.ai'
+      }
+    }
   ],
   
   database: {
@@ -126,9 +155,29 @@ const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
   },
   
   externalApiKeys: [
-    process.env.EXTERNAL_API_KEY_1 || '',                         // 必须通过环境变量设置
-    process.env.EXTERNAL_API_KEY_2 || ''                          // 必须通过环境变量设置
-  ].filter(Boolean),                                              // 过滤空值
+    {
+      apiKey: process.env.EXTERNAL_API_KEY_1 || '',
+      alias: process.env.EXTERNAL_API_KEY_1_ALIAS || '生产平台1',
+      description: process.env.EXTERNAL_API_KEY_1_DESC || '生产环境API Key 1',
+      openapi: {
+        accessKey: process.env.EXTERNAL_API_KEY_1_OPENAPI_ACCESS_KEY || '',
+        accessSecret: process.env.EXTERNAL_API_KEY_1_OPENAPI_ACCESS_SECRET || '',
+        bizType: process.env.EXTERNAL_API_KEY_1_OPENAPI_BIZ_TYPE || '8',
+        baseUrl: process.env.EXTERNAL_API_KEY_1_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
+      }
+    },
+    {
+      apiKey: process.env.EXTERNAL_API_KEY_2 || '',
+      alias: process.env.EXTERNAL_API_KEY_2_ALIAS || '生产平台2',
+      description: process.env.EXTERNAL_API_KEY_2_DESC || '生产环境API Key 2',
+      openapi: {
+        accessKey: process.env.EXTERNAL_API_KEY_2_OPENAPI_ACCESS_KEY || '',
+        accessSecret: process.env.EXTERNAL_API_KEY_2_OPENAPI_ACCESS_SECRET || '',
+        bizType: process.env.EXTERNAL_API_KEY_2_OPENAPI_BIZ_TYPE || '8',
+        baseUrl: process.env.EXTERNAL_API_KEY_2_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
+      }
+    }
+  ].filter(config => config.apiKey),                              // 过滤空的API Key
   
   database: {
     url: process.env.DATABASE_URL || 'sqlite:./database.db'       // 生产环境通常使用PostgreSQL/MySQL
@@ -181,8 +230,28 @@ const DEVELOPMENT_CONFIG: Partial<ProjectConfig> = {
   },
   
   externalApiKeys: [
-    process.env.EXTERNAL_API_KEY_1 || 'demo-api-key-1',          // 优先环境变量，否则演示密钥
-    process.env.EXTERNAL_API_KEY_2 || 'demo-api-key-2'           // 优先环境变量，否则演示密钥
+    {
+      apiKey: process.env.EXTERNAL_API_KEY_1 || 'demo-api-key-1',
+      alias: process.env.EXTERNAL_API_KEY_1_ALIAS || '开发平台1',
+      description: process.env.EXTERNAL_API_KEY_1_DESC || '开发环境API Key 1',
+      openapi: {
+        accessKey: process.env.EXTERNAL_API_KEY_1_OPENAPI_ACCESS_KEY || 'AK-764887602601150724-2786',
+        accessSecret: process.env.EXTERNAL_API_KEY_1_OPENAPI_ACCESS_SECRET || '0de4a159402a4e3494f76669ac92d6e6',
+        bizType: process.env.EXTERNAL_API_KEY_1_OPENAPI_BIZ_TYPE || '8',
+        baseUrl: process.env.EXTERNAL_API_KEY_1_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
+      }
+    },
+    {
+      apiKey: process.env.EXTERNAL_API_KEY_2 || 'demo-api-key-2',
+      alias: process.env.EXTERNAL_API_KEY_2_ALIAS || '开发平台2',
+      description: process.env.EXTERNAL_API_KEY_2_DESC || '开发环境API Key 2',
+      openapi: {
+        accessKey: process.env.EXTERNAL_API_KEY_2_OPENAPI_ACCESS_KEY || 'AK-764887602601150724-2786',
+        accessSecret: process.env.EXTERNAL_API_KEY_2_OPENAPI_ACCESS_SECRET || '0de4a159402a4e3494f76669ac92d6e6',
+        bizType: process.env.EXTERNAL_API_KEY_2_OPENAPI_BIZ_TYPE || '8',
+        baseUrl: process.env.EXTERNAL_API_KEY_2_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
+      }
+    }
   ],
   
   database: {

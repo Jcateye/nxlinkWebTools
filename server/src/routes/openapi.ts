@@ -35,6 +35,45 @@ function getOpenApiConfigForApiKey(req: AuthenticatedRequest) {
   };
 }
 
+// 调试日志（简单脱敏）
+function logDebug(
+  title: string,
+  payload: {
+    apiKey?: string;
+    alias?: string;
+    baseURL?: string;
+    action?: string;
+    headers?: Record<string, any>;
+    body?: any;
+    response?: any;
+    error?: any;
+  }
+) {
+  try {
+    const safeHeaders = payload.headers
+      ? {
+          ...payload.headers,
+          accessKey: payload.headers.accessKey ? `${String(payload.headers.accessKey).slice(0, 10)}***` : undefined,
+        }
+      : undefined;
+    const logObj = {
+      apiKey: payload.apiKey,
+      alias: payload.alias,
+      baseURL: payload.baseURL,
+      action: payload.action,
+      headers: safeHeaders,
+      body: payload.body,
+      responseCode: payload.response?.code ?? payload.response?.status,
+      responseMsg: payload.response?.message,
+      errorMsg: payload.error?.message,
+    };
+    const time = new Date().toLocaleTimeString();
+    console.log(`[${time}] [OpenAPI Debug] ${title}:`, JSON.stringify(logObj, null, 2));
+  } catch (e) {
+    console.log('[OpenAPI Debug] log error', (e as any)?.message);
+  }
+}
+
 /**
  * 生成OpenAPI签名
  */
@@ -57,6 +96,19 @@ function generateOpenApiSign(
 
   // Step 3: 拼接accessSecret
   raw += `&accessSecret=${accessSecret}`;
+
+  // Debug: 打印签名原文（仅显示前50个字符和后20个字符）
+  const rawPreview = raw.length > 70 
+    ? `${raw.substring(0, 50)}...${raw.substring(raw.length - 20)}`
+    : raw;
+  logDebug('Sign calculation details', { 
+    headers: {
+      accessKey: headers.accessKey.substring(0, 10) + '***',
+      ts: headers.ts,
+      algorithm
+    },
+    body: `Raw string length: ${raw.length}, Preview: ${rawPreview}`
+  });
 
   // Step 4: 哈希并转换为小写十六进制
   let sign: string;
@@ -201,6 +253,14 @@ router.post('/append-numbers', apiKeyAuth, async (req: AuthenticatedRequest, res
           { headers }
         );
 
+        logDebug('Response call-append (single)', {
+          apiKey: req.apiKey,
+          alias: req.apiKeyConfig?.alias,
+          baseURL: openApiConfig.baseURL,
+          action: 'callAppend',
+          response: response.data,
+        });
+
         if (response.data?.code === 0 || response.data?.code === 200) {
           successCount++;
           results.push({
@@ -245,7 +305,11 @@ router.post('/append-numbers', apiKeyAuth, async (req: AuthenticatedRequest, res
     return;
 
   } catch (error: any) {
-    console.error('OpenAPI append numbers error:', error);
+    logDebug('Error append-numbers', {
+      apiKey: req.apiKey,
+      alias: req.apiKeyConfig?.alias,
+      error
+    });
     res.status(500).json({
       code: 500,
       message: 'Internal server error',
@@ -284,12 +348,29 @@ router.post('/task-list', apiKeyAuth, async (req: AuthenticatedRequest, res): Pr
       ts: String(Date.now())
     }, params);
 
+    logDebug('Request task-list', {
+      apiKey: req.apiKey,
+      alias: req.apiKeyConfig?.alias,
+      baseURL: openApiConfig.baseURL,
+      action: 'pageCallTaskInfo',
+      headers,
+      body: params
+    });
+
     // 调用OpenAPI
     const response = await axios.post(
       `${openApiConfig.baseURL}/openapi/aiagent/task/list`,
       params,
       { headers }
     );
+
+    logDebug('Response task-list', {
+      apiKey: req.apiKey,
+      alias: req.apiKeyConfig?.alias,
+      baseURL: openApiConfig.baseURL,
+      action: 'pageCallTaskInfo',
+      response: response.data
+    });
 
     res.json({
       code: 200,
@@ -300,7 +381,7 @@ router.post('/task-list', apiKeyAuth, async (req: AuthenticatedRequest, res): Pr
     return;
 
   } catch (error: any) {
-    console.error('OpenAPI task list error:', error);
+    logDebug('Error task-list', { apiKey: req.apiKey, alias: req.apiKeyConfig?.alias, error });
     res.status(500).json({
       code: 500,
       message: 'Internal server error',
@@ -339,12 +420,29 @@ router.post('/call-records', apiKeyAuth, async (req: AuthenticatedRequest, res):
       ts: String(Date.now())
     }, params);
 
+    logDebug('Request call-records', {
+      apiKey: req.apiKey,
+      alias: req.apiKeyConfig?.alias,
+      baseURL: openApiConfig.baseURL,
+      action: 'pageCallRecords',
+      headers,
+      body: params
+    });
+
     // 调用OpenAPI
     const response = await axios.post(
       `${openApiConfig.baseURL}/openapi/aiagent/call/list`,
       params,
       { headers }
     );
+
+    logDebug('Response call-records', {
+      apiKey: req.apiKey,
+      alias: req.apiKeyConfig?.alias,
+      baseURL: openApiConfig.baseURL,
+      action: 'pageCallRecords',
+      response: response.data
+    });
 
     res.json({
       code: 200,
@@ -355,7 +453,7 @@ router.post('/call-records', apiKeyAuth, async (req: AuthenticatedRequest, res):
     return;
 
   } catch (error: any) {
-    console.error('OpenAPI call records error:', error);
+    logDebug('Error call-records', { apiKey: req.apiKey, alias: req.apiKeyConfig?.alias, error });
     res.status(500).json({
       code: 500,
       message: 'Internal server error',

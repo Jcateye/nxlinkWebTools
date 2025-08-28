@@ -14,37 +14,37 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api/backend': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8400',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/backend/, '/api'),
       },
       '/api/tests': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8400',
         changeOrigin: true,
       },
       '/api/providers': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8400',
         changeOrigin: true,
       },
       '/api/prompts': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8400',
         changeOrigin: true,
       },
       '/api/analytics': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8400',
         changeOrigin: true,
       },
       '/api/auth': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8400',
         changeOrigin: true,
       },
       '/batch-test-log': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8400',
         changeOrigin: true,
         rewrite: (path) => '/api/tests/logs',
       },
       '/batch-test-logs': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8400',
         changeOrigin: true,
         rewrite: (path) => '/api/tests/logs',
       },
@@ -102,10 +102,8 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/chl/, ''),
       },
       '/api/openapi': {
-        target: 'https://api-westus.nxlink.ai',
+        target: 'http://localhost:8400',
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/internal-api': {
         target: 'http://localhost:8400',

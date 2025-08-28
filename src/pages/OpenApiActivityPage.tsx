@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Card, Table, Button, Modal, Form, Input, Space, message, DatePicker, Select, Tag, Breadcrumb, Row, Col, Statistic } from 'antd';
 import { SearchOutlined, ReloadOutlined, HomeOutlined, PhoneOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import OpenApiAuthForm from '../components/openapi/OpenApiAuthForm';
 import ConfigTest from '../components/openapi/ConfigTest';
 import { fixApiUrl } from '../utils/apiHelper';
 import { generateContactIdFromPhone } from '../utils/id';
@@ -309,7 +308,15 @@ export default function OpenApiActivityPage() {
               <Button 
                 type="link" 
                 size="small" 
-                onClick={() => window.open('/api-key-management', '_blank')}
+                onClick={() => {
+                  // 跳转到当前项目内的 API Key 管理页面
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('collaboration');
+                  // 模拟左侧菜单切换：追加查询参数 key=apikey-management
+                  window.history.pushState({}, '', `${url.pathname}?menu=apikey-management`);
+                  // 触发一个自定义事件让 App.tsx 切换菜单（保持解耦）
+                  window.dispatchEvent(new CustomEvent('navigate-menu', { detail: { key: 'apikey-management' } }));
+                }}
               >
                 管理API Key
               </Button>
@@ -350,7 +357,7 @@ export default function OpenApiActivityPage() {
             </Space>
           </Card>
 
-          <OpenApiAuthForm onSaved={() => loadTasks()} />
+          {/* 旧的手动鉴权表单已移除，统一使用上方“数据源配置”的API Key */}
           
           {/* 配置测试组件 - 开发时使用，生产环境可以隐藏 */}
           {process.env.NODE_ENV === 'development' && <ConfigTest />}

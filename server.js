@@ -26,7 +26,7 @@ function getLocalIp() {
 }
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 8300;
 
 // 批量测试日志存储
 let batchTestLogs = [];

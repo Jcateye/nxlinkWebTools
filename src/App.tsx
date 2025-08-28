@@ -42,6 +42,22 @@ const AppContent = () => {
 
   // 添加URL参数处理逻辑
   useEffect(() => {
+    // 监听来自页面内部的菜单导航事件
+    const handler = (e: any) => {
+      const key = e?.detail?.key;
+      if (key) setActiveMenu(key);
+    };
+    window.addEventListener('navigate-menu', handler);
+
+    // 支持通过 ?menu=xxx 直接导航
+    const menuParam = new URLSearchParams(window.location.search).get('menu');
+    if (menuParam) setActiveMenu(menuParam);
+
+    return () => window.removeEventListener('navigate-menu', handler);
+  }, []);
+
+  // 处理 URL 中的协作会话参数
+  useEffect(() => {
     // 从URL中获取协作会话ID
     const urlParams = new URLSearchParams(window.location.search);
     const collaborationId = urlParams.get('collaboration');

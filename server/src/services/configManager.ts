@@ -80,23 +80,33 @@ export function writeApiKeysConfig(config: ApiKeysConfig): void {
 export function getAllApiKeys(): ExternalApiKeyConfig[] {
   // 从环境变量获取
   const { PROJECT_CONFIG } = require('../../../config/project.config');
-  const envKeys = PROJECT_CONFIG.externalApiKeys || [];
+  const envKeys: ExternalApiKeyConfig[] = PROJECT_CONFIG.externalApiKeys || [];
 
   // 从配置文件获取
   const config = readApiKeysConfig();
-  const fileKeys = config.keys || [];
+  const fileKeys: ExternalApiKeyConfig[] = config.keys || [];
 
-  // 合并，避免重复
-  const allKeys = [...envKeys];
-  
+  // 使用 Map 进行去重合并，优先使用“文件配置”覆盖“环境变量”
+  const map = new Map<string, ExternalApiKeyConfig>();
+
+  // 先放入环境变量
+  envKeys.forEach(k => map.set(k.apiKey, k));
+
+  // 再用文件配置覆盖（深合并 openapi）
   fileKeys.forEach(fileKey => {
-    const exists = allKeys.find(envKey => envKey.apiKey === fileKey.apiKey);
-    if (!exists) {
-      allKeys.push(fileKey);
+    const envKey = map.get(fileKey.apiKey);
+    if (!envKey) {
+      map.set(fileKey.apiKey, fileKey);
+    } else {
+      map.set(fileKey.apiKey, {
+        ...envKey,
+        ...fileKey,
+        openapi: { ...envKey.openapi, ...fileKey.openapi }
+      });
     }
   });
 
-  return allKeys;
+  return Array.from(map.values());
 }
 
 /**
@@ -130,10 +140,31 @@ export function updateApiKey(apiKey: string, updates: Partial<ExternalApiKeyConf
   
   const index = config.keys.findIndex(key => key.apiKey === apiKey);
   if (index === -1) {
-    throw new Error(`API Key 不存在: ${apiKey}`);
+    // 文件中没有，可能来源于环境变量。尝试读取合并并写入文件以便覆盖。
+    const allKeys = getAllApiKeys();
+    const envKey = allKeys.find(k => k.apiKey === apiKey);
+    if (!envKey) {
+      throw new Error(`API Key 不存在: ${apiKey}`);
+    }
+
+    const merged: ExternalApiKeyConfig = {
+      ...envKey,
+      ...updates,
+      openapi: { ...envKey.openapi, ...(updates.openapi || {}) }
+    } as ExternalApiKeyConfig;
+
+    config.keys.push(merged);
+    writeApiKeysConfig(config);
+    return;
   }
 
-  config.keys[index] = { ...config.keys[index], ...updates };
+  const merged: ExternalApiKeyConfig = {
+    ...config.keys[index],
+    ...updates,
+    openapi: { ...config.keys[index].openapi, ...(updates.openapi || {}) }
+  } as ExternalApiKeyConfig;
+
+  config.keys[index] = merged;
   writeApiKeysConfig(config);
 }
 

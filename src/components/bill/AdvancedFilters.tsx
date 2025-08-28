@@ -392,7 +392,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           </div>
           <Row gutter={[16, 16]}>
             <Col span={8}>
-              <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>通话时长(秒)</div>
+              <div style={{ marginBottom: 4, fontSize: '12px', color: '#666' }}>AI通话时长(秒)</div>
               <Space.Compact style={{ width: '100%' }}>
                 <InputNumber
                   size="small"

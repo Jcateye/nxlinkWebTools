@@ -103,10 +103,17 @@ const columns: ColumnsType<AIBillItem> = [
     width: 130,
   },
   {
-    title: '通话时长(秒)',
+    title: '线路通话时长(秒)',
+    dataIndex: 'sipCallDurationSec',
+    key: 'sipCallDurationSec',
+    width: 140,
+    render: (value: number | undefined) => value || 0,
+  },
+  {
+    title: 'AI通话时长(秒)',
     dataIndex: 'callDurationSec',
     key: 'callDurationSec',
-    width: 120,
+    width: 140,
     render: (value: number) => value || 0,
   },
   {

@@ -1,8 +1,31 @@
-# OpenAPI外部接口文档
+# OpenAPI外部接口文档 - 多租户版本
 
 ## 概述
 
-本文档描述了如何通过我们的API接口调用nxlink OpenAPI平台的追加号码功能。外部平台可以通过API Key认证来访问这些接口。
+本文档描述了如何通过我们的API接口调用nxlink OpenAPI平台的追加号码功能。系统支持多租户架构，每个外部平台可以使用独立的API Key和OpenAPI配置。
+
+## 多租户架构
+
+### 租户隔离特性
+- **独立API Key**: 每个外部平台拥有唯一的API Key
+- **独立OpenAPI配置**: 每个API Key对应独立的nxlink OpenAPI认证信息
+- **自定义别名**: 支持为API Key设置友好的别名和描述
+- **配置隔离**: 不同租户的配置互不影响
+
+### 租户配置示例
+```json
+{
+  "apiKey": "platform-a-key-12345",
+  "alias": "客户平台A",
+  "description": "A公司的外呼系统",
+  "openapi": {
+    "accessKey": "AK-xxxxx-A",
+    "accessSecret": "secret-A",
+    "bizType": "8",
+    "baseUrl": "https://api-westus.nxlink.ai"
+  }
+}
+```
 
 ## 认证方式
 
@@ -19,6 +42,12 @@ x-api-key: your-api-key
 ```http
 Authorization: Bearer your-api-key
 ```
+
+### 自动租户识别
+系统会根据提供的API Key自动：
+1. 验证API Key的有效性
+2. 识别对应的租户配置
+3. 使用租户专属的OpenAPI配置调用nxlink平台
 
 ## 接口列表
 
@@ -203,21 +232,98 @@ appendNumbers('task-123', [
 });
 ```
 
-## 配置说明
+### 2. 获取API状态
+
+**接口地址**: `GET /api/openapi/status`
+
+**功能描述**: 获取当前API Key的状态和配置信息
+
+**请求头**:
+```http
+x-api-key: your-api-key
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "message": "OpenAPI service is running",
+  "data": {
+    "service": "nxlink-openapi-proxy",
+    "version": "2.0.0",
+    "timestamp": "2025-01-27T10:30:00.000Z",
+    "apiKey": "demo-api-key-1",
+    "apiKeyAlias": "客户平台1",
+    "apiKeyDescription": "第一个客户平台的API Key",
+    "hasOpenApiConfig": true,
+    "openApiBaseUrl": "https://api-westus.nxlink.ai",
+    "openApiBizType": "8"
+  }
+}
+```
+
+### 3. 获取所有API Keys信息
+
+**接口地址**: `GET /api/openapi/keys`
+
+**功能描述**: 获取所有可用的API Keys信息（不需要认证）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "message": "Available API Keys",
+  "data": {
+    "totalKeys": 2,
+    "keys": [
+      {
+        "alias": "客户平台1",
+        "description": "第一个客户平台的API Key",
+        "hasOpenApiConfig": true,
+        "openApiBaseUrl": "https://api-westus.nxlink.ai",
+        "bizType": "8"
+      },
+      {
+        "alias": "客户平台2",
+        "description": "第二个客户平台的API Key",
+        "hasOpenApiConfig": true,
+        "openApiBaseUrl": "https://api-westus.nxlink.ai",
+        "bizType": "8"
+      }
+    ]
+  }
+}
+```
+
+## 多租户配置说明
 
 ### 环境变量配置
 
 在服务器端需要配置以下环境变量：
 
 ```bash
-# OpenAPI配置
-OPENAPI_ACCESS_KEY=your-openapi-access-key
-OPENAPI_ACCESS_SECRET=your-openapi-access-secret
+# 默认OpenAPI配置（向后兼容）
+OPENAPI_ACCESS_KEY=your-default-openapi-access-key
+OPENAPI_ACCESS_SECRET=your-default-openapi-access-secret
 OPENAPI_BIZ_TYPE=8
 
-# 外部平台API Key
-EXTERNAL_API_KEY_1=your-api-key-1
-EXTERNAL_API_KEY_2=your-api-key-2
+# 租户1配置
+EXTERNAL_API_KEY_1=platform-a-key-12345
+EXTERNAL_API_KEY_1_ALIAS=客户平台A
+EXTERNAL_API_KEY_1_DESC=A公司的外呼系统
+EXTERNAL_API_KEY_1_OPENAPI_ACCESS_KEY=AK-xxxxx-A
+EXTERNAL_API_KEY_1_OPENAPI_ACCESS_SECRET=secret-A
+EXTERNAL_API_KEY_1_OPENAPI_BIZ_TYPE=8
+EXTERNAL_API_KEY_1_OPENAPI_BASE_URL=https://api-westus.nxlink.ai
+
+# 租户2配置
+EXTERNAL_API_KEY_2=platform-b-key-67890
+EXTERNAL_API_KEY_2_ALIAS=客户平台B
+EXTERNAL_API_KEY_2_DESC=B公司的营销系统
+EXTERNAL_API_KEY_2_OPENAPI_ACCESS_KEY=AK-xxxxx-B
+EXTERNAL_API_KEY_2_OPENAPI_ACCESS_SECRET=secret-B
+EXTERNAL_API_KEY_2_OPENAPI_BIZ_TYPE=8
+EXTERNAL_API_KEY_2_OPENAPI_BASE_URL=https://api-westus.nxlink.ai
 ```
 
 ### 前端配置

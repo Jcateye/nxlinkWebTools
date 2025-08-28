@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs } from 'antd';
-import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined, CloudServerOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined, CloudServerOutlined, KeyOutlined } from '@ant-design/icons';
 import TagParamsForm from './components/TagParamsForm';
 import FaqParamsForm from './components/FaqParamsForm';
 import TagGroupMigration, { TagGroupMigrationHandle } from './components/TagGroupMigration';
@@ -17,6 +17,7 @@ import MemberManagementPage from './pages/MemberManagementPage';
 import PromptValidationPage from './pages/PromptValidationPage';
 import VendorAppManagementPage from './pages/VendorAppManagementPage';
 import OpenApiActivityPage from './pages/OpenApiActivityPage';
+import ApiKeyManagementPage from './pages/ApiKeyManagementPage';
 import PhoneNumberValidator from './components/PhoneNumberValidator';
 import ConversationManagementPage from './pages/ConversationManagementPage';
 import NXLinkTokenManager from './components/NXLinkTokenManager';
@@ -112,6 +113,7 @@ const AppContent = () => {
       'conversation': '会话管理',
       'settings': '通用设置',
       'openapi-activity': 'OpenAPI 活动管理',
+      'apikey-management': 'API Key 管理',
     };
     return titles[activeMenu] || 'NxLink 管理工具';
   };
@@ -219,6 +221,8 @@ const AppContent = () => {
         return <ConversationManagementPage />;
       case 'openapi-activity':
         return <OpenApiActivityPage />;
+      case 'apikey-management':
+        return <ApiKeyManagementPage />;
       case 'settings':
         return <NXLinkTokenManager />;
       default:
@@ -320,6 +324,9 @@ const AppContent = () => {
           >
             <Menu.Item key="openapi-activity" icon={<ApiOutlined />}>
               活动管理
+            </Menu.Item>
+            <Menu.Item key="apikey-management" icon={<KeyOutlined />}>
+              API Key管理
             </Menu.Item>
           </SubMenu>
 

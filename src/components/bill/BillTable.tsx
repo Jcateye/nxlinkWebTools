@@ -328,10 +328,20 @@ const BillTable: React.FC<BillTableProps> = ({
       }
     },
     {
-      title: '通话时长(秒)',
+      title: '线路通话时长(秒)',
+      dataIndex: 'sipCallDurationSec',
+      key: 'sipCallDurationSec',
+      width: 120,
+      align: 'center' as const,
+      render: (duration: number | undefined) => (
+        <Text style={{ fontSize: '12px' }}>{duration || 0}</Text>
+      )
+    },
+    {
+      title: 'AI通话时长(秒)',
       dataIndex: 'callDurationSec',
       key: 'callDurationSec',
-      width: 90,
+      width: 110,
       align: 'center' as const,
       render: (duration: number) => (
         <Text style={{ fontSize: '12px' }}>{duration || 0}</Text>

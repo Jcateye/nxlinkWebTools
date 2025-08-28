@@ -24,21 +24,21 @@ const prisma = new PrismaClient({
 });
 
 // 监听Prisma日志事件
-prisma.$on('query', (e) => {
+prisma.$on('query', (e: any) => {
   logger.debug(`查询: ${e.query}`);
   logger.debug(`参数: ${e.params}`);
   logger.debug(`持续时间: ${e.duration}ms`);
 });
 
-prisma.$on('error', (e) => {
+prisma.$on('error', (e: any) => {
   logger.error('Prisma错误:', e);
 });
 
-prisma.$on('info', (e) => {
+prisma.$on('info', (e: any) => {
   logger.info('Prisma信息:', e.message);
 });
 
-prisma.$on('warn', (e) => {
+prisma.$on('warn', (e: any) => {
   logger.warn('Prisma警告:', e.message);
 });
 

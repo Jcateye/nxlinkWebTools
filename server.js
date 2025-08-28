@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');
 const os = require('os');
@@ -148,6 +149,8 @@ app.use('/api/openapi', createProxyMiddleware({
     res.status(502).send('OpenAPI 代理出错');
   }
 }));
+
+
 
 // 默认API代理
 app.use('/api', createProxyMiddleware({

@@ -41,7 +41,8 @@
     "joi": "^17.11.0",
     "axios": "^1.6.2",
     "mysql2": "^3.6.5",
-    "redis": "^4.6.11"
+    "redis": "^4.6.11",
+    "crypto-js": "^4.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.4",

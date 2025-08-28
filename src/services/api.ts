@@ -1959,25 +1959,14 @@ export const nxlinkClientIsLogin = async (token?: string): Promise<any> => {
         'accept-language': 'en,zh;q=0.9,zh-CN;q=0.8,fil;q=0.7,de;q=0.6',
         'authorization': effectiveToken,
         'cache-control': 'no-cache',
-        'content-length': '0',
         'content-type': '',  // 显式设置为空，防止axios自动设置
         'createts': Date.now().toString(),
         'currentdomain': 'app.nxlink.ai',
-        'dnt': '1',
         'lang': 'zh_CN',
-        'origin': 'https://app.nxlink.ai',
         'pragma': 'no-cache',
         'priority': 'u=1, i',
-        'referer': 'https://app.nxlink.ai/admin/',
-        'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"macOS"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
         'system_id': '5',
-        'time_zone': 'UTC+08:00',
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+        'time_zone': 'UTC+08:00'
       },
       transformRequest: [(data, headers) => {
         // 确保不会设置默认的 Content-Type

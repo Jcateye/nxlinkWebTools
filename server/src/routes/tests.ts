@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '../utils/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 
@@ -12,20 +11,22 @@ let testLogs: any[] = [];
 let nextId = 1;
 
 // 获取测试运行列表
-router.get('/runs', async (req, res) => {
+router.get('/runs', async (req, res): Promise<void> => {
   try {
     res.json({
       success: true,
       data: testRuns
     });
+    return;
   } catch (error) {
     logger.error('获取测试运行列表失败:', error);
     res.status(500).json({ error: '获取测试运行列表失败' });
+    return;
   }
 });
 
 // 创建测试运行
-router.post('/runs', async (req, res) => {
+router.post('/runs', async (req, res): Promise<void> => {
   try {
     const {
       name,
@@ -36,7 +37,8 @@ router.post('/runs', async (req, res) => {
     } = req.body;
 
     if (!name || !selectedProviders || !selectedPrompts) {
-      return res.status(400).json({ error: '必填字段不能为空' });
+      res.status(400).json({ error: '必填字段不能为空' });
+      return;
     }
 
     const testRun = {
@@ -66,14 +68,16 @@ router.post('/runs', async (req, res) => {
       success: true,
       data: testRun
     });
+    return;
   } catch (error) {
     logger.error('创建测试运行失败:', error);
     res.status(500).json({ error: '创建测试运行失败' });
+    return;
   }
 });
 
 // 获取测试结果
-router.get('/runs/:id/results', async (req, res) => {
+router.get('/runs/:id/results', async (req, res): Promise<void> => {
   try {
     const { id } = req.params;
     const results = testResults.filter(r => r.testRunId === parseInt(id));
@@ -82,14 +86,16 @@ router.get('/runs/:id/results', async (req, res) => {
       success: true,
       data: results
     });
+    return;
   } catch (error) {
     logger.error('获取测试结果失败:', error);
     res.status(500).json({ error: '获取测试结果失败' });
+    return;
   }
 });
 
 // 记录测试日志
-router.post('/logs', async (req, res) => {
+router.post('/logs', async (req, res): Promise<void> => {
   try {
     const {
       testRunId,
@@ -131,14 +137,16 @@ router.post('/logs', async (req, res) => {
       success: true,
       data: log
     });
+    return;
   } catch (error) {
     logger.error('记录测试日志失败:', error);
     res.status(500).json({ error: '记录测试日志失败' });
+    return;
   }
 });
 
 // 获取测试日志
-router.get('/logs', async (req, res) => {
+router.get('/logs', async (req, res): Promise<void> => {
   try {
     const { sessionId, testRunId, limit = 100 } = req.query;
     let logs = testLogs;
@@ -161,14 +169,16 @@ router.get('/logs', async (req, res) => {
       success: true,
       data: logs
     });
+    return;
   } catch (error) {
     logger.error('获取测试日志失败:', error);
     res.status(500).json({ error: '获取测试日志失败' });
+    return;
   }
 });
 
 // 清空测试日志
-router.delete('/logs', async (req, res) => {
+router.delete('/logs', async (req, res): Promise<void> => {
   try {
     const { sessionId, testRunId } = req.body;
     
@@ -186,9 +196,11 @@ router.delete('/logs', async (req, res) => {
       success: true,
       message: '日志已清空'
     });
+    return;
   } catch (error) {
     logger.error('清空测试日志失败:', error);
     res.status(500).json({ error: '清空测试日志失败' });
+    return;
   }
 });
 

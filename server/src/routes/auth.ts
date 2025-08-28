@@ -12,19 +12,20 @@ const mockUser = {
 };
 
 // 登录
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res): Promise<void> => {
   try {
     const { email } = req.body;
     
     if (!email) {
-      return res.status(400).json({ error: '邮箱不能为空' });
+      res.status(400).json({ error: '邮箱不能为空' });
+      return;
     }
     
     // 生成JWT令牌
     const token = jwt.sign(
       { id: mockUser.id, email: mockUser.email, name: mockUser.name },
       process.env.JWT_SECRET || 'default-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: '7d' }
     );
     
     logger.info(`用户登录成功: ${email}`);
@@ -36,19 +37,22 @@ router.post('/login', async (req, res) => {
         token
       }
     });
+    return;
   } catch (error) {
     logger.error('登录失败:', error);
     res.status(500).json({ error: '登录失败' });
+    return;
   }
 });
 
 // 获取当前用户信息
-router.get('/me', async (req, res) => {
+router.get('/me', async (req, res): Promise<void> => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({ error: '访问令牌缺失' });
+      res.status(401).json({ error: '访问令牌缺失' });
+      return;
     }
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret') as any;
@@ -59,23 +63,27 @@ router.get('/me', async (req, res) => {
         user: decoded
       }
     });
+    return;
   } catch (error) {
     logger.error('获取用户信息失败:', error);
     res.status(401).json({ error: '无效的访问令牌' });
+    return;
   }
 });
 
 // 登出
-router.post('/logout', async (req, res) => {
+router.post('/logout', async (req, res): Promise<void> => {
   try {
     // 简单的登出响应（实际项目中可能需要将token加入黑名单）
     res.json({
       success: true,
       message: '登出成功'
     });
+    return;
   } catch (error) {
     logger.error('登出失败:', error);
     res.status(500).json({ error: '登出失败' });
+    return;
   }
 });
 

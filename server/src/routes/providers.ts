@@ -8,20 +8,22 @@ let providers: any[] = [];
 let nextId = 1;
 
 // 获取所有厂商配置
-router.get('/', async (req, res) => {
+router.get('/', async (req, res): Promise<void> => {
   try {
     res.json({
       success: true,
       data: providers
     });
+    return;
   } catch (error) {
     logger.error('获取厂商配置失败:', error);
     res.status(500).json({ error: '获取厂商配置失败' });
+    return;
   }
 });
 
 // 创建厂商配置
-router.post('/', async (req, res) => {
+router.post('/', async (req, res): Promise<void> => {
   try {
     const {
       name,
@@ -38,7 +40,8 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     if (!name || !displayName || !category || !apiKey) {
-      return res.status(400).json({ error: '必填字段不能为空' });
+      res.status(400).json({ error: '必填字段不能为空' });
+      return;
     }
 
     const provider = {
@@ -67,21 +70,24 @@ router.post('/', async (req, res) => {
       success: true,
       data: provider
     });
+    return;
   } catch (error) {
     logger.error('创建厂商配置失败:', error);
     res.status(500).json({ error: '创建厂商配置失败' });
+    return;
   }
 });
 
 // 更新厂商配置
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req, res): Promise<void> => {
   try {
     const { id } = req.params;
     const updateData = req.body;
 
     const providerIndex = providers.findIndex(p => p.id === parseInt(id));
     if (providerIndex === -1) {
-      return res.status(404).json({ error: '厂商配置不存在' });
+      res.status(404).json({ error: '厂商配置不存在' });
+      return;
     }
 
     providers[providerIndex] = {
@@ -96,20 +102,23 @@ router.put('/:id', async (req, res) => {
       success: true,
       data: providers[providerIndex]
     });
+    return;
   } catch (error) {
     logger.error('更新厂商配置失败:', error);
     res.status(500).json({ error: '更新厂商配置失败' });
+    return;
   }
 });
 
 // 删除厂商配置
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res): Promise<void> => {
   try {
     const { id } = req.params;
 
     const providerIndex = providers.findIndex(p => p.id === parseInt(id));
     if (providerIndex === -1) {
-      return res.status(404).json({ error: '厂商配置不存在' });
+      res.status(404).json({ error: '厂商配置不存在' });
+      return;
     }
 
     providers.splice(providerIndex, 1);
@@ -120,9 +129,11 @@ router.delete('/:id', async (req, res) => {
       success: true,
       message: '删除成功'
     });
+    return;
   } catch (error) {
     logger.error('删除厂商配置失败:', error);
     res.status(500).json({ error: '删除厂商配置失败' });
+    return;
   }
 });
 

@@ -12,8 +12,8 @@ import { PROJECT_CONFIG, printConfigInfo } from '../../config/project.config';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { authMiddleware } from './middleware/auth';
-import { setupSwagger } from './utils/swagger';
-import { initDatabase } from './utils/database';
+// import { setupSwagger } from './utils/swagger';
+// import { initDatabase } from './utils/database';
 
 // 路由
 import authRoutes from './routes/auth';
@@ -22,9 +22,10 @@ import promptRoutes from './routes/prompts';
 import testRoutes from './routes/tests';
 import analyticsRoutes from './routes/analytics';
 import openApiRoutes from './routes/openapi';
+import apiKeyManagementRoutes from './routes/apiKeyManagement';
 
 // Socket处理
-import { setupSocketHandlers } from './sockets/testSocket';
+// import { setupSocketHandlers } from './sockets/testSocket';
 
 // 加载环境变量
 dotenv.config();
@@ -72,6 +73,7 @@ app.use('/api/prompts', authMiddleware, promptRoutes);
 app.use('/api/tests', authMiddleware, testRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/openapi', openApiRoutes); // OpenAPI路由不需要内部认证，使用API Key认证
+app.use('/internal-api/keys', apiKeyManagementRoutes); // API Key管理路由（内部API）
 
 // Socket.IO 连接处理
 io.on('connection', (socket) => {
@@ -112,9 +114,9 @@ async function startServer() {
     // 打印配置信息
     printConfigInfo(PROJECT_CONFIG);
     
-    // 初始化数据库
-    await initDatabase();
-    logger.info('数据库连接成功');
+    // 初始化数据库（暂时跳过，API Key管理不需要数据库）
+    // await initDatabase();
+    logger.info('数据库初始化跳过（API Key管理使用文件存储）');
     
     // 启动服务器
     server.listen(PORT, () => {

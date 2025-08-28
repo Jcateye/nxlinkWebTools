@@ -18,11 +18,25 @@ import { CallAppendCmd, CallRecordDetail, CallTaskInfoVO } from '../types/openAp
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
+interface ApiKeyItem {
+  apiKey: string;
+  alias: string;
+  description: string;
+  hasOpenApiConfig: boolean;
+  openApiBaseUrl: string;
+  bizType: string;
+}
+
 export default function OpenApiActivityPage() {
   const [loading, setLoading] = useState(false);
   const [tasks, setTasks] = useState<CallTaskInfoVO[]>([]);
   const [taskTotal, setTaskTotal] = useState(0);
   const [page, setPage] = useState({ pageNumber: 1, pageSize: 10 });
+
+  // API Key 配置相关
+  const [availableApiKeys, setAvailableApiKeys] = useState<ApiKeyItem[]>([]);
+  const [selectedApiKey, setSelectedApiKey] = useState<string>('');
+  const [apiKeyLoading, setApiKeyLoading] = useState(false);
 
   // 筛选条件
   const [searchForm] = Form.useForm();
@@ -70,7 +84,37 @@ export default function OpenApiActivityPage() {
     return items;
   };
 
+  // 加载可用的 API Key 列表
+  const loadApiKeys = async () => {
+    setApiKeyLoading(true);
+    try {
+      const response = await fetch('/internal-api/keys/list');
+      const result = await response.json();
+      
+      if (result.code === 200) {
+        const validKeys = result.data.keys.filter((key: ApiKeyItem) => key.hasOpenApiConfig);
+        setAvailableApiKeys(validKeys);
+        
+        // 自动选择第一个可用的 API Key
+        if (validKeys.length > 0 && !selectedApiKey) {
+          setSelectedApiKey(validKeys[0].apiKey);
+        }
+      } else {
+        message.error(`加载API Key列表失败: ${result.message}`);
+      }
+    } catch (error: any) {
+      message.error(`加载API Key列表失败: ${error.message}`);
+    } finally {
+      setApiKeyLoading(false);
+    }
+  };
+
   const loadTasks = async () => {
+    // 如果没有选择API Key，不加载数据
+    if (!selectedApiKey) {
+      return;
+    }
+
     setLoading(true);
     try {
       const params: any = { ...page };
@@ -86,7 +130,7 @@ export default function OpenApiActivityPage() {
         params.taskName = taskNameSearch.trim();
       }
       
-      const data = await getCallTaskList(params);
+      const data = await getCallTaskList(params, selectedApiKey);
       console.log('API返回数据:', data); // 调试日志
       setTasks(data.list || []);
       setTaskTotal(data.total || 0);
@@ -109,7 +153,23 @@ export default function OpenApiActivityPage() {
     setPage({ pageNumber: 1, pageSize: 10 });
   };
 
-  useEffect(() => { loadTasks(); }, [page.pageNumber, page.pageSize]);
+  useEffect(() => {
+    loadApiKeys();
+  }, []);
+
+  useEffect(() => {
+    if (selectedApiKey) {
+      loadTasks();
+    }
+  }, [page.pageNumber, page.pageSize, selectedApiKey]);
+
+  // 当API Key改变时，重置页面并重新加载数据
+  const handleApiKeyChange = (apiKey: string) => {
+    setSelectedApiKey(apiKey);
+    setPage({ pageNumber: 1, pageSize: 10 });
+    setTasks([]);
+    setTaskTotal(0);
+  };
 
   const openDetail = async (task: CallTaskInfoVO) => {
     setCurrentTask(task);
@@ -129,7 +189,7 @@ export default function OpenApiActivityPage() {
         params.callResult = callResult;
       }
       
-      const data = await getCallRecords(params);
+      const data = await getCallRecords(params, selectedApiKey);
       setRecords(data.list || []);
       setRecordsTotal(data.total || 0);
       setRecordsPage({ pageNumber, pageSize });
@@ -189,7 +249,7 @@ export default function OpenApiActivityPage() {
             }]
           };
 
-          const resp = await appendNumbers(cmd);
+          const resp = await appendNumbers(cmd, selectedApiKey);
           if (resp?.code === 0 || resp?.code === 200) {
             successCount++;
           } else {
@@ -227,7 +287,7 @@ export default function OpenApiActivityPage() {
       title: '确认删除该号码？',
       onOk: async () => {
         if (!currentTask || !record.contactId) return;
-        const resp = await deleteNumber({ taskId: currentTask.taskId, contactId: record.contactId });
+        const resp = await deleteNumber({ taskId: currentTask.taskId, contactId: record.contactId }, selectedApiKey);
         if (resp?.code === 0 || resp?.code === 200) {
           message.success('删除成功');
           await loadRecords(currentTask, recordsPage.pageNumber, recordsPage.pageSize);
@@ -240,6 +300,56 @@ export default function OpenApiActivityPage() {
     <div>
       {!detailVisible ? (
         <Card title="OpenAPI 活动管理">
+          {/* API Key 数据源配置 */}
+          <Card 
+            title="数据源配置" 
+            size="small" 
+            style={{ marginBottom: 16, backgroundColor: '#f8f9fa' }}
+            extra={
+              <Button 
+                type="link" 
+                size="small" 
+                onClick={() => window.open('/api-key-management', '_blank')}
+              >
+                管理API Key
+              </Button>
+            }
+          >
+            <Space align="center" style={{ width: '100%' }}>
+              <span style={{ fontWeight: 'bold', color: '#1890ff' }}>选择数据源:</span>
+              <Select
+                value={selectedApiKey}
+                onChange={handleApiKeyChange}
+                loading={apiKeyLoading}
+                placeholder="请选择API Key数据源"
+                style={{ minWidth: 250 }}
+                allowClear={false}
+              >
+                {availableApiKeys.map(key => (
+                  <Option key={key.apiKey} value={key.apiKey}>
+                    <Space>
+                      <Tag color="blue">{key.alias}</Tag>
+                      <span style={{ fontSize: '12px', color: '#666' }}>
+                        {key.description || '无描述'}
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#999' }}>
+                        ({key.openApiBaseUrl})
+                      </span>
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
+              {selectedApiKey && (
+                <Tag color="success">
+                  已连接: {availableApiKeys.find(k => k.apiKey === selectedApiKey)?.alias || '未知'}
+                </Tag>
+              )}
+              {!selectedApiKey && availableApiKeys.length === 0 && (
+                <Tag color="warning">无可用的API Key配置</Tag>
+              )}
+            </Space>
+          </Card>
+
           <OpenApiAuthForm onSaved={() => loadTasks()} />
           
           {/* 配置测试组件 - 开发时使用，生产环境可以隐藏 */}

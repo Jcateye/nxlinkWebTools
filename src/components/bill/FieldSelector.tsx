@@ -50,7 +50,8 @@ const fieldGroups: BillFieldGroup[] = [
   { key: 'callDirection', label: '呼叫方向', group: '通话信息' },
 
   // 时长计费组
-  { key: 'callDurationSec', label: '通话时长(秒)', group: '时长计费' },
+  { key: 'sipCallDurationSec', label: '线路通话时长(秒)', group: '时长计费' },
+  { key: 'callDurationSec', label: 'AI通话时长(秒)', group: '时长计费' },
   { key: 'feeDurationSec', label: 'AI计费时长(秒)', group: '时长计费' },
   { key: 'sipFeeDuration', label: '线路计费时长(秒)', group: '时长计费' },
   { key: 'size', label: '计费量', group: '时长计费' },
@@ -92,6 +93,7 @@ const defaultPresets: BillFieldPreset[] = [
       caller: true,
       callDirection: true,
       // 时长计费
+      sipCallDurationSec: true,
       callDurationSec: true,
       feeDurationSec: true,
       sipFeeDuration: false,
@@ -130,6 +132,7 @@ const defaultPresets: BillFieldPreset[] = [
       caller: false,
       callDirection: false,
       // 时长计费
+      sipCallDurationSec: true,
       callDurationSec: true,
       feeDurationSec: true,
       sipFeeDuration: true,

@@ -11,7 +11,10 @@ export interface AIBillItem {
   callDirection: number;
   caller: string;
   callee: string;
+  // AI 通话时长
   callDurationSec: number;
+  // 线路通话时长
+  sipCallDurationSec?: number;
   feeDurationSec: number;
   sipFeeDuration: number;
   billingCycle: string;
@@ -56,7 +59,8 @@ const AI_BILL_COLUMNS: ColumnConfig[] = [
   { key: 'sipTotalCustomerOriginalPriceUSD', title: '线路消费', width: 15, formatter: (value: number) => formatCurrency(value) },
   { key: 'customerTotalPriceUSD', title: 'AI消费', width: 15, formatter: (value: number) => formatCurrency(value) },
   { key: 'totalCost', title: 'AI总成本', width: 15, formatter: (value: number) => formatCurrency(value) },
-  { key: 'callDurationSec', title: '通话时长(秒)', width: 15, formatter: (value: number) => (value || 0).toString() },
+  { key: 'sipCallDurationSec', title: '线路通话时长(秒)', width: 18 },
+  { key: 'callDurationSec', title: 'AI通话时长(秒)', width: 17, formatter: (value: number) => (value || 0).toString() },
   { key: 'sipFeeDuration', title: '线路计费时长(秒)', width: 18 },
   { key: 'feeDurationSec', title: 'AI计费时长(秒)', width: 17 },
   { key: 'asrCost', title: 'ASR成本', width: 15, formatter: (value: number) => formatCurrency(value) },

@@ -25,7 +25,10 @@ export interface BillRecord {
   callDirection: number;
   caller: string;
   callee: string;
+  // AI 通话时长（秒）
   callDurationSec: number;
+  // 线路通话时长（秒）
+  sipCallDurationSec?: number;
   feeDurationSec: number;
   billingCycle: string;
   callId: string;
@@ -200,6 +203,7 @@ export interface BillFieldConfig {
   callDirection: boolean; // 呼叫方向
   
   // 时长计费字段
+  sipCallDurationSec: boolean; // 线路通话时长(秒)
   callDurationSec: boolean; // 通话时长(秒)
   feeDurationSec: boolean; // AI计费时长(秒)
   sipFeeDuration: boolean; // 线路计费时长(秒)

@@ -64,7 +64,7 @@ export interface ProjectConfig {
  */
 const DEFAULT_CONFIG: ProjectConfig = {
   server: {
-    port: 8001,                                              // 默认端口
+    port: 8400,                                              // 默认端口（按需前后端分离，使用8400）
     corsOrigin: 'http://localhost:3010',                     // 默认前端地址
     nodeEnv: 'development',                                  // 默认开发环境
     jwtSecret: 'your-jwt-secret-key-change-in-production',   // 默认JWT密钥（不安全，仅用于开发）
@@ -139,7 +139,7 @@ const DEFAULT_CONFIG: ProjectConfig = {
  */
 const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
   server: {
-    port: 8001,                                                    // 生产环境端口
+    port: Number(process.env.PORT) || 8400,                        // 生产环境端口（可通过PORT覆盖）
     corsOrigin: 'https://your-production-domain.com',             // 生产环境前端域名
     nodeEnv: 'production',                                         // 明确标记为生产环境
     jwtSecret: process.env.JWT_SECRET || 'change-me-in-production', // 必须通过环境变量设置
@@ -214,7 +214,7 @@ const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
  */
 const DEVELOPMENT_CONFIG: Partial<ProjectConfig> = {
   server: {
-    port: Number(process.env.PORT) || 8001,                       // 端口：环境变量 > 8001
+    port: Number(process.env.PORT) || 8400,                       // 端口：环境变量 > 8400
     corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3010', // CORS：环境变量 > 本地前端地址
     nodeEnv: 'development',                                        // 明确标记为开发环境
     jwtSecret: process.env.JWT_SECRET || 'dev-jwt-secret-key',    // JWT密钥：环境变量 > 开发用密钥

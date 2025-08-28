@@ -107,6 +107,10 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/internal-api': {
+        target: 'http://localhost:8400',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'https://nxlink.nxcloud.com',
         changeOrigin: true,

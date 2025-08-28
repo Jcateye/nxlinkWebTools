@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 const router = Router();
 
 // 获取测试统计数据
-router.get('/stats', async (req, res) => {
+router.get('/stats', async (req, res): Promise<void> => {
   try {
     // 模拟统计数据
     const stats = {
@@ -31,14 +31,16 @@ router.get('/stats', async (req, res) => {
       success: true,
       data: stats
     });
+    return;
   } catch (error) {
     logger.error('获取统计数据失败:', error);
     res.status(500).json({ error: '获取统计数据失败' });
+    return;
   }
 });
 
 // 获取性能分析
-router.get('/performance', async (req, res) => {
+router.get('/performance', async (req, res): Promise<void> => {
   try {
     const performance = {
       latencyDistribution: [
@@ -63,14 +65,16 @@ router.get('/performance', async (req, res) => {
       success: true,
       data: performance
     });
+    return;
   } catch (error) {
     logger.error('获取性能分析失败:', error);
     res.status(500).json({ error: '获取性能分析失败' });
+    return;
   }
 });
 
 // 获取错误分析
-router.get('/errors', async (req, res) => {
+router.get('/errors', async (req, res): Promise<void> => {
   try {
     const errors = {
       errorTypes: [
@@ -106,9 +110,11 @@ router.get('/errors', async (req, res) => {
       success: true,
       data: errors
     });
+    return;
   } catch (error) {
     logger.error('获取错误分析失败:', error);
     res.status(500).json({ error: '获取错误分析失败' });
+    return;
   }
 });
 

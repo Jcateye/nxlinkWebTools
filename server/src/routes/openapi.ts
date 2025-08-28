@@ -6,18 +6,34 @@ import { apiKeyAuth, AuthenticatedRequest } from '../middleware/apiKeyAuth';
 const router = express.Router();
 
 import { PROJECT_CONFIG } from '../../../config/project.config';
+import { getAllApiKeys } from '../services/configManager';
 
 /**
- * OpenAPI配置
+ * 获取API Key对应的OpenAPI配置
  */
-const OPENAPI_CONFIG = {
-  baseURL: PROJECT_CONFIG.openapi.baseUrl,
-  defaultAuth: {
-    accessKey: PROJECT_CONFIG.openapi.accessKey,
-    accessSecret: PROJECT_CONFIG.openapi.accessSecret,
-    bizType: PROJECT_CONFIG.openapi.bizType
+function getOpenApiConfigForApiKey(req: AuthenticatedRequest) {
+  // 如果有API Key配置，使用对应的OpenAPI配置
+  if (req.apiKeyConfig?.openapi) {
+    return {
+      baseURL: req.apiKeyConfig.openapi.baseUrl,
+      auth: {
+        accessKey: req.apiKeyConfig.openapi.accessKey,
+        accessSecret: req.apiKeyConfig.openapi.accessSecret,
+        bizType: req.apiKeyConfig.openapi.bizType
+      }
+    };
   }
-};
+  
+  // 否则使用默认配置
+  return {
+    baseURL: PROJECT_CONFIG.openapi.baseUrl,
+    auth: {
+      accessKey: PROJECT_CONFIG.openapi.accessKey,
+      accessSecret: PROJECT_CONFIG.openapi.accessSecret,
+      bizType: PROJECT_CONFIG.openapi.bizType
+    }
+  };
+}
 
 /**
  * 生成OpenAPI签名
@@ -100,34 +116,41 @@ function buildOpenApiHeaders(config: {
  * 追加号码接口
  * POST /api/openapi/append-numbers
  */
-router.post('/append-numbers', apiKeyAuth, async (req: AuthenticatedRequest, res) => {
+router.post('/append-numbers', apiKeyAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const { taskId, phoneNumbers, autoFlowId, countryCode, params } = req.body;
 
     // 参数验证
     if (!taskId) {
-      return res.status(400).json({
+      res.status(400).json({
         code: 400,
         message: 'taskId is required',
         error: 'MISSING_TASK_ID'
       });
+      return;
     }
 
     if (!phoneNumbers || !Array.isArray(phoneNumbers) || phoneNumbers.length === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         code: 400,
         message: 'phoneNumbers must be a non-empty array',
         error: 'INVALID_PHONE_NUMBERS'
       });
+      return;
     }
 
+    // 获取当前API Key对应的OpenAPI配置
+    const openApiConfig = getOpenApiConfigForApiKey(req);
+    
     // 检查OpenAPI配置
-    if (!OPENAPI_CONFIG.defaultAuth.accessKey || !OPENAPI_CONFIG.defaultAuth.accessSecret) {
-      return res.status(500).json({
+    if (!openApiConfig.auth.accessKey || !openApiConfig.auth.accessSecret) {
+      res.status(500).json({
         code: 500,
-        message: 'OpenAPI configuration is missing. Please configure OPENAPI_ACCESS_KEY and OPENAPI_ACCESS_SECRET.',
-        error: 'MISSING_OPENAPI_CONFIG'
+        message: `OpenAPI configuration is incomplete for API Key: ${req.apiKeyConfig?.alias || req.apiKey}`,
+        error: 'OPENAPI_CONFIG_INCOMPLETE',
+        apiKeyAlias: req.apiKeyConfig?.alias
       });
+      return;
     }
 
     const results = [];
@@ -164,16 +187,16 @@ router.post('/append-numbers', apiKeyAuth, async (req: AuthenticatedRequest, res
         };
 
         const headers = buildOpenApiHeaders({
-          accessKey: OPENAPI_CONFIG.defaultAuth.accessKey,
-          accessSecret: OPENAPI_CONFIG.defaultAuth.accessSecret,
-          bizType: OPENAPI_CONFIG.defaultAuth.bizType,
+          accessKey: openApiConfig.auth.accessKey,
+          accessSecret: openApiConfig.auth.accessSecret,
+          bizType: openApiConfig.auth.bizType,
           action: 'callAppend',
           ts: String(Date.now())
         }, cmd);
 
         // 调用OpenAPI
         const response = await axios.post(
-          `${OPENAPI_CONFIG.baseURL}/openapi/aiagent/call/append`,
+          `${openApiConfig.baseURL}/openapi/aiagent/call/append`,
           cmd,
           { headers }
         );
@@ -219,6 +242,7 @@ router.post('/append-numbers', apiKeyAuth, async (req: AuthenticatedRequest, res
       },
       apiKey: req.apiKey // 返回使用的API Key（用于调试）
     });
+    return;
 
   } catch (error: any) {
     console.error('OpenAPI append numbers error:', error);
@@ -227,6 +251,183 @@ router.post('/append-numbers', apiKeyAuth, async (req: AuthenticatedRequest, res
       message: 'Internal server error',
       error: error.message
     });
+    return;
+  }
+});
+
+/**
+ * 获取任务列表接口
+ * POST /api/openapi/task-list
+ */
+router.post('/task-list', apiKeyAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  try {
+    const params = req.body;
+    
+    // 获取当前API Key对应的OpenAPI配置
+    const openApiConfig = getOpenApiConfigForApiKey(req);
+    
+    // 检查OpenAPI配置
+    if (!openApiConfig.auth.accessKey || !openApiConfig.auth.accessSecret) {
+      res.status(500).json({
+        code: 500,
+        message: `OpenAPI configuration is incomplete for API Key: ${req.apiKeyConfig?.alias || req.apiKey}`,
+        error: 'OPENAPI_CONFIG_INCOMPLETE'
+      });
+      return;
+    }
+
+    const headers = buildOpenApiHeaders({
+      accessKey: openApiConfig.auth.accessKey,
+      accessSecret: openApiConfig.auth.accessSecret,
+      bizType: openApiConfig.auth.bizType,
+      action: 'pageCallTaskInfo',
+      ts: String(Date.now())
+    }, params);
+
+    // 调用OpenAPI
+    const response = await axios.post(
+      `${openApiConfig.baseURL}/openapi/aiagent/task/list`,
+      params,
+      { headers }
+    );
+
+    res.json({
+      code: 200,
+      message: '获取成功',
+      data: response.data?.data || response.data,
+      apiKey: req.apiKey
+    });
+    return;
+
+  } catch (error: any) {
+    console.error('OpenAPI task list error:', error);
+    res.status(500).json({
+      code: 500,
+      message: 'Internal server error',
+      error: error.message
+    });
+    return;
+  }
+});
+
+/**
+ * 获取通话记录接口
+ * POST /api/openapi/call-records
+ */
+router.post('/call-records', apiKeyAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  try {
+    const params = req.body;
+    
+    // 获取当前API Key对应的OpenAPI配置
+    const openApiConfig = getOpenApiConfigForApiKey(req);
+    
+    // 检查OpenAPI配置
+    if (!openApiConfig.auth.accessKey || !openApiConfig.auth.accessSecret) {
+      res.status(500).json({
+        code: 500,
+        message: `OpenAPI configuration is incomplete for API Key: ${req.apiKeyConfig?.alias || req.apiKey}`,
+        error: 'OPENAPI_CONFIG_INCOMPLETE'
+      });
+      return;
+    }
+
+    const headers = buildOpenApiHeaders({
+      accessKey: openApiConfig.auth.accessKey,
+      accessSecret: openApiConfig.auth.accessSecret,
+      bizType: openApiConfig.auth.bizType,
+      action: 'pageCallRecords',
+      ts: String(Date.now())
+    }, params);
+
+    // 调用OpenAPI
+    const response = await axios.post(
+      `${openApiConfig.baseURL}/openapi/aiagent/call/list`,
+      params,
+      { headers }
+    );
+
+    res.json({
+      code: 200,
+      message: '获取成功',
+      data: response.data?.data || response.data,
+      apiKey: req.apiKey
+    });
+    return;
+
+  } catch (error: any) {
+    console.error('OpenAPI call records error:', error);
+    res.status(500).json({
+      code: 500,
+      message: 'Internal server error',
+      error: error.message
+    });
+    return;
+  }
+});
+
+/**
+ * 删除号码接口
+ * POST /api/openapi/delete-number
+ */
+router.post('/delete-number', apiKeyAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  try {
+    const { taskId, contactId } = req.body;
+    
+    // 参数验证
+    if (!taskId || !contactId) {
+      res.status(400).json({
+        code: 400,
+        message: 'taskId and contactId are required',
+        error: 'MISSING_PARAMETERS'
+      });
+      return;
+    }
+    
+    // 获取当前API Key对应的OpenAPI配置
+    const openApiConfig = getOpenApiConfigForApiKey(req);
+    
+    // 检查OpenAPI配置
+    if (!openApiConfig.auth.accessKey || !openApiConfig.auth.accessSecret) {
+      res.status(500).json({
+        code: 500,
+        message: `OpenAPI configuration is incomplete for API Key: ${req.apiKeyConfig?.alias || req.apiKey}`,
+        error: 'OPENAPI_CONFIG_INCOMPLETE'
+      });
+      return;
+    }
+
+    const cmd = { taskId, contactId };
+    const headers = buildOpenApiHeaders({
+      accessKey: openApiConfig.auth.accessKey,
+      accessSecret: openApiConfig.auth.accessSecret,
+      bizType: openApiConfig.auth.bizType,
+      action: 'callDelete',
+      ts: String(Date.now())
+    }, cmd);
+
+    // 调用OpenAPI
+    const response = await axios.post(
+      `${openApiConfig.baseURL}/openapi/aiagent/call/delete`,
+      cmd,
+      { headers }
+    );
+
+    res.json({
+      code: 200,
+      message: '删除成功',
+      data: response.data,
+      apiKey: req.apiKey
+    });
+    return;
+
+  } catch (error: any) {
+    console.error('OpenAPI delete number error:', error);
+    res.status(500).json({
+      code: 500,
+      message: 'Internal server error',
+      error: error.message
+    });
+    return;
   }
 });
 
@@ -235,15 +436,43 @@ router.post('/append-numbers', apiKeyAuth, async (req: AuthenticatedRequest, res
  * GET /api/openapi/status
  */
 router.get('/status', apiKeyAuth, (req: AuthenticatedRequest, res) => {
+  const openApiConfig = getOpenApiConfigForApiKey(req);
+  
   res.json({
     code: 200,
     message: 'OpenAPI service is running',
     data: {
       service: 'nxlink-openapi-proxy',
-      version: '1.0.0',
+      version: '2.0.0',
       timestamp: new Date().toISOString(),
       apiKey: req.apiKey,
-      hasOpenApiConfig: !!(OPENAPI_CONFIG.defaultAuth.accessKey && OPENAPI_CONFIG.defaultAuth.accessSecret)
+      apiKeyAlias: req.apiKeyConfig?.alias,
+      apiKeyDescription: req.apiKeyConfig?.description,
+      hasOpenApiConfig: !!(openApiConfig.auth.accessKey && openApiConfig.auth.accessSecret),
+      openApiBaseUrl: openApiConfig.baseURL,
+      openApiBizType: openApiConfig.auth.bizType
+    }
+  });
+});
+
+/**
+ * 获取所有API Keys配置（仅显示非敏感信息）
+ * GET /api/openapi/keys
+ */
+router.get('/keys', (req, res) => {
+  const allApiKeys = getAllApiKeys();
+  res.json({
+    code: 200,
+    message: 'Available API Keys',
+    data: {
+      totalKeys: allApiKeys.length,
+      keys: allApiKeys.map(config => ({
+        alias: config.alias,
+        description: config.description,
+        hasOpenApiConfig: !!(config.openapi.accessKey && config.openapi.accessSecret),
+        openApiBaseUrl: config.openapi.baseUrl,
+        bizType: config.openapi.bizType
+      }))
     }
   });
 });

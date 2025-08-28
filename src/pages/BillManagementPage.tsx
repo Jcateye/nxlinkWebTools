@@ -302,7 +302,15 @@ const BillManagementPage: React.FC = () => {
       const saved = localStorage.getItem('billFieldConfig');
       if (saved) {
         const parsedConfig = JSON.parse(saved);
-        setFieldConfig(parsedConfig);
+        // 兼容升级：如果历史配置缺少新字段，则补全并默认开启
+        const upgradedConfig: BillFieldConfig = {
+          ...parsedConfig,
+          // 新增字段：线路通话时长(秒)
+          sipCallDurationSec: typeof parsedConfig.sipCallDurationSec === 'boolean' ? parsedConfig.sipCallDurationSec : true,
+          // 明确AI通话时长(秒)键存在
+          callDurationSec: typeof parsedConfig.callDurationSec === 'boolean' ? parsedConfig.callDurationSec : true
+        } as BillFieldConfig;
+        setFieldConfig(upgradedConfig);
       }
     } catch (error) {
       console.warn('加载字段配置失败:', error);
@@ -648,7 +656,8 @@ const BillManagementPage: React.FC = () => {
         'AI消费(原始金额)': record.customerTotalPrice || 0,
         'AI消费币种': record.customerCurrency || 'USD',
         // 时长和计量（数值类型）
-        '通话时长(秒)': record.callDurationSec || 0,
+        'AI通话时长(秒)': record.callDurationSec || 0,
+        '线路通话时长(秒)': record.sipCallDurationSec || 0,
         '线路计费时长(秒)': record.sipFeeDuration || 0,
         'AI计费时长(秒)': record.feeDurationSec || 0,
         '计费量': record.size || 0,
@@ -690,7 +699,8 @@ const BillManagementPage: React.FC = () => {
         { wch: 12 }, // 线路消费币种
         { wch: 18 }, // AI消费(原始金额)
         { wch: 12 }, // AI消费币种
-        { wch: 15 }, // 通话时长(秒)
+        { wch: 17 }, // AI通话时长(秒)
+        { wch: 18 }, // 线路通话时长(秒)
         { wch: 18 }, // 线路计费时长(秒)
         { wch: 17 }, // AI计费时长(秒)
         { wch: 12 }, // 计费量
@@ -752,14 +762,26 @@ const BillManagementPage: React.FC = () => {
 
     return data.map(record => {
       const filteredRecord: any = {};
-      
-      // 根据字段配置添加相应字段
-      Object.entries(fieldConfig).forEach(([key, selected]) => {
-        if (selected && record.hasOwnProperty(key)) {
-          filteredRecord[key] = record[key];
+
+      // 按页面列顺序采集被选中的字段，确保导出顺序与页面一致
+      const orderedKeys: string[] = [
+        'feeTime', 'agentFlowName', 'callee', 'caller', 'callDirection',
+        'sipTotalCustomerOriginalPriceUSD', 'customerTotalPriceUSD', 'totalCost',
+        'sipTotalCustomerOriginalPrice', 'customerTotalPrice',
+        'sipCallDurationSec', 'callDurationSec', 'sipFeeDuration', 'feeDurationSec', 'size',
+        'asrCost', 'ttsCost', 'llmCost',
+        'sipPriceType', 'billingCycle',
+        'originalLineUnitPrice', 'newLineBillingCycle', 'newLineUnitPrice', 'newLineBillingQuantity', 'newLineConsumption',
+        'customerName', 'tenantName'
+      ];
+
+      orderedKeys.forEach((key) => {
+        const selected = (fieldConfig as any)[key];
+        if (selected && Object.prototype.hasOwnProperty.call(record, key)) {
+          filteredRecord[key] = (record as any)[key];
         }
       });
-      
+
       return filteredRecord;
     });
   };
@@ -773,7 +795,8 @@ const BillManagementPage: React.FC = () => {
     callee: '用户号码',
     caller: '线路号码',
     callDirection: '呼叫方向',
-    callDurationSec: '通话时长(秒)',
+    sipCallDurationSec: '线路通话时长(秒)',
+    callDurationSec: 'AI通话时长(秒)',
     feeDurationSec: 'AI计费时长(秒)',
     sipFeeDuration: '线路计费时长(秒)',
     size: '计费量',
@@ -794,6 +817,18 @@ const BillManagementPage: React.FC = () => {
     newLineConsumption: '新线路消费'
   };
 
+  // 页面列顺序（与 BillTable.tsx 一致），用于导出时保持一致的字段顺序
+  const pageFieldOrder: string[] = [
+    'feeTime', 'agentFlowName', 'callee', 'caller', 'callDirection',
+    'sipTotalCustomerOriginalPriceUSD', 'customerTotalPriceUSD', 'totalCost',
+    'sipTotalCustomerOriginalPrice', 'customerTotalPrice',
+    'sipCallDurationSec', 'callDurationSec', 'sipFeeDuration', 'feeDurationSec', 'size',
+    'asrCost', 'ttsCost', 'llmCost',
+    'sipPriceType', 'billingCycle',
+    'originalLineUnitPrice', 'newLineBillingCycle', 'newLineUnitPrice', 'newLineBillingQuantity', 'newLineConsumption',
+    'customerName', 'tenantName'
+  ];
+
   // 生成CSV文件的轻量级函数
   const generateCSVFile = (data: any[], fileName: string, fieldConfig?: BillFieldConfig) => {
     if (data.length === 0) {
@@ -810,8 +845,8 @@ const BillManagementPage: React.FC = () => {
         return;
       }
 
-      // 获取字段键名和对应的中文表头
-      const fieldKeys = Object.keys(filteredData[0]);
+      // 按页面字段顺序确定导出字段
+      const fieldKeys = pageFieldOrder.filter(k => Object.prototype.hasOwnProperty.call(filteredData[0], k));
       const chineseHeaders = fieldKeys.map(key => fieldHeaderMap[key] || key);
       
       // 转义CSV字段的函数

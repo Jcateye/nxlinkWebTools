@@ -17,7 +17,7 @@
 Content-Type: application/json
 ```
 
-**请求参数**:
+**请求参数示例（中文表单）**:
 ```json
 {
   "form": "E0Tqhk",
@@ -43,6 +43,38 @@ Content-Type: application/json
       "city": "西安市",
       "district": "雁塔区",
       "street": "高新路"
+    },
+    "info_remote_ip": "127.0.0.1"
+  }
+}
+```
+
+**请求参数示例（英文表单）**:
+```json
+{
+  "form": "wE4D2a",
+  "form_name": "HUAWEI CONNECT 2025 | NXAI AI Interactive Experience Sign-up",
+  "entry": {
+    "serial_number": 123,
+    "field_2": "John Doe",       // 姓名 -> 额外参数 name
+    "field_5": "13812345678",    // 电话号码 -> Phone Number
+    "field_3": "This is a line of text",
+    "field_4": "This is another line of text",
+    "field_6": "support@jinshuju.net",
+    "x_field_1": "Additional text field",
+    "color_mark": "Dark Green",
+    "creator_name": "Xiao Wang",
+    "created_at": "2025-08-26T09:58:06.961Z",
+    "updated_at": "2025-08-26T09:58:06.961Z",
+    "info_filling_duration": 123,
+    "info_platform": "Macintosh",
+    "info_os": "OS X 10.13.6",
+    "info_browser": "Chrome 68.0.3440.106",
+    "info_region": {
+      "province": "Shaanxi Province",
+      "city": "Xi'an City",
+      "district": "Yanta District",
+      "street": "Gaoxin Road"
     },
     "info_remote_ip": "127.0.0.1"
   }

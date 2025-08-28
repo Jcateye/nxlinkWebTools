@@ -29,7 +29,16 @@ export const DEFAULT_FORM_MAPPINGS: FormMapping[] = [
     formId: 'E0Tqhk',
     taskId: '23ac8c5d-4e43-4669-bff8-1ab1f8436933', // 需要用户配置实际的taskID
     formName: '华为全连接大会 | NXAI AI互动体验信息登记',
-    description: '华为全连接大会表单数据推送',
+    description: '华为全连接大会表单数据推送（中文版）',
+    enabled: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    formId: 'wE4D2a',
+    taskId: 'huawei-connect-2025-task-001', // 华为CONNECT 2025英文版专用任务ID
+    formName: 'HUAWEI CONNECT 2025 | NXAI AI Interactive Experience Sign-up',
+    description: '华为CONNECT 2025英文版表单数据推送',
     enabled: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()

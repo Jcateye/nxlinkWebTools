@@ -56,6 +56,18 @@ Content-Type: application/json
 
 ## 🔧 配置说明
 
+### 支持的表单类型
+
+目前支持以下表单：
+
+1. **中文表单** (`E0Tqhk`)
+   - 表单名称：华为全连接大会 | NXAI AI互动体验信息登记
+   - 适用地区：中文用户
+
+2. **英文表单** (`wE4D2a`)
+   - 表单名称：HUAWEI CONNECT 2025 | NXAI AI Interactive Experience Sign-up
+   - 适用地区：英文用户
+
 ### 字段映射规则
 
 | 表单字段 | 映射到 | 说明 |
@@ -89,8 +101,12 @@ Content-Type: application/json
 ### 使用测试脚本
 
 ```bash
-# 运行完整测试
+# 运行完整测试（测试所有表单）
 node test-form-webhook.js
+
+# 测试特定表单
+node test-form-webhook.js E0Tqhk   # 测试中文表单
+node test-form-webhook.js wE4D2a   # 测试英文表单
 
 # 测试配置接口
 node test-form-mapping.js

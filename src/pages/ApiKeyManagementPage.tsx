@@ -377,6 +377,7 @@ export default function ApiKeyManagementPage() {
   // 处理删除
   const handleDelete = async (apiKey: string) => {
     try {
+      setLoading(true);
       const response = await fetch(`/internal-api/keys/delete/${apiKey}`, {
         method: 'DELETE'
       });
@@ -384,12 +385,24 @@ export default function ApiKeyManagementPage() {
       
       if (result.code === 200) {
         message.success('API Key 删除成功');
-        loadApiKeys(); // 重新加载列表
+        // 立即从本地状态中移除该项，提供更快的用户反馈
+        if (apiKeys) {
+          const updatedKeys = apiKeys.keys.filter(key => key.apiKey !== apiKey);
+          setApiKeys({
+            ...apiKeys,
+            totalKeys: updatedKeys.length,
+            keys: updatedKeys
+          });
+        }
+        // 然后重新加载完整列表确保数据一致性
+        await loadApiKeys();
       } else {
         message.error(`删除失败: ${result.message}`);
       }
     } catch (error: any) {
       message.error(`删除失败: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 

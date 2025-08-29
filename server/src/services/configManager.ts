@@ -173,14 +173,19 @@ export function updateApiKey(apiKey: string, updates: Partial<ExternalApiKeyConf
  */
 export function deleteApiKey(apiKey: string): void {
   const config = readApiKeysConfig();
+  // 不在日志中暴露完整的API Key
+  const maskedApiKey = apiKey.length > 8 ? apiKey.substring(0, 8) + '***' : apiKey;
   
   const index = config.keys.findIndex(key => key.apiKey === apiKey);
   if (index === -1) {
-    throw new Error(`API Key 不存在: ${apiKey}`);
+    throw new Error(`API Key 不存在: ${maskedApiKey}`);
   }
 
+  const removedKey = config.keys[index];
   config.keys.splice(index, 1);
   writeApiKeysConfig(config);
+  
+  console.log(`✅ API Key已删除: ${removedKey.alias} (${maskedApiKey})`);
 }
 
 /**

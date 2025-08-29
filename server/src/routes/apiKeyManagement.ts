@@ -168,14 +168,13 @@ router.delete('/delete/:apiKey', (req, res): Promise<void> => {
       code: 200,
       message: 'API Key 删除成功',
       data: {
-        apiKey
+        apiKey: apiKey.length > 8 ? apiKey.substring(0, 8) + '***' : apiKey
       }
     });
 
-    console.log(`✅ API Key已删除: ${apiKey}`);
     return Promise.resolve();
   } catch (error: any) {
-    console.error('删除API Key失败:', error);
+    console.error(`删除API Key失败: ${error.message}`);
     res.status(500).json({
       code: 500,
       message: error.message || '删除失败'

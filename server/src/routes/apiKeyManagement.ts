@@ -1,13 +1,13 @@
 import express from 'express';
-import { 
-  getAllApiKeys, 
-  addApiKey, 
-  updateApiKey, 
-  deleteApiKey, 
+import {
+  getAllApiKeys,
+  addApiKey,
+  updateApiKey,
+  deleteApiKey,
   validateApiKeyConfig,
   getConfigStats
 } from '../services/configManager';
-import { ExternalApiKeyConfig } from '../../../config/project.config';
+import { ExternalApiKeyConfig, PROJECT_CONFIG } from '../../../config/project.config';
 
 const router = express.Router();
 
@@ -299,7 +299,7 @@ router.post('/test', async (req, res): Promise<void> => {
 router.get('/stats', (req, res): Promise<void> => {
   try {
     const stats = getConfigStats();
-    
+
     res.json({
       code: 200,
       message: '获取成功',
@@ -308,6 +308,105 @@ router.get('/stats', (req, res): Promise<void> => {
     return Promise.resolve();
   } catch (error: any) {
     console.error('获取统计信息失败:', error);
+    res.status(500).json({
+      code: 500,
+      message: error.message || '获取失败'
+    });
+    return Promise.resolve();
+  }
+});
+
+/**
+ * 验证超级管理员密码
+ * POST /api/keys/verify-admin-password
+ */
+router.post('/verify-admin-password', (req, res): Promise<void> => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      res.status(400).json({
+        code: 400,
+        message: '密码不能为空'
+      });
+      return Promise.resolve();
+    }
+
+    const isValid = password === PROJECT_CONFIG.server.adminPassword;
+
+    res.json({
+      code: 200,
+      message: isValid ? '密码验证成功' : '密码验证失败',
+      data: {
+        isValid,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+    console.log(`${isValid ? '✅' : '❌'} 超级管理员密码验证: ${isValid ? '成功' : '失败'}`);
+    return Promise.resolve();
+  } catch (error: any) {
+    console.error('验证超级管理员密码失败:', error);
+    res.status(500).json({
+      code: 500,
+      message: '验证失败',
+      error: error.message
+    });
+    return Promise.resolve();
+  }
+});
+
+/**
+ * 获取API Key完整信息（需要超级管理员密码验证）
+ * POST /api/keys/full-detail/:apiKey
+ */
+router.post('/full-detail/:apiKey', (req, res): Promise<void> => {
+  try {
+    const apiKey = req.params.apiKey;
+    const { password } = req.body;
+
+    // 验证密码
+    if (!password || password !== PROJECT_CONFIG.server.adminPassword) {
+      res.status(403).json({
+        code: 403,
+        message: '超级管理员密码验证失败'
+      });
+      return Promise.resolve();
+    }
+
+    const allKeys = getAllApiKeys();
+    const keyConfig = allKeys.find(key => key.apiKey === apiKey);
+
+    if (!keyConfig) {
+      res.status(404).json({
+        code: 404,
+        message: 'API Key 不存在'
+      });
+      return Promise.resolve();
+    }
+
+    res.json({
+      code: 200,
+      message: '获取完整信息成功',
+      data: {
+        apiKey: keyConfig.apiKey,
+        alias: keyConfig.alias,
+        description: keyConfig.description,
+        openapi: {
+          // 返回完整敏感信息
+          accessKey: keyConfig.openapi.accessKey,
+          accessSecret: keyConfig.openapi.accessSecret,
+          bizType: keyConfig.openapi.bizType,
+          baseUrl: keyConfig.openapi.baseUrl
+        },
+        verifiedAt: new Date().toISOString()
+      }
+    });
+
+    console.log(`✅ 获取API Key完整信息: ${keyConfig.alias} (${keyConfig.apiKey})`);
+    return Promise.resolve();
+  } catch (error: any) {
+    console.error('获取API Key完整信息失败:', error);
     res.status(500).json({
       code: 500,
       message: error.message || '获取失败'

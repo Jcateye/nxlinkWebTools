@@ -26,6 +26,7 @@ export interface ProjectConfig {
     jwtSecret: string;
     jwtExpiresIn: string;
     logLevel: string;
+    adminPassword: string; // 超级管理员密码
   };
   
   // 默认 OpenAPI 配置（向后兼容）
@@ -69,7 +70,8 @@ const DEFAULT_CONFIG: ProjectConfig = {
     nodeEnv: 'development',                                  // 默认开发环境
     jwtSecret: 'your-jwt-secret-key-change-in-production',   // 默认JWT密钥（不安全，仅用于开发）
     jwtExpiresIn: '7d',                                      // JWT过期时间
-    logLevel: 'info'                                         // 默认日志级别
+    logLevel: 'info',                                        // 默认日志级别
+    adminPassword: 'F511522591'                              // 初始超级管理员密码
   },
   
   openapi: {
@@ -144,7 +146,8 @@ const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
     nodeEnv: 'production',                                         // 明确标记为生产环境
     jwtSecret: process.env.JWT_SECRET || 'change-me-in-production', // 必须通过环境变量设置
     jwtExpiresIn: '7d',                                            // JWT过期时间
-    logLevel: 'warn'                                               // 生产环境减少日志输出
+    logLevel: 'warn',                                              // 生产环境减少日志输出
+    adminPassword: process.env.ADMIN_PASSWORD || 'F511522591'      // 生产环境超级管理员密码
   },
   
   openapi: {
@@ -219,7 +222,8 @@ const DEVELOPMENT_CONFIG: Partial<ProjectConfig> = {
     nodeEnv: 'development',                                        // 明确标记为开发环境
     jwtSecret: process.env.JWT_SECRET || 'dev-jwt-secret-key',    // JWT密钥：环境变量 > 开发用密钥
     jwtExpiresIn: '7d',                                           // JWT过期时间
-    logLevel: process.env.LOG_LEVEL || 'info'                    // 日志级别：环境变量 > info
+    logLevel: process.env.LOG_LEVEL || 'info',                   // 日志级别：环境变量 > info
+    adminPassword: process.env.ADMIN_PASSWORD || 'F511522591'     // 开发环境超级管理员密码
   },
   
   openapi: {

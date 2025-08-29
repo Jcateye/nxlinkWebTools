@@ -17,14 +17,16 @@ import {
   Statistic,
   Divider
 } from 'antd';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   EyeOutlined,
   KeyOutlined,
   CheckCircleOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  LockOutlined,
+  UnlockOutlined
 } from '@ant-design/icons';
 
 interface ApiKeyConfig {
@@ -65,8 +67,12 @@ export default function ApiKeyManagementPage() {
   const [apiKeys, setApiKeys] = useState<ApiKeyStats | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<ApiKeyConfig | null>(null);
+  const [selectedApiKey, setSelectedApiKey] = useState<string>('');
+  const [fullApiKeyInfo, setFullApiKeyInfo] = useState<any>(null);
   const [form] = Form.useForm();
+  const [passwordForm] = Form.useForm();
 
   // 生成随机API Key（Base62），并确保不与已有冲突
   const generateRandomApiKey = (length: number = 32): string => {
@@ -82,6 +88,14 @@ export default function ApiKeyManagementPage() {
       out += chars[array[i] % chars.length];
     }
     return out;
+  };
+
+  // 脱敏显示API Key（超过8位显示前8位+***）
+  const maskApiKey = (apiKey: string): string => {
+    if (!apiKey || apiKey.length <= 8) {
+      return apiKey;
+    }
+    return apiKey.substring(0, 8) + '***';
   };
 
   const handleGenerateApiKey = () => {
@@ -179,6 +193,23 @@ export default function ApiKeyManagementPage() {
       render: (text: string) => <strong>{text}</strong>
     },
     {
+      title: 'API Key',
+      dataIndex: 'apiKey',
+      key: 'apiKey',
+      render: (apiKey: string) => (
+        <Space>
+          <span>{maskApiKey(apiKey)}</span>
+          <Tooltip title="查看完整API Key（需要超级管理员密码）">
+            <Button
+              size="small"
+              icon={<UnlockOutlined />}
+              onClick={() => handleViewFullApiKey(apiKey)}
+            />
+          </Tooltip>
+        </Space>
+      )
+    },
+    {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
@@ -249,7 +280,7 @@ export default function ApiKeyManagementPage() {
       // 从后端获取脱敏后的详细信息
       const response = await fetch(`/internal-api/keys/detail/${record.apiKey}`);
       const result = await response.json();
-      
+
       if (result.code === 200) {
         const keyDetail = result.data;
         setEditingKey({
@@ -278,6 +309,56 @@ export default function ApiKeyManagementPage() {
       }
     } catch (error: any) {
       message.error(`获取详情失败: ${error.message}`);
+    }
+  };
+
+  // 处理查看完整API Key
+  const handleViewFullApiKey = (apiKey: string) => {
+    setSelectedApiKey(apiKey);
+    setPasswordModalVisible(true);
+    passwordForm.resetFields();
+  };
+
+  // 处理密码验证
+  const handlePasswordVerify = async (values: any) => {
+    try {
+      const response = await fetch('/internal-api/keys/verify-admin-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          password: values.password
+        })
+      });
+      const result = await response.json();
+
+      if (result.code === 200 && result.data.isValid) {
+        // 密码验证成功，获取完整API Key信息
+        const fullDetailResponse = await fetch(`/internal-api/keys/full-detail/${selectedApiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            password: values.password
+          })
+        });
+        const fullDetailResult = await fullDetailResponse.json();
+
+        if (fullDetailResult.code === 200) {
+          setFullApiKeyInfo(fullDetailResult.data);
+          setPasswordModalVisible(false);
+          setDetailModalVisible(true);
+          message.success('验证成功！');
+        } else {
+          message.error(`获取完整信息失败: ${fullDetailResult.message}`);
+        }
+      } else {
+        message.error('超级管理员密码验证失败！');
+      }
+    } catch (error: any) {
+      message.error(`验证失败: ${error.message}`);
     }
   };
 
@@ -439,6 +520,12 @@ export default function ApiKeyManagementPage() {
           <Descriptions.Item label="安全特性">
             敏感信息（accessKey、accessSecret）不在前端显示，仅后端使用
           </Descriptions.Item>
+          <Descriptions.Item label="脱敏显示">
+            API Key超过8位时显示前8位+***，点击解锁图标可查看完整信息（需要超级管理员密码）
+          </Descriptions.Item>
+          <Descriptions.Item label="超级管理员密码">
+            配置在项目配置文件中，用于查看完整的API Key信息，默认密码：F511522591
+          </Descriptions.Item>
           <Descriptions.Item label="测试功能">
             点击"测试"按钮可以验证API Key的有效性和配置完整性
           </Descriptions.Item>
@@ -447,7 +534,10 @@ export default function ApiKeyManagementPage() {
         <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f6ffed', borderRadius: 6 }}>
           <h4>环境变量配置示例：</h4>
           <pre style={{ fontSize: '12px', margin: 0 }}>
-{`# 租户1配置
+{`# 超级管理员密码（可选，默认：F511522591）
+ADMIN_PASSWORD=F511522591
+
+# 租户1配置
 EXTERNAL_API_KEY_1=platform-a-key-12345
 EXTERNAL_API_KEY_1_ALIAS=客户平台A
 EXTERNAL_API_KEY_1_DESC=A公司的外呼系统
@@ -458,6 +548,122 @@ EXTERNAL_API_KEY_1_OPENAPI_BASE_URL=https://api-westus.nxlink.ai`}
           </pre>
         </div>
       </Card>
+
+      {/* 密码验证 Modal */}
+      <Modal
+        title={
+          <Space>
+            <LockOutlined />
+            超级管理员密码验证
+          </Space>
+        }
+        open={passwordModalVisible}
+        onCancel={() => {
+          setPasswordModalVisible(false);
+          passwordForm.resetFields();
+        }}
+        footer={null}
+        width={400}
+        destroyOnClose
+      >
+        <Form
+          form={passwordForm}
+          layout="vertical"
+          onFinish={handlePasswordVerify}
+        >
+          <Form.Item
+            label="超级管理员密码"
+            name="password"
+            rules={[
+              { required: true, message: '请输入超级管理员密码' }
+            ]}
+          >
+            <Input.Password
+              placeholder="请输入超级管理员密码"
+              autoFocus
+            />
+          </Form.Item>
+
+          <Form.Item style={{ textAlign: 'right', marginBottom: 0 }}>
+            <Space>
+              <Button onClick={() => {
+                setPasswordModalVisible(false);
+                passwordForm.resetFields();
+              }}>
+                取消
+              </Button>
+              <Button type="primary" htmlType="submit">
+                验证密码
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 完整API Key信息 Modal */}
+      <Modal
+        title={
+          <Space>
+            <KeyOutlined />
+            完整API Key信息
+          </Space>
+        }
+        open={detailModalVisible}
+        onCancel={() => {
+          setDetailModalVisible(false);
+          setFullApiKeyInfo(null);
+        }}
+        footer={[
+          <Button key="close" onClick={() => {
+            setDetailModalVisible(false);
+            setFullApiKeyInfo(null);
+          }}>
+            关闭
+          </Button>
+        ]}
+        width={700}
+        destroyOnClose
+      >
+        {fullApiKeyInfo && (
+          <Descriptions
+            title="API Key 详细信息"
+            bordered
+            column={1}
+            size="small"
+          >
+            <Descriptions.Item label="API Key">
+              <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
+                {fullApiKeyInfo.apiKey}
+              </span>
+            </Descriptions.Item>
+            <Descriptions.Item label="别名">
+              <strong>{fullApiKeyInfo.alias}</strong>
+            </Descriptions.Item>
+            <Descriptions.Item label="描述">
+              {fullApiKeyInfo.description || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Access Key">
+              <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                {fullApiKeyInfo.openapi.accessKey}
+              </span>
+            </Descriptions.Item>
+            <Descriptions.Item label="Access Secret">
+              <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                {fullApiKeyInfo.openapi.accessSecret}
+              </span>
+            </Descriptions.Item>
+            <Descriptions.Item label="业务类型">
+              {fullApiKeyInfo.openapi.bizType}
+            </Descriptions.Item>
+            <Descriptions.Item label="服务地址">
+              {fullApiKeyInfo.openapi.baseUrl}
+            </Descriptions.Item>
+            <Descriptions.Item label="验证时间">
+              {new Date(fullApiKeyInfo.verifiedAt).toLocaleString()}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
 
       {/* 添加/编辑API Key Modal */}
       <Modal

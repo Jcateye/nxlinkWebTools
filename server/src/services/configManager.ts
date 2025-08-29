@@ -178,6 +178,12 @@ export function deleteApiKey(apiKey: string): void {
   
   const index = config.keys.findIndex(key => key.apiKey === apiKey);
   if (index === -1) {
+    // 检查是否是环境变量中的API Key
+    const allKeys = getAllApiKeys();
+    const envKey = allKeys.find(k => k.apiKey === apiKey);
+    if (envKey) {
+      throw new Error(`无法删除环境变量中的API Key: ${maskedApiKey}，请修改项目配置文件`);
+    }
     throw new Error(`API Key 不存在: ${maskedApiKey}`);
   }
 

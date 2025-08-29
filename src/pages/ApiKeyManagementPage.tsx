@@ -48,6 +48,7 @@ interface ApiKeyItem {
   hasOpenApiConfig: boolean;
   openApiBaseUrl: string;
   bizType: string;
+  isFromEnv?: boolean; // 是否来自环境变量
 }
 
 interface ApiKeyStats {
@@ -249,6 +250,15 @@ export default function ApiKeyManagementPage() {
       key: 'bizType'
     },
     {
+      title: '来源',
+      key: 'source',
+      render: (_: any, record: ApiKeyItem) => (
+        record.isFromEnv ? 
+          <Tag color="blue">环境变量</Tag> :
+          <Tag color="green">配置文件</Tag>
+      )
+    },
+    {
       title: '操作',
       key: 'actions',
       render: (_: any, record: ApiKeyItem) => (
@@ -267,20 +277,31 @@ export default function ApiKeyManagementPage() {
               onClick={() => handleEdit(record)}
             />
           </Tooltip>
-          <Tooltip title="删除配置">
-            <Popconfirm
-              title="确定要删除这个API Key配置吗？"
-              onConfirm={() => handleDelete(record.apiKey)}
-              okText="确定"
-              cancelText="取消"
-            >
+          {record.isFromEnv ? (
+            <Tooltip title="环境变量配置的API Key无法删除，请修改项目配置文件">
               <Button 
                 size="small" 
                 danger 
                 icon={<DeleteOutlined />}
+                disabled
               />
-            </Popconfirm>
-          </Tooltip>
+            </Tooltip>
+          ) : (
+            <Tooltip title="删除配置">
+              <Popconfirm
+                title="确定要删除这个API Key配置吗？"
+                onConfirm={() => handleDelete(record.apiKey)}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button 
+                  size="small" 
+                  danger 
+                  icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            </Tooltip>
+          )}
         </Space>
       )
     }

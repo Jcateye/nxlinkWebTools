@@ -25,21 +25,28 @@ router.get('/list', (req, res): Promise<void> => {
       message: '获取成功',
       data: {
         totalKeys: apiKeys.length,
-        keys: apiKeys.map(key => ({
-          apiKey: key.apiKey,
-          alias: key.alias,
-          description: key.description,
-          hasOpenApiConfig: !!(key.openapi.accessKey && key.openapi.accessSecret),
-          openApiBaseUrl: key.openapi.baseUrl,
-          bizType: key.openapi.bizType,
-          // 不返回敏感信息
-          openapi: {
-            accessKey: key.openapi.accessKey ? '***' : '',
-            accessSecret: key.openapi.accessSecret ? '***' : '',
+        keys: apiKeys.map(key => {
+          // 检查是否是环境变量中的API Key
+          const config = require('../services/configManager').readApiKeysConfig();
+          const isFromFile = config.keys.some((fileKey: any) => fileKey.apiKey === key.apiKey);
+          
+          return {
+            apiKey: key.apiKey,
+            alias: key.alias,
+            description: key.description,
+            hasOpenApiConfig: !!(key.openapi.accessKey && key.openapi.accessSecret),
+            openApiBaseUrl: key.openapi.baseUrl,
             bizType: key.openapi.bizType,
-            baseUrl: key.openapi.baseUrl
-          }
-        })),
+            isFromEnv: !isFromFile, // 标记是否来自环境变量
+            // 不返回敏感信息
+            openapi: {
+              accessKey: key.openapi.accessKey ? '***' : '',
+              accessSecret: key.openapi.accessSecret ? '***' : '',
+              bizType: key.openapi.bizType,
+              baseUrl: key.openapi.baseUrl
+            }
+          };
+        }),
         stats
       }
     });

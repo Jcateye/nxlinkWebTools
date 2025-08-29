@@ -33,9 +33,12 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
+// 处理多域名CORS配置
+const corsOrigins = PROJECT_CONFIG.server.corsOrigin.split(',').map(origin => origin.trim());
+
 const io = new SocketIOServer(server, {
   cors: {
-    origin: PROJECT_CONFIG.server.corsOrigin,
+    origin: corsOrigins,
     methods: ["GET", "POST"]
   }
 });
@@ -47,7 +50,7 @@ const PORT = Number(process.env.PORT) || PROJECT_CONFIG.server.port;
 app.use(helmet());
 app.use(compression());
 app.use(cors({
-  origin: PROJECT_CONFIG.server.corsOrigin,
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));

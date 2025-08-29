@@ -15,7 +15,8 @@ import {
   Row,
   Col,
   Statistic,
-  Divider
+  Divider,
+  Typography
 } from 'antd';
 import {
   PlusOutlined,
@@ -28,6 +29,8 @@ import {
   LockOutlined,
   UnlockOutlined
 } from '@ant-design/icons';
+
+const { Text } = Typography;
 
 interface ApiKeyConfig {
   apiKey: string;
@@ -69,11 +72,14 @@ export default function ApiKeyManagementPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<ApiKeyConfig | null>(null);
   const [selectedApiKey, setSelectedApiKey] = useState<string>('');
+  const [deletingApiKey, setDeletingApiKey] = useState<string>('');
   const [fullApiKeyInfo, setFullApiKeyInfo] = useState<any>(null);
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
+  const [deletePasswordForm] = Form.useForm();
 
   // 生成随机API Key（Base62），并确保不与已有冲突
   const generateRandomApiKey = (length: number = 32): string => {
@@ -287,19 +293,13 @@ export default function ApiKeyManagementPage() {
               />
             </Tooltip>
           ) : (
-            <Tooltip title="删除配置">
-              <Popconfirm
-                title="确定要删除这个API Key配置吗？"
-                onConfirm={() => handleDelete(record.apiKey)}
-                okText="确定"
-                cancelText="取消"
-              >
-                <Button 
-                  size="small" 
-                  danger 
-                  icon={<DeleteOutlined />}
-                />
-              </Popconfirm>
+            <Tooltip title="删除配置（需要超管密码验证）">
+              <Button 
+                size="small" 
+                danger 
+                icon={<DeleteOutlined />}
+                onClick={() => showDeleteConfirm(record.apiKey)}
+              />
             </Tooltip>
           )}
         </Space>
@@ -395,12 +395,23 @@ export default function ApiKeyManagementPage() {
     }
   };
 
-  // 处理删除
-  const handleDelete = async (apiKey: string) => {
+  // 显示删除确认弹框
+  const showDeleteConfirm = (apiKey: string) => {
+    setDeletingApiKey(apiKey);
+    setDeleteModalVisible(true);
+    deletePasswordForm.resetFields();
+  };
+
+  // 处理删除确认（包含密码验证）
+  const handleDeleteConfirm = async (values: { password: string }) => {
     try {
       setLoading(true);
-      const response = await fetch(`/internal-api/keys/delete/${apiKey}`, {
-        method: 'DELETE'
+      const response = await fetch(`/internal-api/keys/delete/${deletingApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password: values.password })
       });
       const result = await response.json();
       
@@ -408,7 +419,7 @@ export default function ApiKeyManagementPage() {
         message.success('API Key 删除成功');
         // 立即从本地状态中移除该项，提供更快的用户反馈
         if (apiKeys) {
-          const updatedKeys = apiKeys.keys.filter(key => key.apiKey !== apiKey);
+          const updatedKeys = apiKeys.keys.filter(key => key.apiKey !== deletingApiKey);
           setApiKeys({
             ...apiKeys,
             totalKeys: updatedKeys.length,
@@ -417,6 +428,10 @@ export default function ApiKeyManagementPage() {
         }
         // 然后重新加载完整列表确保数据一致性
         await loadApiKeys();
+        // 关闭弹框
+        setDeleteModalVisible(false);
+        setDeletingApiKey('');
+        deletePasswordForm.resetFields();
       } else {
         message.error(`删除失败: ${result.message}`);
       }
@@ -425,6 +440,13 @@ export default function ApiKeyManagementPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 取消删除
+  const handleDeleteCancel = () => {
+    setDeleteModalVisible(false);
+    setDeletingApiKey('');
+    deletePasswordForm.resetFields();
   };
 
   // 处理添加
@@ -641,6 +663,62 @@ EXTERNAL_API_KEY_1_OPENAPI_BASE_URL=https://api-westus.nxlink.ai`}
               </Button>
               <Button type="primary" htmlType="submit">
                 验证密码
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 删除确认 Modal */}
+      <Modal
+        title={
+          <Space>
+            <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+            删除API Key确认
+          </Space>
+        }
+        open={deleteModalVisible}
+        onCancel={handleDeleteCancel}
+        footer={null}
+        width={500}
+        destroyOnClose
+        zIndex={2000}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text>
+            您即将删除API Key: <Text code strong>{maskApiKey(deletingApiKey)}</Text>
+          </Text>
+          <br />
+          <Text type="warning" style={{ fontSize: '14px' }}>
+            此操作不可撤销，请输入超级管理员密码确认删除。
+          </Text>
+        </div>
+        
+        <Form
+          form={deletePasswordForm}
+          layout="vertical"
+          onFinish={handleDeleteConfirm}
+        >
+          <Form.Item
+            label="超级管理员密码"
+            name="password"
+            rules={[
+              { required: true, message: '请输入超级管理员密码' }
+            ]}
+          >
+            <Input.Password
+              placeholder="请输入超级管理员密码"
+              autoFocus
+            />
+          </Form.Item>
+
+          <Form.Item style={{ textAlign: 'right', marginBottom: 0 }}>
+            <Space>
+              <Button onClick={handleDeleteCancel}>
+                取消
+              </Button>
+              <Button type="primary" danger htmlType="submit" loading={loading}>
+                确认删除
               </Button>
             </Space>
           </Form.Item>

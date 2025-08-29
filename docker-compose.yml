@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  nxlink-app:
+    build: .
+    image: nxlink-webtools:latest
+    container_name: nxlink-webtools
+    restart: unless-stopped
+    ports:
+      - "8350:8350"  # 网关端口
+      - "8450:8450"  # 后端端口（可选，通常不需要暴露）
+    environment:
+      - NODE_ENV=production
+      - PORT=8450
+      - BACKEND_PORT=8450
+      - CORS_ORIGIN=https://sit2025.nxlink.ai,https://nxlink.ai,https://nxlink.nxcloud.com,https://nxcloud.com
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-F511522591}
+      - LOG_LEVEL=${LOG_LEVEL:-warn}
+      # OpenAPI配置（可选）
+      - OPENAPI_ACCESS_KEY=${OPENAPI_ACCESS_KEY}
+      - OPENAPI_ACCESS_SECRET=${OPENAPI_ACCESS_SECRET}
+    volumes:
+      - ./logs:/app/logs
+      - ./server/config/api-keys.json:/app/server/config/api-keys.json
+      - ./uploads:/app/server/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8450/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - nxlink-network
+
+  # 可选：Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: nxlink-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./dist:/usr/share/nginx/html:ro
+    depends_on:
+      - nxlink-app
+    networks:
+      - nxlink-network
+
+networks:
+  nxlink-network:
+    driver: bridge

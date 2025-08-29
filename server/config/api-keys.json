@@ -1,18 +1,7 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-08-29T04:01:19.741Z",
+  "lastUpdated": "2025-08-29T06:28:32.518Z",
   "keys": [
-    {
-      "apiKey": "demo-api-key-1",
-      "alias": "营销云内部环境",
-      "description": "开发环境API Key 1",
-      "openapi": {
-        "accessKey": "AK-764887602601150724-2786",
-        "accessSecret": "0de4a159402a4e3494f76669ac92d6e6",
-        "bizType": "8",
-        "baseUrl": "https://api-westus.nxlink.ai"
-      }
-    },
     {
       "apiKey": "riKJb6WOXF2kgQgYxTEG9JBA55aq9Y26",
       "alias": "市场部测试",
@@ -31,6 +20,17 @@
       "openapi": {
         "accessKey": "AK-8240902559551213355-2466",
         "accessSecret": "b1d268ae1a3f46e6bbe1759b4ef42f5f",
+        "bizType": "8",
+        "baseUrl": "https://api-westus.nxlink.ai"
+      }
+    },
+    {
+      "apiKey": "O1acegg4WCoqyv2GqtVFzlFhFDSgBCdG",
+      "alias": "营销云内部环境2",
+      "description": "营销云内部环境2",
+      "openapi": {
+        "accessKey": "AK-764887602601150724-2786",
+        "accessSecret": "0de4a159402a4e3494f76669ac92d6e6",
         "bizType": "8",
         "baseUrl": "https://api-westus.nxlink.ai"
       }

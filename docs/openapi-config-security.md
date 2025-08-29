@@ -61,18 +61,12 @@ function ensureAuth(): OpenApiAuthConfig {
 }
 ```
 
-### 配置测试组件 (`ConfigTest.tsx`)
-- 显示配置状态概览
-- 验证环境变量是否正确设置
-- 提供配置说明和使用指导
-
 ## 📁 文件结构
 
 ```
 src/
 ├── components/openapi/
-│   ├── OpenApiAuthForm.tsx      # 认证表单组件
-│   └── ConfigTest.tsx           # 配置测试组件
+│   └── OpenApiAuthForm.tsx      # 认证表单组件
 ├── config/
 │   └── apiConfig.ts             # 前端配置管理
 ├── services/

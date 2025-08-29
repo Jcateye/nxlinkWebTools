@@ -161,21 +161,43 @@ router.put('/update/:apiKey', (req, res): Promise<void> => {
 });
 
 /**
- * 删除API Key
- * DELETE /api/keys/delete/:apiKey
+ * 删除API Key（需要超级管理员密码验证）
+ * POST /api/keys/delete/:apiKey
  */
-router.delete('/delete/:apiKey', (req, res): Promise<void> => {
+router.post('/delete/:apiKey', (req, res): Promise<void> => {
   try {
     const apiKey = req.params.apiKey;
+    const { password } = req.body;
+    
+    // 验证超级管理员密码
+    if (!password) {
+      res.status(400).json({
+        code: 400,
+        message: '请输入超级管理员密码'
+      });
+      return Promise.resolve();
+    }
+
+    const isValidPassword = password === PROJECT_CONFIG.server.adminPassword;
+    if (!isValidPassword) {
+      res.status(403).json({
+        code: 403,
+        message: '超级管理员密码验证失败'
+      });
+      return Promise.resolve();
+    }
     
     // 删除API Key
     deleteApiKey(apiKey);
+
+    const maskedApiKey = apiKey.length > 8 ? apiKey.substring(0, 8) + '***' : apiKey;
+    console.log(`✅ 超级管理员已删除API Key: ${maskedApiKey}`);
 
     res.json({
       code: 200,
       message: 'API Key 删除成功',
       data: {
-        apiKey: apiKey.length > 8 ? apiKey.substring(0, 8) + '***' : apiKey
+        apiKey: maskedApiKey
       }
     });
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, Table, Button, Modal, Form, Input, Space, message, DatePicker, Select, Tag, Breadcrumb, Row, Col, Statistic } from 'antd';
 import { SearchOutlined, ReloadOutlined, HomeOutlined, PhoneOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import ConfigTest from '../components/openapi/ConfigTest';
+
 import { fixApiUrl } from '../utils/apiHelper';
 import { generateContactIdFromPhone } from '../utils/id';
 import DynamicTableEditor from '../components/openapi/DynamicTableEditor';
@@ -357,10 +357,7 @@ export default function OpenApiActivityPage() {
             </Space>
           </Card>
 
-          {/* 旧的手动鉴权表单已移除，统一使用上方“数据源配置”的API Key */}
-          
-          {/* 配置测试组件 - 开发时使用，生产环境可以隐藏 */}
-          {process.env.NODE_ENV === 'development' && <ConfigTest />}
+          {/* 旧的手动鉴权表单已移除，统一使用上方"数据源配置"的API Key */}
           
           {/* 筛选条件 */}
           <Form form={searchForm} layout="inline" style={{ marginBottom: 16 }}>

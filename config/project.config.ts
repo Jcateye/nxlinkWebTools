@@ -82,17 +82,7 @@ const DEFAULT_CONFIG: ProjectConfig = {
   },
   
   externalApiKeys: [
-    {
-      apiKey: 'demo-api-key-1',
-      alias: '演示平台1',
-      description: '演示用API Key 1',
-      openapi: {
-        accessKey: 'your-openapi-access-key-1',
-        accessSecret: 'your-openapi-access-secret-1',
-        bizType: '8',
-        baseUrl: 'https://api-westus.nxlink.ai'
-      }
-    }
+    // 默认不提供任何API Key，全部通过界面管理
   ],
   
   database: {
@@ -131,11 +121,12 @@ const DEFAULT_CONFIG: ProjectConfig = {
 const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
   server: {
     port: Number(process.env.PORT) || 8450,                        // 生产环境端口（可通过PORT覆盖，默认8450，与开发环境区分）
-    corsOrigin: 'https://your-production-domain.com',             // 生产环境前端域名
+    // 支持多个域名，用逗号分隔
+    corsOrigin: process.env.CORS_ORIGIN || 'https://sit2025.nxlink.ai,https://nxlink.ai,https://nxlink.nxcloud.com,https://nxcloud.com',
     nodeEnv: 'production',                                         // 明确标记为生产环境
     jwtSecret: process.env.JWT_SECRET || 'change-me-in-production', // 必须通过环境变量设置
     jwtExpiresIn: '7d',                                            // JWT过期时间
-    logLevel: 'warn',                                              // 生产环境减少日志输出
+    logLevel: process.env.LOG_LEVEL || 'warn',                     // 生产环境减少日志输出
     adminPassword: process.env.ADMIN_PASSWORD || 'F511522591'      // 生产环境超级管理员密码
   },
   
@@ -147,8 +138,9 @@ const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
   },
   
   externalApiKeys: [
-    {
-      apiKey: process.env.EXTERNAL_API_KEY_1 || '',
+    // 生产环境只从环境变量读取，不提供默认值
+    ...(process.env.EXTERNAL_API_KEY_1 ? [{
+      apiKey: process.env.EXTERNAL_API_KEY_1,
       alias: process.env.EXTERNAL_API_KEY_1_ALIAS || '生产平台1',
       description: process.env.EXTERNAL_API_KEY_1_DESC || '生产环境API Key 1',
       openapi: {
@@ -157,9 +149,9 @@ const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
         bizType: process.env.EXTERNAL_API_KEY_1_OPENAPI_BIZ_TYPE || '8',
         baseUrl: process.env.EXTERNAL_API_KEY_1_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
       }
-    },
-    {
-      apiKey: process.env.EXTERNAL_API_KEY_2 || '',
+    }] : []),
+    ...(process.env.EXTERNAL_API_KEY_2 ? [{
+      apiKey: process.env.EXTERNAL_API_KEY_2,
       alias: process.env.EXTERNAL_API_KEY_2_ALIAS || '生产平台2',
       description: process.env.EXTERNAL_API_KEY_2_DESC || '生产环境API Key 2',
       openapi: {
@@ -168,8 +160,8 @@ const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
         bizType: process.env.EXTERNAL_API_KEY_2_OPENAPI_BIZ_TYPE || '8',
         baseUrl: process.env.EXTERNAL_API_KEY_2_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
       }
-    }
-  ].filter(config => config.apiKey),                              // 过滤空的API Key
+    }] : [])
+  ],
   
   database: {
     url: process.env.DATABASE_URL || 'sqlite:./database.db'       // 生产环境通常使用PostgreSQL/MySQL
@@ -223,18 +215,8 @@ const DEVELOPMENT_CONFIG: Partial<ProjectConfig> = {
   },
   
   externalApiKeys: [
-    {
-      apiKey: process.env.EXTERNAL_API_KEY_1 || 'demo-api-key-1',
-      alias: process.env.EXTERNAL_API_KEY_1_ALIAS || '开发平台1',
-      description: process.env.EXTERNAL_API_KEY_1_DESC || '开发环境API Key 1',
-      openapi: {
-        accessKey: process.env.EXTERNAL_API_KEY_1_OPENAPI_ACCESS_KEY || 'AK-764887602601150724-2786',
-        accessSecret: process.env.EXTERNAL_API_KEY_1_OPENAPI_ACCESS_SECRET || '0de4a159402a4e3494f76669ac92d6e6',
-        bizType: process.env.EXTERNAL_API_KEY_1_OPENAPI_BIZ_TYPE || '8',
-        baseUrl: process.env.EXTERNAL_API_KEY_1_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
-      }
-    }
-  ].filter(config => config.apiKey),
+    // 默认不提供任何API Key，全部通过界面管理
+  ],
   
   database: {
     url: process.env.DATABASE_URL || 'sqlite:./database.db'      // 数据库：环境变量 > SQLite
@@ -256,7 +238,7 @@ function mergeConfig(base: ProjectConfig, override: Partial<ProjectConfig>): Pro
   return {
     server: { ...base.server, ...override.server },
     openapi: { ...base.openapi, ...override.openapi },
-    externalApiKeys: override.externalApiKeys || base.externalApiKeys,
+    externalApiKeys: override.externalApiKeys !== undefined ? override.externalApiKeys : base.externalApiKeys,
     database: { ...base.database, ...override.database },
     frontend: {
       openapi: { ...base.frontend.openapi, ...override.frontend?.openapi }

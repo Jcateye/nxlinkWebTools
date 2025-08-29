@@ -78,7 +78,9 @@ export function writeApiKeysConfig(config: ApiKeysConfig): void {
  * 获取所有API Keys（包括环境变量和配置文件中的）
  */
 export function getAllApiKeys(): ExternalApiKeyConfig[] {
-  // 从环境变量获取
+  // 从环境变量获取，清除require缓存以确保获取最新配置
+  const configPath = require.resolve('../../../config/project.config');
+  delete require.cache[configPath];
   const { PROJECT_CONFIG } = require('../../../config/project.config');
   const envKeys: ExternalApiKeyConfig[] = PROJECT_CONFIG.externalApiKeys || [];
 

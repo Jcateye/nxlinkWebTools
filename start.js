@@ -50,16 +50,16 @@ const environments = {
     },
     backend: {
       command: 'npm',
-      args: ['run', 'start'],
+      args: ['run', 'start:prod'],
       cwd: path.join(process.cwd(), 'server'),
-      port: 8400,
+      port: 8450,
       color: 'green'
     },
     server: {
       command: 'node',
       args: ['server.js'],
       cwd: process.cwd(),
-      port: 8300,
+      port: 8350,
       color: 'yellow'
     }
   },
@@ -233,13 +233,26 @@ async function startService(name, config, env) {
     colorLog('cyan', 'BUILD', '正在构建前端项目...');
   }
   
+  // 组装环境变量（为服务显式设置端口）
+  const serviceEnv = {
+    ...process.env,
+    NODE_ENV: env === 'dev' ? 'development' : env === 'prod' ? 'production' : 'test'
+  };
+  if (config.port) {
+    serviceEnv.PORT = String(config.port);
+  }
+  // 网关(server)需要知道后端端口用于代理转发
+  try {
+    const allEnv = environments[env];
+    if (name === 'server' && allEnv && allEnv.backend && allEnv.backend.port) {
+      serviceEnv.BACKEND_PORT = String(allEnv.backend.port);
+    }
+  } catch {}
+
   const child = spawn(config.command, config.args, {
     cwd: config.cwd,
     stdio: 'pipe',
-    env: {
-      ...process.env,
-      NODE_ENV: env === 'dev' ? 'development' : env === 'prod' ? 'production' : 'test'
-    }
+    env: serviceEnv
   });
   
   // 输出处理

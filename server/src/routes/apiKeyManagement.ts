@@ -326,7 +326,7 @@ router.get('/stats', (req, res): Promise<void> => {
  * 验证超级管理员密码
  * POST /api/keys/verify-admin-password
  */
-router.post('/verify-admin-password', (req, res): Promise<void> => {
+router.post('/verify-admin-password', async (req, res): Promise<void> => {
   try {
     const { password } = req.body;
 
@@ -366,7 +366,7 @@ router.post('/verify-admin-password', (req, res): Promise<void> => {
  * 获取API Key完整信息（需要超级管理员密码验证）
  * POST /api/keys/full-detail/:apiKey
  */
-router.post('/full-detail/:apiKey', (req, res): Promise<void> => {
+router.post('/full-detail/:apiKey', async (req, res): Promise<void> => {
   try {
     const apiKey = req.params.apiKey;
     const { password } = req.body;

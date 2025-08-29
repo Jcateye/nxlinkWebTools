@@ -130,7 +130,7 @@ const DEFAULT_CONFIG: ProjectConfig = {
  */
 const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
   server: {
-    port: Number(process.env.PORT) || 8400,                        // 生产环境端口（可通过PORT覆盖）
+    port: Number(process.env.PORT) || 8450,                        // 生产环境端口（可通过PORT覆盖，默认8450，与开发环境区分）
     corsOrigin: 'https://your-production-domain.com',             // 生产环境前端域名
     nodeEnv: 'production',                                         // 明确标记为生产环境
     jwtSecret: process.env.JWT_SECRET || 'change-me-in-production', // 必须通过环境变量设置
@@ -206,7 +206,7 @@ const PRODUCTION_CONFIG: Partial<ProjectConfig> = {
  */
 const DEVELOPMENT_CONFIG: Partial<ProjectConfig> = {
   server: {
-    port: Number(process.env.PORT) || 8400,                       // 端口：环境变量 > 8400
+    port: Number(process.env.PORT) || 8400,                       // 开发后端默认8400（保持不变）
     corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3010', // CORS：环境变量 > 本地前端地址
     nodeEnv: 'development',                                        // 明确标记为开发环境
     jwtSecret: process.env.JWT_SECRET || 'dev-jwt-secret-key',    // JWT密钥：环境变量 > 开发用密钥

@@ -4,6 +4,7 @@ const fs = require('fs');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');
 const os = require('os');
+const crypto = require('crypto');
 
 // 导入TTS路由
 const ttsRoutes = require('./server/routes/tts');
@@ -12,7 +13,7 @@ const ttsRoutes = require('./server/routes/tts');
 function getLocalIp() {
   const interfaces = os.networkInterfaces();
   const addresses = [];
-  
+
   Object.keys(interfaces).forEach((netInterface) => {
     interfaces[netInterface].forEach((interfaceObj) => {
       // 跳过内部IP和非IPv4地址
@@ -21,12 +22,107 @@ function getLocalIp() {
       }
     });
   });
-  
+
   return addresses;
+}
+
+// 读取API Key配置
+function getApiKeyConfig(apiKey) {
+  try {
+    const configPath = path.join(__dirname, 'server/config/api-keys.json');
+    if (!fs.existsSync(configPath)) {
+      console.log('API Key配置文件不存在:', configPath);
+      return null;
+    }
+
+    const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const keys = configData.keys || [];
+
+    // 先查找文件中的配置
+    let apiKeyConfig = keys.find(key => key.apiKey === apiKey);
+    if (apiKeyConfig) {
+      return {
+        ...apiKeyConfig,
+        source: 'file'
+      };
+    }
+
+    // 如果没找到，尝试查找环境变量中的配置
+    const envApiKeys = [
+      {
+        apiKey: 'demo-api-key-1',
+        alias: '营销云内部环境',
+        openapi: {
+          accessKey: process.env.DEMO_API_KEY_1_ACCESS_KEY || 'AK-764887602601150724-2786',
+          accessSecret: process.env.DEMO_API_KEY_1_ACCESS_SECRET || '0de4a159402a4e3494f76669ac92d6e6',
+          bizType: process.env.DEMO_API_KEY_1_BIZ_TYPE || '8',
+          baseUrl: process.env.DEMO_API_KEY_1_BASE_URL || 'https://api-westus.nxlink.ai'
+        }
+      }
+    ];
+
+    apiKeyConfig = envApiKeys.find(key => key.apiKey === apiKey);
+    if (apiKeyConfig) {
+      return {
+        ...apiKeyConfig,
+        source: 'env'
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('读取API Key配置失败:', error);
+    return null;
+  }
+}
+
+// 生成OpenAPI签名
+function generateOpenApiSign(accessKey, action, bizType, ts, bodyJsonString, accessSecret) {
+  // Step 1: 创建headers对象并按key的ASCII码升序排列
+  const headers = {
+    accessKey: accessKey,
+    action: action,
+    bizType: bizType,
+    ts: ts
+  };
+
+  // 按key的ASCII码升序排列
+  const sortedKeys = Object.keys(headers).sort();
+  const headersStr = sortedKeys.map(key => `${key}=${headers[key]}`).join('&');
+
+  // Step 2: 拼接body参数
+  let raw = headersStr;
+  // 只有当body不为空且不为'{}'时才拼接body参数
+  if (bodyJsonString && bodyJsonString.trim() !== '' && bodyJsonString !== '{}') {
+    raw += `&body=${bodyJsonString}`;
+  }
+
+  // Step 3: 拼接accessSecret
+  raw += `&accessSecret=${accessSecret}`;
+
+  // Debug: 打印签名原文（仅显示前50个字符和后20个字符）
+  const rawPreview = raw.length > 70
+    ? `${raw.substring(0, 50)}...${raw.substring(raw.length - 20)}`
+    : raw;
+
+  console.log(`[${new Date().toLocaleTimeString()}] 🔐 签名计算详情:`);
+  console.log(`  Headers对象:`, headers);
+  console.log(`  排序后的Keys:`, sortedKeys);
+  console.log(`  HeadersStr: ${headersStr}`);
+  console.log(`  Body: ${bodyJsonString}`);
+  console.log(`  Raw字符串长度: ${raw.length}`);
+  console.log(`  Raw预览: ${rawPreview}`);
+
+  // Step 4: MD5哈希并转换为小写十六进制
+  const sign = crypto.createHash('md5').update(raw, 'utf8').digest('hex');
+
+  console.log(`  生成签名: ${sign}`);
+  return sign;
 }
 
 const app = express();
 const PORT = process.env.PORT || 8300;
+const BACKEND_PORT = process.env.BACKEND_PORT || 8400;
 
 // 批量测试日志存储
 let batchTestLogs = [];
@@ -35,8 +131,28 @@ let batchTestLogs = [];
 app.use(cors());
 
 // =========================
-// 1. 先挂载 API 代理，避免 body 已被解析导致流被消耗
+// 1. 先挂载 API 代理（代理需要原始请求体）
 // =========================
+
+// 内部API代理 - 代理到本地的后端API服务（必须放在最前面，避免被其他API代理拦截）
+app.use('/internal-api', createProxyMiddleware({
+  target: `http://localhost:${BACKEND_PORT}`,
+  changeOrigin: true,
+  // 不进行路径重写，直接保持 /internal-api 路径
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(Internal API): ${req.method} ${req.url} -> http://localhost:${BACKEND_PORT}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
+    console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应(Internal API): ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`[${new Date().toLocaleTimeString()}] ❌ 代理错误(Internal API):`, err.message);
+    res.status(502).json({ error: 'Internal API 代理出错', message: err.message });
+  }
+}));
 
 // 香港数据中心代理 - 直接访问根路径，因为/hk会被重定向
 app.use('/api/hk', createProxyMiddleware({
@@ -51,7 +167,7 @@ app.use('/api/hk', createProxyMiddleware({
     proxyReq.setHeader('Host', 'nxlink.nxcloud.com');
     proxyReq.setHeader('Origin', 'https://nxlink.nxcloud.com');
     proxyReq.setHeader('Referer', 'https://nxlink.nxcloud.com');
-    
+
     // 保留原始的认证和系统ID头
     if (req.headers.authorization) {
       proxyReq.setHeader('Authorization', req.headers.authorization);
@@ -59,7 +175,7 @@ app.use('/api/hk', createProxyMiddleware({
     if (req.headers['system_id']) {
       proxyReq.setHeader('system_id', req.headers['system_id']);
     }
-    
+
     console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(HK): ${req.method} ${req.url}`);
     console.log(`  目标: https://nxlink.nxcloud.com/hk${req.url.replace('/api/hk', '')}`);
   },
@@ -75,7 +191,7 @@ app.use('/api/hk', createProxyMiddleware({
         console.log(`[${new Date().toLocaleTimeString()}] 🔀 修改重定向: ${originalLocation} -> ${proxyRes.headers.location}`);
       }
     }
-    
+
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
@@ -122,35 +238,30 @@ app.use('/api/chl', createProxyMiddleware({
   }
 }));
 
-// OpenAPI 平台代理（防止命中默认 /api 代理导致 301 循环重定向）
+// OpenAPI 平台代理 - 代理到本地后端服务，而不是直接访问外部API
 app.use('/api/openapi', createProxyMiddleware({
-  // 目标为根域名，通过 pathRewrite 将 /api/openapi 映射为 /openapi
-  target: 'https://api-westus.nxlink.ai',
+  target: `http://localhost:${BACKEND_PORT}`,
   changeOrigin: true,
-  secure: false,
-  followRedirects: true,
-  pathRewrite: {
-    '^/api': '' // /api/openapi/xxx -> /openapi/xxx
-  },
+  // 不进行路径重写，保持 /api/openapi 路径
   onProxyReq: (proxyReq, req, res) => {
-    proxyReq.setHeader('Host', 'api-westus.nxlink.ai');
-    proxyReq.setHeader('Origin', 'https://api-westus.nxlink.ai');
-    console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(OpenAPI): ${req.method} ${req.url}`);
+    console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(OpenAPI到后端): ${req.method} ${req.url} -> http://localhost:${BACKEND_PORT}`);
   },
   onProxyRes: (proxyRes, req, res) => {
-    // OpenAPI 直连，不对返回的 Location 做任何重写，避免循环
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
-    console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应(OpenAPI): ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+    console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应(OpenAPI到后端): ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
   },
   onError: (err, req, res) => {
     console.error(`[${new Date().toLocaleTimeString()}] ❌ 代理错误(OpenAPI):`, err.message);
-    res.status(502).send('OpenAPI 代理出错');
+    console.error(`  错误详情:`, err);
+    res.status(502).json({
+      error: 'OpenAPI 代理出错',
+      message: err.message,
+      details: err.toString()
+    });
   }
 }));
-
-
 
 // 默认API代理
 app.use('/api', createProxyMiddleware({
@@ -188,8 +299,10 @@ app.use('/api', createProxyMiddleware({
 }));
 
 // =========================
-// 2. 其余中间件（会消费 body 的）放在代理之后
+// 代理设置完成后，其他中间件
 // =========================
+
+// 设置 body 解析中间件（仅用于非代理路由）
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -307,4 +420,4 @@ app.listen(PORT, () => {
   console.log('🎵 TTS服务已启动: /api/tts');
   console.log('📊 批量测试日志API已启动: /api/local/batch-test/log');
   console.log('\n按 Ctrl+C 停止服务\n');
-}); 
+});

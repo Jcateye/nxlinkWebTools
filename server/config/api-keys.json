@@ -1,18 +1,7 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-08-28T10:03:07.038Z",
+  "lastUpdated": "2025-08-29T04:01:19.741Z",
   "keys": [
-    {
-      "apiKey": "demo-api-key-2",
-      "alias": "客户测试环境（勿删）",
-      "description": "",
-      "openapi": {
-        "accessKey": "AK-2289628445048195225-1802",
-        "accessSecret": "c2eb3e9e3bc54b07862893c734ef39cb",
-        "bizType": "8",
-        "baseUrl": "https://api-westus.nxlink.ai"
-      }
-    },
     {
       "apiKey": "demo-api-key-1",
       "alias": "营销云内部环境",
@@ -25,23 +14,23 @@
       }
     },
     {
-      "apiKey": "cqdLgWcrRV2fq9ejABvVsQm9qmxFe7Xy",
-      "alias": "小语种测试",
-      "description": "小语种测试",
-      "openapi": {
-        "accessKey": "AK-6703184170923737282-4215",
-        "accessSecret": "ce0e1cfb3ae0448895345eaf0ffc04bc",
-        "bizType": "8",
-        "baseUrl": "https://api-westus.nxlink.ai"
-      }
-    },
-    {
       "apiKey": "riKJb6WOXF2kgQgYxTEG9JBA55aq9Y26",
       "alias": "市场部测试",
       "description": "市场部测试",
       "openapi": {
         "accessKey": "AK-5729969240546429498-1240",
         "accessSecret": "6fb6b516e4c04c039dcd3495b3bde5de",
+        "bizType": "8",
+        "baseUrl": "https://api-westus.nxlink.ai"
+      }
+    },
+    {
+      "apiKey": "c0bXxZx2fwSeJmTcCeV3zUKePwcakBOF",
+      "alias": "Agent客户体验团队",
+      "description": "Agent客户体验团队详情",
+      "openapi": {
+        "accessKey": "AK-8240902559551213355-2466",
+        "accessSecret": "b1d268ae1a3f46e6bbe1759b4ef42f5f",
         "bizType": "8",
         "baseUrl": "https://api-westus.nxlink.ai"
       }

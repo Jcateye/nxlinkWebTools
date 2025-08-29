@@ -40,7 +40,8 @@ const io = new SocketIOServer(server, {
   }
 });
 
-const PORT = PROJECT_CONFIG.server.port;
+// 优先使用环境变量 PORT（由启动脚本注入），否则使用配置端口
+const PORT = Number(process.env.PORT) || PROJECT_CONFIG.server.port;
 
 // 全局中间件
 app.use(helmet());

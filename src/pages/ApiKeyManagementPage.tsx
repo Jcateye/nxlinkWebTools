@@ -154,9 +154,21 @@ export default function ApiKeyManagementPage() {
         message.success(`API Key "${data.alias}" 测试成功`);
         Modal.info({
           title: 'API Key 测试结果',
+          zIndex: 1000,
           content: (
             <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="API Key">{data.apiKey}</Descriptions.Item>
+              <Descriptions.Item label="API Key">
+                <Space>
+                  <span style={{ fontFamily: 'monospace' }}>{maskApiKey(data.apiKey)}</span>
+                  <Tooltip title="查看完整API Key（需要超级管理员密码）">
+                    <Button
+                      size="small"
+                      icon={<UnlockOutlined />}
+                      onClick={() => handleViewFullApiKey(data.apiKey)}
+                    />
+                  </Tooltip>
+                </Space>
+              </Descriptions.Item>
               <Descriptions.Item label="别名">{data.alias}</Descriptions.Item>
               <Descriptions.Item label="描述">{data.description}</Descriptions.Item>
               <Descriptions.Item label="测试结果">
@@ -295,7 +307,7 @@ export default function ApiKeyManagementPage() {
           }
         });
         form.setFieldsValue({
-          apiKey: keyDetail.apiKey,
+          apiKey: keyDetail.apiKey, // 这里设置真实值，但显示时会被脱敏
           alias: keyDetail.alias,
           description: keyDetail.description,
           accessKey: keyDetail.openapi.accessKey,
@@ -565,6 +577,7 @@ EXTERNAL_API_KEY_1_OPENAPI_BASE_URL=https://api-westus.nxlink.ai`}
         footer={null}
         width={400}
         destroyOnClose
+        zIndex={2000}
       >
         <Form
           form={passwordForm}
@@ -623,6 +636,7 @@ EXTERNAL_API_KEY_1_OPENAPI_BASE_URL=https://api-westus.nxlink.ai`}
         ]}
         width={700}
         destroyOnClose
+        zIndex={1500}
       >
         {fullApiKeyInfo && (
           <Descriptions
@@ -688,22 +702,43 @@ EXTERNAL_API_KEY_1_OPENAPI_BASE_URL=https://api-westus.nxlink.ai`}
         >
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                label="API Key"
-                name="apiKey"
-                rules={[
-                  { required: true, message: '请输入API Key' },
-                  { min: 8, message: 'API Key至少8位' }
-                ]}
-              >
-                <Input 
-                  placeholder="请输入API Key"
-                  disabled={!!editingKey}
-                  addonAfter={!editingKey ? (
-                    <Button size="small" onClick={handleGenerateApiKey}>生成</Button>
-                  ) : undefined}
-                />
-              </Form.Item>
+              {editingKey ? (
+                <Form.Item label="API Key">
+                  <Input 
+                    value={maskApiKey(editingKey.apiKey)}
+                    disabled={true}
+                    addonAfter={
+                      <Tooltip title="查看完整API Key（需要超级管理员密码）">
+                        <Button 
+                          size="small" 
+                          icon={<UnlockOutlined />}
+                          onClick={() => handleViewFullApiKey(editingKey.apiKey)}
+                        />
+                      </Tooltip>
+                    }
+                  />
+                  {/* 隐藏的真实值用于表单提交 */}
+                  <Form.Item name="apiKey" hidden>
+                    <Input />
+                  </Form.Item>
+                </Form.Item>
+              ) : (
+                <Form.Item
+                  label="API Key"
+                  name="apiKey"
+                  rules={[
+                    { required: true, message: '请输入API Key' },
+                    { min: 8, message: 'API Key至少8位' }
+                  ]}
+                >
+                  <Input 
+                    placeholder="请输入API Key"
+                    addonAfter={
+                      <Button size="small" onClick={handleGenerateApiKey}>生成</Button>
+                    }
+                  />
+                </Form.Item>
+              )}
             </Col>
             <Col span={12}>
               <Form.Item

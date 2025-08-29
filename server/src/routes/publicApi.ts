@@ -128,14 +128,8 @@ router.post('/public/:apiKey/:taskId/append-numbers', async (req, res): Promise<
       return;
     }
 
-    if (!countryCode) {
-      res.status(400).json({
-        code: 400,
-        message: 'Missing required query parameter: countryCode',
-        error: 'MISSING_COUNTRY_CODE'
-      });
-      return;
-    }
+    // 如果没有提供countryCode，使用默认值"86"（中国）
+    const finalCountryCode = countryCode || '86';
 
     if (!phones || !Array.isArray(phones) || phones.length === 0) {
       res.status(400).json({
@@ -159,7 +153,7 @@ router.post('/public/:apiKey/:taskId/append-numbers', async (req, res): Promise<
     // 构建请求参数
     const requestBody = {
       taskId,
-      countryCode: String(countryCode), // 确保是字符串
+      countryCode: String(finalCountryCode), // 确保是字符串
       appendNumbers: phones.map(item => ({
         phoneNumber: item.phone,
         params: item.params || []
@@ -178,7 +172,7 @@ router.post('/public/:apiKey/:taskId/append-numbers', async (req, res): Promise<
     console.log(`[${new Date().toLocaleString()}] 🚀 调用OpenAPI追加号码:`, {
       baseURL: openApiConfig.baseURL,
       taskId,
-      countryCode,
+      countryCode: finalCountryCode,
       phoneCount: phones.length
     });
 
@@ -649,14 +643,8 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
       return;
     }
 
-    if (!countryCode) {
-      res.status(400).json({
-        code: 400,
-        message: 'Missing required query parameter: countryCode',
-        error: 'MISSING_COUNTRY_CODE'
-      });
-      return;
-    }
+    // 如果没有提供countryCode，使用默认值"86"（中国）
+    const finalCountryCode = countryCode || '86';
 
     // 验证表单数据
     if (!webhookData.entry) {
@@ -774,7 +762,7 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
     console.log(`[${new Date().toLocaleString()}] 🚀 调用OpenAPI追加表单号码:`, {
       baseURL: openApiConfig.baseURL,
       taskId,
-      countryCode,
+      countryCode: finalCountryCode,
       phoneNumber: phoneData.phoneNumber,
       paramsCount: phoneData.params.length
     });
@@ -798,7 +786,7 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
       data: response.data?.data || response.data,
       request: {
         taskId,
-        countryCode,
+        countryCode: finalCountryCode,
         phoneNumber: phoneData.phoneNumber,
         formId: webhookData.form
       }

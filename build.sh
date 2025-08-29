@@ -34,7 +34,9 @@ npm run build
 echo ""
 echo "⚙️ 构建后端项目..."
 cd server
+echo "  安装后端依赖..."
 npm install --production=false
+echo "  编译 TypeScript..."
 npm run build
 cd ..
 

@@ -38,7 +38,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const apiKeyAuth_1 = require("../middleware/apiKeyAuth");
-const form_mapping_config_1 = require("../../../config/form-mapping.config");
 const router = express_1.default.Router();
 router.post('/form-submission', express_1.default.json(), apiKeyAuth_1.apiKeyAuth, async (req, res) => {
     try {
@@ -57,13 +56,13 @@ router.post('/form-submission', express_1.default.json(), apiKeyAuth_1.apiKeyAut
                 error: 'INVALID_WEBHOOK_DATA'
             });
         }
-        const taskId = (0, form_mapping_config_1.getTaskIdByFormId)(webhookData.form);
+        const taskId = getTaskIdByFormId(webhookData.form);
         if (!taskId) {
             return res.status(400).json({
                 code: 400,
                 message: `No taskID mapping found for form: ${webhookData.form}`,
                 error: 'FORM_NOT_CONFIGURED',
-                availableForms: (0, form_mapping_config_1.getAvailableFormMappings)()
+                availableForms: getAvailableFormMappings()
             });
         }
         const phoneNumber = webhookData.entry.field_5;
@@ -328,7 +327,7 @@ router.get('/form-mapping', (req, res) => {
         code: 200,
         message: '表单映射配置',
         data: {
-            mappings: (0, form_mapping_config_1.getAvailableFormMappings)(),
+            mappings: getAvailableFormMappings(),
             description: '表单ID到taskID的映射配置'
         }
     });
@@ -374,7 +373,7 @@ router.post('/update-mapping', express_1.default.json(), async (req, res) => {
                 taskId,
                 formName,
                 description,
-                mappings: (0, form_mapping_config_1.getAvailableFormMappings)()
+                mappings: getAvailableFormMappings()
             }
         });
     }

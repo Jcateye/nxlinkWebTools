@@ -92,17 +92,6 @@ const DEFAULT_CONFIG: ProjectConfig = {
         bizType: '8',
         baseUrl: 'https://api-westus.nxlink.ai'
       }
-    },
-    {
-      apiKey: 'demo-api-key-2',
-      alias: '演示平台2',
-      description: '演示用API Key 2',
-      openapi: {
-        accessKey: 'your-openapi-access-key-2',
-        accessSecret: 'your-openapi-access-secret-2',
-        bizType: '8',
-        baseUrl: 'https://api-westus.nxlink.ai'
-      }
     }
   ],
   
@@ -244,19 +233,8 @@ const DEVELOPMENT_CONFIG: Partial<ProjectConfig> = {
         bizType: process.env.EXTERNAL_API_KEY_1_OPENAPI_BIZ_TYPE || '8',
         baseUrl: process.env.EXTERNAL_API_KEY_1_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
       }
-    },
-    {
-      apiKey: process.env.EXTERNAL_API_KEY_2 || 'demo-api-key-2',
-      alias: process.env.EXTERNAL_API_KEY_2_ALIAS || '开发平台2',
-      description: process.env.EXTERNAL_API_KEY_2_DESC || '开发环境API Key 2',
-      openapi: {
-        accessKey: process.env.EXTERNAL_API_KEY_2_OPENAPI_ACCESS_KEY || 'AK-764887602601150724-2786',
-        accessSecret: process.env.EXTERNAL_API_KEY_2_OPENAPI_ACCESS_SECRET || '0de4a159402a4e3494f76669ac92d6e6',
-        bizType: process.env.EXTERNAL_API_KEY_2_OPENAPI_BIZ_TYPE || '8',
-        baseUrl: process.env.EXTERNAL_API_KEY_2_OPENAPI_BASE_URL || 'https://api-westus.nxlink.ai'
-      }
     }
-  ],
+  ].filter(config => config.apiKey),
   
   database: {
     url: process.env.DATABASE_URL || 'sqlite:./database.db'      // 数据库：环境变量 > SQLite

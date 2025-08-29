@@ -338,9 +338,6 @@ const AppContent = () => {
             icon={<CloudServerOutlined />}
             title="OpenAPI平台"
           >
-            <Menu.Item key="openapi-activity" icon={<ApiOutlined />}>
-              活动管理
-            </Menu.Item>
             <Menu.Item key="apikey-management" icon={<KeyOutlined />}>
               API Key管理
             </Menu.Item>

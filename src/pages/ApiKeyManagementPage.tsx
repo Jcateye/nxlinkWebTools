@@ -27,7 +27,8 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   LockOutlined,
-  UnlockOutlined
+  UnlockOutlined,
+  ApiOutlined
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -73,13 +74,16 @@ export default function ApiKeyManagementPage() {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [activityModalVisible, setActivityModalVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<ApiKeyConfig | null>(null);
   const [selectedApiKey, setSelectedApiKey] = useState<string>('');
   const [deletingApiKey, setDeletingApiKey] = useState<string>('');
+  const [activityApiKey, setActivityApiKey] = useState<string>('');
   const [fullApiKeyInfo, setFullApiKeyInfo] = useState<any>(null);
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [deletePasswordForm] = Form.useForm();
+  const [activityPasswordForm] = Form.useForm();
 
   // 生成随机API Key（Base62），并确保不与已有冲突
   const generateRandomApiKey = (length: number = 32): string => {
@@ -269,6 +273,14 @@ export default function ApiKeyManagementPage() {
       key: 'actions',
       render: (_: any, record: ApiKeyItem) => (
         <Space>
+          <Tooltip title="查看活动（需要超管密码验证）">
+            <Button 
+              size="small" 
+              type="primary"
+              icon={<ApiOutlined />}
+              onClick={() => showActivityPasswordModal(record.apiKey)}
+            />
+          </Tooltip>
           <Tooltip title="测试API Key">
             <Button 
               size="small" 
@@ -447,6 +459,66 @@ export default function ApiKeyManagementPage() {
     setDeleteModalVisible(false);
     setDeletingApiKey('');
     deletePasswordForm.resetFields();
+  };
+
+  // 显示活动查看密码验证弹框
+  const showActivityPasswordModal = (apiKey: string) => {
+    setActivityApiKey(apiKey);
+    setActivityModalVisible(true);
+    activityPasswordForm.resetFields();
+  };
+
+  // 处理活动查看密码验证
+  const handleActivityPasswordVerify = async (values: { password: string }) => {
+    try {
+      const response = await fetch('/internal-api/keys/verify-admin-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password: values.password })
+      });
+      const result = await response.json();
+      
+      if (result.code === 200 && result.data.isValid) {
+        message.success('密码验证成功，正在跳转到活动管理页面...');
+        
+        // 设置访问令牌到sessionStorage
+        const authToken = {
+          timestamp: new Date().getTime(),
+          apiKey: activityApiKey,
+          verified: true
+        };
+        sessionStorage.setItem('openapi_activity_auth', JSON.stringify(authToken));
+        
+        // 关闭弹框
+        setActivityModalVisible(false);
+        activityPasswordForm.resetFields();
+        
+        // 跳转到活动管理页面，并传递API Key
+        const url = new URL(window.location.href);
+        url.searchParams.delete('collaboration');
+        url.searchParams.set('menu', 'openapi-activity');
+        url.searchParams.set('apiKey', activityApiKey);
+        window.history.pushState({}, '', url.toString());
+        
+        // 触发菜单切换事件
+        window.dispatchEvent(new CustomEvent('navigate-menu', { 
+          detail: { key: 'openapi-activity' } 
+        }));
+      } else {
+        message.error('超级管理员密码验证失败！');
+      }
+    } catch (error: any) {
+      message.error(`验证失败: ${error.message}`);
+    }
+  };
+
+  // 取消查看活动
+  const handleActivityCancel = () => {
+    setActivityModalVisible(false);
+    setActivityApiKey('');
+    activityPasswordForm.resetFields();
   };
 
   // 处理添加
@@ -948,6 +1020,62 @@ EXTERNAL_API_KEY_1_OPENAPI_BASE_URL=https://api-westus.nxlink.ai`}
               </Button>
               <Button type="primary" htmlType="submit">
                 {editingKey ? '更新' : '添加'}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 活动查看密码验证 Modal */}
+      <Modal
+        title={
+          <Space>
+            <LockOutlined />
+            查看活动权限验证
+          </Space>
+        }
+        open={activityModalVisible}
+        onCancel={handleActivityCancel}
+        footer={null}
+        width={400}
+        destroyOnClose
+        zIndex={2000}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text>
+            您即将查看API Key的活动记录，需要超级管理员权限。
+          </Text>
+          <br />
+          <Text type="secondary" style={{ fontSize: '14px' }}>
+            请输入超级管理员密码以继续。
+          </Text>
+        </div>
+        
+        <Form
+          form={activityPasswordForm}
+          layout="vertical"
+          onFinish={handleActivityPasswordVerify}
+        >
+          <Form.Item
+            label="超级管理员密码"
+            name="password"
+            rules={[
+              { required: true, message: '请输入超级管理员密码' }
+            ]}
+          >
+            <Input.Password
+              placeholder="请输入超级管理员密码"
+              autoFocus
+            />
+          </Form.Item>
+
+          <Form.Item style={{ textAlign: 'right', marginBottom: 0 }}>
+            <Space>
+              <Button onClick={handleActivityCancel}>
+                取消
+              </Button>
+              <Button type="primary" htmlType="submit">
+                验证并查看
               </Button>
             </Space>
           </Form.Item>

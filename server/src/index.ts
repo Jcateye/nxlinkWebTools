@@ -24,6 +24,7 @@ import analyticsRoutes from './routes/analytics';
 import openApiRoutes from './routes/openapi';
 import apiKeyManagementRoutes from './routes/apiKeyManagement';
 import formWebhookRoutes from './routes/formWebhook';
+import publicApiRoutes from './routes/publicApi';
 
 // Socket处理
 // import { setupSocketHandlers } from './sockets/testSocket';
@@ -78,6 +79,7 @@ app.use('/api/prompts', authMiddleware, promptRoutes);
 app.use('/api/tests', authMiddleware, testRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/openapi', openApiRoutes); // OpenAPI路由不需要内部认证，使用API Key认证
+app.use('/api/openapi', publicApiRoutes); // 公开API路由，API Key在URL中传递
 app.use('/internal-api/keys', apiKeyManagementRoutes); // API Key管理路由（内部API）
 app.use('/api/webhook', formWebhookRoutes); // 表单Webhook路由（外部API）
 

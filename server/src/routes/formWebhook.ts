@@ -1,5 +1,6 @@
 import express from 'express';
 import { apiKeyAuth, AuthenticatedRequest } from '../middleware/apiKeyAuth';
+const { getTaskIdByFormId, getAvailableFormMappings } = require('../../../config/form-mapping.config');
 // 动态导入将在需要时进行
 
 const router = express.Router();

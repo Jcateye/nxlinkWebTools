@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Card, Table, Button, Modal, Form, Input, Space, message, DatePicker, Select, Tag, Breadcrumb, Row, Col, Statistic } from 'antd';
-import { SearchOutlined, ReloadOutlined, HomeOutlined, PhoneOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Modal, Form, Input, Space, message, DatePicker, Select, Tag, Breadcrumb, Row, Col, Statistic, Result } from 'antd';
+import { SearchOutlined, ReloadOutlined, HomeOutlined, PhoneOutlined, LockOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 import { fixApiUrl } from '../utils/apiHelper';
@@ -31,6 +31,10 @@ export default function OpenApiActivityPage() {
   const [tasks, setTasks] = useState<CallTaskInfoVO[]>([]);
   const [taskTotal, setTaskTotal] = useState(0);
   const [page, setPage] = useState({ pageNumber: 1, pageSize: 10 });
+
+  // 权限验证
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
 
   // API Key 配置相关
   const [availableApiKeys, setAvailableApiKeys] = useState<ApiKeyItem[]>([]);
@@ -94,8 +98,15 @@ export default function OpenApiActivityPage() {
         const validKeys = result.data.keys.filter((key: ApiKeyItem) => key.hasOpenApiConfig);
         setAvailableApiKeys(validKeys);
         
-        // 自动选择第一个可用的 API Key
-        if (validKeys.length > 0 && !selectedApiKey) {
+        // 检查URL参数中的apiKey
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiKeyParam = urlParams.get('apiKey');
+        
+        if (apiKeyParam && validKeys.some(key => key.apiKey === apiKeyParam)) {
+          // 如果URL参数中的API Key存在且有效，使用它
+          setSelectedApiKey(apiKeyParam);
+        } else if (validKeys.length > 0 && !selectedApiKey) {
+          // 否则自动选择第一个可用的 API Key
           setSelectedApiKey(validKeys[0].apiKey);
         }
       } else {
@@ -152,15 +163,45 @@ export default function OpenApiActivityPage() {
     setPage({ pageNumber: 1, pageSize: 10 });
   };
 
+  // 权限验证
   useEffect(() => {
-    loadApiKeys();
+    const checkAuthorization = () => {
+      const authToken = sessionStorage.getItem('openapi_activity_auth');
+      if (authToken) {
+        try {
+          const authData = JSON.parse(authToken);
+          const now = new Date().getTime();
+          // 检查令牌是否在30分钟内有效
+          if (authData.timestamp && now - authData.timestamp < 30 * 60 * 1000) {
+            setIsAuthorized(true);
+          } else {
+            // 令牌已过期
+            sessionStorage.removeItem('openapi_activity_auth');
+            setIsAuthorized(false);
+          }
+        } catch {
+          setIsAuthorized(false);
+        }
+      } else {
+        setIsAuthorized(false);
+      }
+      setAuthChecking(false);
+    };
+
+    checkAuthorization();
   }, []);
 
   useEffect(() => {
-    if (selectedApiKey) {
+    if (isAuthorized) {
+      loadApiKeys();
+    }
+  }, [isAuthorized]);
+
+  useEffect(() => {
+    if (selectedApiKey && isAuthorized) {
       loadTasks();
     }
-  }, [page.pageNumber, page.pageSize, selectedApiKey]);
+  }, [page.pageNumber, page.pageSize, selectedApiKey, isAuthorized]);
 
   // 当API Key改变时，重置页面并重新加载数据
   const handleApiKeyChange = (apiKey: string) => {
@@ -294,6 +335,51 @@ export default function OpenApiActivityPage() {
       }
     });
   };
+
+  // 权限检查中
+  if (authChecking) {
+    return (
+      <div style={{ padding: '50px', textAlign: 'center' }}>
+        <Card loading>
+          正在验证访问权限...
+        </Card>
+      </div>
+    );
+  }
+
+  // 未授权访问
+  if (!isAuthorized) {
+    return (
+      <div style={{ padding: '50px' }}>
+        <Result
+          status="403"
+          title="403"
+          subTitle="抱歉，您没有权限访问此页面"
+          icon={<LockOutlined style={{ color: '#ff4d4f' }} />}
+          extra={
+            <Space direction="vertical" size="large">
+              <div>请通过 API Key 管理页面的"查看活动"功能访问</div>
+              <Button 
+                type="primary" 
+                onClick={() => {
+                  // 跳转到API Key管理页面
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('apiKey');
+                  url.searchParams.set('menu', 'apikey-management');
+                  window.history.pushState({}, '', url.toString());
+                  window.dispatchEvent(new CustomEvent('navigate-menu', { 
+                    detail: { key: 'apikey-management' } 
+                  }));
+                }}
+              >
+                前往 API Key 管理
+              </Button>
+            </Space>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div>

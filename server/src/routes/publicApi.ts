@@ -10,16 +10,20 @@ const router = express.Router();
  * 适用于没有鉴权能力的第三方系统
  */
 
-// 构建签名字符串
-function buildSignString(params: any): string {
-  const sortedParams = Object.keys(params)
-    .sort()
-    .map(key => `${key}=${params[key]}`)
-    .join('&');
-  return sortedParams;
+// 生成唯一的contactId
+function generateContactIdFromPhone(phone: string): string {
+  // 基礎28位：手机号的MD5前28位
+  const base28 = CryptoJS.MD5(String(phone || '')).toString().toLowerCase().substring(0, 28);
+  // 追加8位：基于当前时间戳和随机数的短哈希，避免同号码重复
+  const saltSource = `${Date.now()}-${Math.random()}`;
+  const salt8 = CryptoJS.MD5(saltSource).toString().toLowerCase().substring(0, 8);
+  // 组合为36位（前28位为MD5，末尾追加8位salt）
+  const mixed = base28 + salt8;
+  // 按 8-4-4-4-12 插入连字符
+  return `${mixed.substring(0, 8)}-${mixed.substring(8, 12)}-${mixed.substring(12, 16)}-${mixed.substring(16, 20)}-${mixed.substring(20, 32)}`;
 }
 
-// 构建OpenAPI请求头
+// 构建OpenAPI请求头（使用和openapi.ts相同的签名算法）
 function buildOpenApiHeaders(
   authConfig: {
     accessKey: string;
@@ -31,17 +35,24 @@ function buildOpenApiHeaders(
   body: any
 ): Record<string, string> {
   const { accessKey, accessSecret, bizType, action, ts } = authConfig;
-  
-  const paramsToSign = {
-    accessKey,
-    action,
-    bizType,
-    ts,
-    ...body
-  };
 
-  const signStr = buildSignString(paramsToSign);
-  const sign = CryptoJS.MD5(signStr + accessSecret).toString();
+  // Step 1: 拼接header参数 (accessKey, action, bizType, ts)
+  const headersStr = `accessKey=${accessKey}&action=${action}&bizType=${bizType}&ts=${ts}`;
+
+  // Step 2: 拼接body参数
+  let raw = headersStr;
+  const bodyJsonString = JSON.stringify(body);
+  if (bodyJsonString && bodyJsonString !== '{}') {
+    raw += `&body=${bodyJsonString}`;
+  }
+
+  // Step 3: 拼接accessSecret
+  raw += `&accessSecret=${accessSecret}`;
+
+  // Step 4: 生成MD5签名
+  const sign = CryptoJS.MD5(raw).toString();
+
+  console.log(`[OpenAPI Debug] String to sign: "${raw}"`); // 增加日志打印
 
   return {
     'Content-Type': 'application/json',
@@ -165,7 +176,7 @@ router.post('/public/:apiKey/:taskId/append-numbers', async (req, res): Promise<
       accessKey: openApiConfig.auth.accessKey,
       accessSecret: openApiConfig.auth.accessSecret,
       bizType: openApiConfig.auth.bizType,
-      action: 'appendCallRecords',
+      action: 'callAppend',
       ts: String(Date.now())
     }, requestBody);
 
@@ -311,7 +322,7 @@ router.post('/public/:apiKey/:taskId/:countryCode/append-numbers', async (req, r
       accessKey: openApiConfig.auth.accessKey,
       accessSecret: openApiConfig.auth.accessSecret,
       bizType: openApiConfig.auth.bizType,
-      action: 'appendCallRecords',
+      action: 'callAppend',
       ts: String(Date.now())
     }, requestBody);
 
@@ -588,7 +599,7 @@ router.delete('/public/:apiKey/:taskId/:contactId/delete', async (req, res): Pro
  * - taskId: 任务ID
  * 
  * Query参数:
- * - countryCode: 国家代码（必填）
+ * - countryCode: 国家代码（可选，默认86）
  * 
  * Body: 表单数据（字段映射）
  * {
@@ -598,13 +609,6 @@ router.delete('/public/:apiKey/:taskId/:contactId/delete', async (req, res): Pro
  *     "field_5": "13800138000",  // 电话号码（必填）
  *     "field_2": "张三",         // 姓名（可选）
  *     "field_6": "zhang@email.com", // 邮箱（可选）
- *     "field_3": "其他信息1",     // 其他字段（可选）
- *     "field_4": "其他信息2",     // 其他字段（可选）
- *     "info_region": {           // 地区信息（可选）
- *       "province": "北京市",
- *       "city": "北京市",
- *       "district": "朝阳区"
- *     }
  *   }
  * }
  */
@@ -614,12 +618,12 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
     const { countryCode } = req.query;
     const webhookData = req.body;
 
-    console.log(`[${new Date().toLocaleString()}] 📝 公开表单提交接口:`, {
+    console.log(`[${new Date().toLocaleString()}] 📝 公开表单提交接口（重构版）:`, {
       apiKey: apiKey.substring(0, 8) + '***',
       taskId,
       countryCode,
       formId: webhookData.form,
-      hasEntry: !!webhookData.entry
+      phoneNumber: webhookData.entry?.field_5
     });
 
     // 验证API Key
@@ -643,22 +647,8 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
       return;
     }
 
-    // 如果没有提供countryCode，使用默认值"86"（中国）
-    const finalCountryCode = countryCode || '86';
-
     // 验证表单数据
-    if (!webhookData.entry) {
-      res.status(400).json({
-        code: 400,
-        message: 'Invalid form data: missing entry',
-        error: 'INVALID_FORM_DATA'
-      });
-      return;
-    }
-
-    // 提取电话号码
-    const phoneNumber = webhookData.entry.field_5;
-    if (!phoneNumber) {
+    if (!webhookData.entry || !webhookData.entry.field_5) {
       res.status(400).json({
         code: 400,
         message: 'Missing required field: field_5 (phone number)',
@@ -667,68 +657,8 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
       return;
     }
 
-    // 构建追加号码的数据
-    const phoneData: {
-      phoneNumber: string;
-      params: Array<{ name: string; value: string }>;
-    } = {
-      phoneNumber: String(phoneNumber),
-      params: []
-    };
-
-    // 如果有field_2（姓名），添加到参数中
-    if (webhookData.entry.field_2) {
-      phoneData.params.push({
-        name: '姓名',
-        value: String(webhookData.entry.field_2)
-      });
-    }
-
-    // 添加其他有用的表单信息到参数
-    if (webhookData.entry.field_3) {
-      phoneData.params.push({
-        name: 'field_3',
-        value: String(webhookData.entry.field_3)
-      });
-    }
-
-    if (webhookData.entry.field_4) {
-      phoneData.params.push({
-        name: 'field_4',
-        value: String(webhookData.entry.field_4)
-      });
-    }
-
-    if (webhookData.entry.field_6) {
-      phoneData.params.push({
-        name: '邮箱',
-        value: String(webhookData.entry.field_6)
-      });
-    }
-
-    // 处理地区信息
-    if (webhookData.entry.info_region) {
-      const region = webhookData.entry.info_region;
-      phoneData.params.push({
-        name: '地区',
-        value: `${region.province || ''}${region.city || ''}${region.district || ''}`.trim()
-      });
-    }
-
-    // 添加表单元信息
-    if (webhookData.form_name) {
-      phoneData.params.push({
-        name: '表单名称',
-        value: webhookData.form_name
-      });
-    }
-
-    if (webhookData.form) {
-      phoneData.params.push({
-        name: '表单ID',
-        value: webhookData.form
-      });
-    }
+    // 如果没有提供countryCode，使用默认值"86"（中国）
+    const finalCountryCode = countryCode || '86';
 
     const apiKeyConfig = validation.config!;
     const openApiConfig = {
@@ -740,32 +670,33 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
       }
     };
 
-    // 构建请求参数
+    // 根据成功请求格式构建（使用list格式，包含contactId和name）
+    const phoneNumber = String(webhookData.entry.field_5);
     const requestBody = {
       taskId,
-      countryCode: String(countryCode),
-      appendNumbers: [{
-        phoneNumber: phoneData.phoneNumber,
-        params: phoneData.params
+      list: [{
+        contactId: generateContactIdFromPhone(phoneNumber),
+        phoneNumber: phoneNumber,
+        name: phoneNumber, // 使用号码作为默认名称
+        params: [] // 关键：必须是空数组！
       }]
     };
+
+    // 只有明确提供了countryCode才添加
+    if (countryCode) {
+      (requestBody as any).countryCode = String(finalCountryCode);
+    }
+
+    console.log(`[${new Date().toLocaleString()}] 📦 最终请求体:`, JSON.stringify(requestBody));
 
     // 构建请求头
     const headers = buildOpenApiHeaders({
       accessKey: openApiConfig.auth.accessKey,
       accessSecret: openApiConfig.auth.accessSecret,
       bizType: openApiConfig.auth.bizType,
-      action: 'appendCallRecords',
+      action: 'callAppend',
       ts: String(Date.now())
     }, requestBody);
-
-    console.log(`[${new Date().toLocaleString()}] 🚀 调用OpenAPI追加表单号码:`, {
-      baseURL: openApiConfig.baseURL,
-      taskId,
-      countryCode: finalCountryCode,
-      phoneNumber: phoneData.phoneNumber,
-      paramsCount: phoneData.params.length
-    });
 
     // 调用OpenAPI
     const response = await axios.post(
@@ -787,7 +718,7 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
       request: {
         taskId,
         countryCode: finalCountryCode,
-        phoneNumber: phoneData.phoneNumber,
+        phoneNumber: String(webhookData.entry.field_5),
         formId: webhookData.form
       }
     });

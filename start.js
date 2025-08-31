@@ -49,16 +49,16 @@ const environments = {
       color: 'cyan'
     },
     backend: {
-      command: 'npm',
-      args: ['run', 'start:prod'],
+      command: 'node',
+      args: ['dist/index.js'],
       cwd: path.join(process.cwd(), 'server'),
       port: 8450,
       color: 'green'
     },
     server: {
       command: 'node',
-      args: ['server.js'],
-      cwd: process.cwd(),
+      args: ['dist/server.js'],
+      cwd: path.join(process.cwd(), 'server'),
       port: 8350,
       color: 'yellow'
     }

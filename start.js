@@ -222,10 +222,12 @@ async function startService(name, config, env) {
     return null;
   }
   
-  // 检查并清理端口
-  if (config.port) {
+  // 检查并清理端口（Docker环境跳过端口检查）
+  if (config.port && !process.env.DOCKER_CONTAINER) {
     colorLog('blue', 'CHECK', `检查端口 ${config.port} 状态...`);
     await killPort(config.port); // 直接清理，函数内部会检查是否被占用
+  } else if (config.port && process.env.DOCKER_CONTAINER) {
+    colorLog('blue', 'CHECK', `Docker环境跳过端口 ${config.port} 检查`);
   }
   
   // 特殊处理：生产环境前端构建检查

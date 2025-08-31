@@ -24,6 +24,7 @@ services:
       # OpenAPI配置
       - OPENAPI_ACCESS_KEY=${OPENAPI_ACCESS_KEY}
       - OPENAPI_ACCESS_SECRET=${OPENAPI_ACCESS_SECRET}
+      - DOCKER_CONTAINER=true
       - OPENAPI_BIZ_TYPE=${OPENAPI_BIZ_TYPE:-8}
       - OPENAPI_BASE_URL=${OPENAPI_BASE_URL:-https://api-westus.nxlink.ai}
     volumes:

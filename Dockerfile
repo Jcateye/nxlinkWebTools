@@ -1,6 +1,6 @@
 # 多阶段构建
 # 阶段1: 构建前端
-FROM node:16-alpine AS frontend-builder
+FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app
 
@@ -13,16 +13,12 @@ COPY src ./src
 COPY public ./public
 
 # 安装依赖并构建
-RUN npm ci --production=false
-RUN npm run build
+RUN npm ci --production=false && npm run build
 
 # 阶段2: 构建后端
-FROM node:16-alpine AS backend-builder
+FROM node:18-alpine AS backend-builder
 
 WORKDIR /app
-
-# 安装构建工具
-RUN apk add --no-cache python3 make g++
 
 # 复制配置文件
 COPY config ./config
@@ -32,13 +28,12 @@ COPY server/package*.json ./server/
 COPY server/tsconfig*.json ./server/
 COPY server/src ./server/src
 
-# 安装依赖并构建
+# 安装依赖并构建 (移除构建工具，只使用npm)
 WORKDIR /app/server
-RUN npm ci --production=false
-RUN npm run build
+RUN npm ci --production=false && npm run build
 
 # 阶段3: 生产镜像
-FROM node:16-alpine
+FROM node:18-alpine AS production
 
 # 安装生产环境所需工具
 RUN apk add --no-cache tini
@@ -57,6 +52,7 @@ COPY --from=backend-builder /app/config ./config
 # 复制生产环境文件
 COPY server/config ./server/config
 COPY server/public ./server/public
+COPY server/routes ./server/routes
 COPY server.js ./
 COPY start.js ./
 COPY ecosystem.config.js ./

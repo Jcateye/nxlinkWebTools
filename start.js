@@ -50,7 +50,7 @@ const environments = {
     },
     backend: {
       command: 'node',
-      args: ['dist/index.js'],
+      args: ['dist/server/src/index.js'],
       cwd: path.join(process.cwd(), 'server'),
       port: 8450,
       color: 'green'

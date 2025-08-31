@@ -57,8 +57,8 @@ const environments = {
     },
     server: {
       command: 'node',
-      args: ['dist/server.js'],
-      cwd: path.join(process.cwd(), 'server'),
+      args: ['server.js'],
+      cwd: process.cwd(),
       port: 8350,
       color: 'yellow'
     }

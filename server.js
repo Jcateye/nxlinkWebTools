@@ -306,6 +306,11 @@ app.use('/api', createProxyMiddleware({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 健康检查端点（供Docker部署脚本与健康检查使用）
+app.get('/health', (req, res) => {
+  res.status(200).send('healthy\n');
+});
+
 // 批量测试日志API
 app.post('/batch-test-log', (req, res) => {
   try {

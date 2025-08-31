@@ -29,6 +29,7 @@ services:
       - OPENAPI_BASE_URL=${OPENAPI_BASE_URL:-https://api-westus.nxlink.ai}
     volumes:
       - ./logs:/app/logs:rw
+      - ./logs:/app/server/logs:rw
       - ./server/config:/app/server/config:rw
       - ./uploads:/app/uploads:rw
       - /etc/localtime:/etc/localtime:ro

@@ -228,9 +228,17 @@ async function startService(name, config, env) {
     await killPort(config.port); // 直接清理，函数内部会检查是否被占用
   }
   
-  // 特殊处理：生产环境前端需要先构建
+  // 特殊处理：生产环境前端构建检查
   if (env === 'prod' && name === 'frontend') {
-    colorLog('cyan', 'BUILD', '正在构建前端项目...');
+    const distPath = path.join(config.cwd, 'dist');
+    const indexPath = path.join(distPath, 'index.html');
+
+    if (fs.existsSync(indexPath)) {
+      colorLog('green', 'BUILD', '检测到前端文件已存在，跳过构建');
+      return null; // 返回null表示不启动此服务
+    } else {
+      colorLog('cyan', 'BUILD', '正在构建前端项目...');
+    }
   }
   
   // 组装环境变量（为服务显式设置端口）
@@ -346,10 +354,13 @@ ${colors.reset}`);
   
   const processes = [];
   
-  // 生产环境特殊处理：先构建前端，再启动其他服务
+  // 生产环境特殊处理：检查前端是否需要构建
   if (env === 'prod' && servicesToStart.includes('frontend')) {
-    await startService('frontend', envConfig.frontend, env);
-    servicesToStart = servicesToStart.filter(s => s !== 'frontend');
+    const frontendProcess = await startService('frontend', envConfig.frontend, env);
+    if (!frontendProcess) {
+      // 前端文件已存在，不需要启动构建进程
+      servicesToStart = servicesToStart.filter(s => s !== 'frontend');
+    }
   }
   
   // 启动其他服务

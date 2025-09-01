@@ -41,8 +41,7 @@ services:
       start_period: 40s
     networks:
       - nxlink-network
-    depends_on:
-      - redis
+
     deploy:
       resources:
         limits:
@@ -51,45 +50,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-
-  # Redis缓存（可选）
-  redis:
-    image: redis:7-alpine
-    container_name: nxlink-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - redis_data:/data
-    networks:
-      - nxlink-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  # Nginx反向代理
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: nxlink-nginx
-    restart: unless-stopped
-    ports:
-      - "${NGINX_HTTP_PORT:-80}:80"
-      - "${NGINX_HTTPS_PORT:-443}:443"
-    volumes:
-      - ./nginx.active.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-      - ./dist:/usr/share/nginx/html:ro
-      - nginx_logs:/var/log/nginx
-    depends_on:
-      - nxlink-app
-    networks:
-      - nxlink-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # 监控服务（可选）
   prometheus:
@@ -133,13 +93,9 @@ services:
       - monitoring
 
 volumes:
-  redis_data:
-    driver: local
   prometheus_data:
     driver: local
   grafana_data:
-    driver: local
-  nginx_logs:
     driver: local
 
 networks:

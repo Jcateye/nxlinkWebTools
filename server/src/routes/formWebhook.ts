@@ -1,6 +1,6 @@
 import express from 'express';
 import { apiKeyAuth, AuthenticatedRequest } from '../middleware/apiKeyAuth';
-const { getTaskIdByFormId, getAvailableFormMappings } = require('../../../config/form-mapping.config');
+const { getTaskIdByFormId, getAvailableFormMappings } = require('../config/form-mapping.config')
 // 动态导入将在需要时进行
 
 const router = express.Router();
@@ -232,7 +232,7 @@ async function processAppendNumbers(req: any): Promise<any> {
     console.log(`[${new Date().toLocaleString()}] 🔑 使用API Key配置: ${req.apiKeyConfig.alias}`);
   } else {
     // 回退到默认配置
-    const { PROJECT_CONFIG } = await import('../../../config/project.config');
+    const { PROJECT_CONFIG } = await import('../config/project.config');
     openApiConfig = {
       baseURL: PROJECT_CONFIG.openapi.baseUrl,
       auth: {
@@ -440,7 +440,7 @@ router.post('/update-mapping', express.json(), async (req, res): Promise<any> =>
 
   try {
     // 动态导入配置文件进行更新
-    const configModule = await import('../../../config/form-mapping.config');
+    const configModule = await import('../config/form-mapping.config');
     const { DEFAULT_FORM_MAPPINGS } = configModule;
 
     // 查找或创建映射

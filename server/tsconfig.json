@@ -4,7 +4,6 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "../",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -30,9 +29,7 @@
     ]
   },
   "include": [
-    "src/**/*",
-    "../config/project.config.ts",
-    "../config/form-mapping.config.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

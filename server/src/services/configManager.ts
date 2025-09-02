@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { ExternalApiKeyConfig } from '../../../config/project.config';
+import { ExternalApiKeyConfig } from '../config/project.config';
 
 /**
  * 配置文件管理器
@@ -79,9 +79,9 @@ export function writeApiKeysConfig(config: ApiKeysConfig): void {
  */
 export function getAllApiKeys(): ExternalApiKeyConfig[] {
   // 从环境变量获取，清除require缓存以确保获取最新配置
-  const configPath = require.resolve('../../../config/project.config');
+  const configPath = require.resolve('../config/project.config');
   delete require.cache[configPath];
-  const { PROJECT_CONFIG } = require('../../../config/project.config');
+  const { PROJECT_CONFIG } = require('../config/project.config');
   const envKeys: ExternalApiKeyConfig[] = PROJECT_CONFIG.externalApiKeys || [];
 
   // 从配置文件获取

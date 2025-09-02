@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PROJECT_CONFIG, ExternalApiKeyConfig } from '../../../config/project.config';
+import { PROJECT_CONFIG, ExternalApiKeyConfig } from '../config/project.config';
 import { getAllApiKeys } from '../services/configManager';
 
 /**

@@ -7,7 +7,7 @@ import {
   validateApiKeyConfig,
   getConfigStats
 } from '../services/configManager';
-import { ExternalApiKeyConfig, PROJECT_CONFIG } from '../../../config/project.config';
+import { ExternalApiKeyConfig, PROJECT_CONFIG } from '../config/project.config';
 
 const router = express.Router();
 

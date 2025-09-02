@@ -5,7 +5,7 @@ import { apiKeyAuth, AuthenticatedRequest } from '../middleware/apiKeyAuth';
 
 const router = express.Router();
 
-import { PROJECT_CONFIG } from '../../../config/project.config';
+import { PROJECT_CONFIG } from '../config/project.config';
 import { getAllApiKeys } from '../services/configManager';
 
 /**

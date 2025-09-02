@@ -25,11 +25,10 @@ services:
       - ./server/config/api-keys.json:/app/server/config/api-keys.json
       - ./uploads:/app/server/uploads
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8450/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8450/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
     networks:
       - nxlink-network
 

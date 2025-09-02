@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const configManager_1 = require("../services/configManager");
-const project_config_1 = require("../../../config/project.config");
+const project_config_1 = require("../config/project.config");
 const router = express_1.default.Router();
 router.get('/list', (req, res) => {
     try {
@@ -126,15 +126,33 @@ router.put('/update/:apiKey', (req, res) => {
         return Promise.resolve();
     }
 });
-router.delete('/delete/:apiKey', (req, res) => {
+router.post('/delete/:apiKey', (req, res) => {
     try {
         const apiKey = req.params.apiKey;
+        const { password } = req.body;
+        if (!password) {
+            res.status(400).json({
+                code: 400,
+                message: '请输入超级管理员密码'
+            });
+            return Promise.resolve();
+        }
+        const isValidPassword = password === project_config_1.PROJECT_CONFIG.server.adminPassword;
+        if (!isValidPassword) {
+            res.status(403).json({
+                code: 403,
+                message: '超级管理员密码验证失败'
+            });
+            return Promise.resolve();
+        }
         (0, configManager_1.deleteApiKey)(apiKey);
+        const maskedApiKey = apiKey.length > 8 ? apiKey.substring(0, 8) + '***' : apiKey;
+        console.log(`✅ 超级管理员已删除API Key: ${maskedApiKey}`);
         res.json({
             code: 200,
             message: 'API Key 删除成功',
             data: {
-                apiKey: apiKey.length > 8 ? apiKey.substring(0, 8) + '***' : apiKey
+                apiKey: maskedApiKey
             }
         });
         return Promise.resolve();
@@ -256,7 +274,7 @@ router.get('/stats', (req, res) => {
         return Promise.resolve();
     }
 });
-router.post('/verify-admin-password', (req, res) => {
+router.post('/verify-admin-password', async (req, res) => {
     try {
         const { password } = req.body;
         if (!password) {
@@ -288,7 +306,7 @@ router.post('/verify-admin-password', (req, res) => {
         return Promise.resolve();
     }
 });
-router.post('/full-detail/:apiKey', (req, res) => {
+router.post('/full-detail/:apiKey', async (req, res) => {
     try {
         const apiKey = req.params.apiKey;
         const { password } = req.body;

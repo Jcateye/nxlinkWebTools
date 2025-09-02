@@ -1,4 +1,4 @@
-import { ExternalApiKeyConfig } from '../../../config/project.config';
+import { ExternalApiKeyConfig } from '../config/project.config';
 export interface ApiKeysConfig {
     version: string;
     lastUpdated: string;

@@ -60,7 +60,9 @@ function writeApiKeysConfig(config) {
     }
 }
 function getAllApiKeys() {
-    const { PROJECT_CONFIG } = require('../../../config/project.config');
+    const configPath = require.resolve('../config/project.config');
+    delete require.cache[configPath];
+    const { PROJECT_CONFIG } = require('../config/project.config');
     const envKeys = PROJECT_CONFIG.externalApiKeys || [];
     const config = readApiKeysConfig();
     const fileKeys = config.keys || [];

@@ -12,7 +12,7 @@ const socket_io_1 = require("socket.io");
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 const logger_1 = require("./utils/logger");
-const project_config_1 = require("../../config/project.config");
+const project_config_1 = require("./config/project.config");
 const errorHandler_1 = require("./middleware/errorHandler");
 const rateLimiter_1 = require("./middleware/rateLimiter");
 const auth_1 = require("./middleware/auth");
@@ -24,20 +24,22 @@ const analytics_1 = __importDefault(require("./routes/analytics"));
 const openapi_1 = __importDefault(require("./routes/openapi"));
 const apiKeyManagement_1 = __importDefault(require("./routes/apiKeyManagement"));
 const formWebhook_1 = __importDefault(require("./routes/formWebhook"));
+const publicApi_1 = __importDefault(require("./routes/publicApi"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
+const corsOrigins = project_config_1.PROJECT_CONFIG.server.corsOrigin.split(',').map(origin => origin.trim());
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: project_config_1.PROJECT_CONFIG.server.corsOrigin,
+        origin: corsOrigins,
         methods: ["GET", "POST"]
     }
 });
-const PORT = project_config_1.PROJECT_CONFIG.server.port;
+const PORT = Number(process.env.PORT) || project_config_1.PROJECT_CONFIG.server.port;
 app.use((0, helmet_1.default)());
 app.use((0, compression_1.default)());
 app.use((0, cors_1.default)({
-    origin: project_config_1.PROJECT_CONFIG.server.corsOrigin,
+    origin: corsOrigins,
     credentials: true
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
@@ -57,6 +59,7 @@ app.use('/api/prompts', auth_1.authMiddleware, prompts_1.default);
 app.use('/api/tests', auth_1.authMiddleware, tests_1.default);
 app.use('/api/analytics', auth_1.authMiddleware, analytics_1.default);
 app.use('/api/openapi', openapi_1.default);
+app.use('/api/openapi', publicApi_1.default);
 app.use('/internal-api/keys', apiKeyManagement_1.default);
 app.use('/api/webhook', formWebhook_1.default);
 io.on('connection', (socket) => {

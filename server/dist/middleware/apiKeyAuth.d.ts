@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ExternalApiKeyConfig } from '../../../config/project.config';
+import { ExternalApiKeyConfig } from '../config/project.config';
 export interface AuthenticatedRequest extends Request {
     apiKey?: string;
     apiKeyConfig?: ExternalApiKeyConfig;

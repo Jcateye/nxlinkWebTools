@@ -8,7 +8,7 @@ const axios_1 = __importDefault(require("axios"));
 const crypto_js_1 = __importDefault(require("crypto-js"));
 const apiKeyAuth_1 = require("../middleware/apiKeyAuth");
 const router = express_1.default.Router();
-const project_config_1 = require("../../../config/project.config");
+const project_config_1 = require("../config/project.config");
 const configManager_1 = require("../services/configManager");
 function getOpenApiConfigForApiKey(req) {
     if (req.apiKeyConfig?.openapi) {

@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 import { logger } from './utils/logger';
-import { PROJECT_CONFIG, printConfigInfo } from '../../config/project.config';
+import { PROJECT_CONFIG, printConfigInfo } from './config/project.config';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { authMiddleware } from './middleware/auth';
@@ -30,7 +30,29 @@ import publicApiRoutes from './routes/publicApi';
 // import { setupSocketHandlers } from './sockets/testSocket';
 
 // 加载环境变量
-dotenv.config();
+// 根据NODE_ENV加载对应的环境配置文件
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFiles = [
+  `.env.${nodeEnv}`,
+  '../production.env', // 兼容旧的配置文件名
+  '.env'
+];
+
+let envLoaded = false;
+for (const envFile of envFiles) {
+  const envPath = path.resolve(envFile);
+  if (require('fs').existsSync(envPath)) {
+    console.log(`🔧 后端加载环境配置: ${envFile}`);
+    dotenv.config({ path: envPath });
+    envLoaded = true;
+    break;
+  }
+}
+
+if (!envLoaded) {
+  console.log(`⚠️  后端未找到环境配置文件，使用默认配置`);
+  dotenv.config(); // 使用默认的.env文件
+}
 
 const app = express();
 const server = createServer(app);

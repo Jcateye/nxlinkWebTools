@@ -4,6 +4,47 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// 加载环境变量配置
+function loadEnvConfig(env) {
+  const envFiles = [
+    `.env.${env}`,
+    'production.env', // 兼容旧的配置文件名
+    '.env'
+  ];
+
+  for (const envFile of envFiles) {
+    if (fs.existsSync(envFile)) {
+      console.log(`🔧 加载环境配置: ${envFile}`);
+      
+      // 读取并解析环境变量文件
+      const envContent = fs.readFileSync(envFile, 'utf8');
+      const envVars = {};
+      
+      envContent.split('\n').forEach(line => {
+        line = line.trim();
+        if (line && !line.startsWith('#') && line.includes('=')) {
+          const [key, ...valueParts] = line.split('=');
+          const value = valueParts.join('=').trim();
+          envVars[key.trim()] = value;
+        }
+      });
+      
+      // 设置环境变量（不覆盖已存在的）
+      Object.keys(envVars).forEach(key => {
+        if (!process.env[key]) {
+          process.env[key] = envVars[key];
+        }
+      });
+      
+      console.log(`✅ 已加载 ${Object.keys(envVars).length} 个环境变量`);
+      return true;
+    }
+  }
+  
+  console.log(`⚠️  未找到环境配置文件: ${envFiles.join(', ')}`);
+  return false;
+}
+
 // 颜色输出
 const colors = {
   reset: '\x1b[0m',
@@ -50,7 +91,7 @@ const environments = {
     },
     backend: {
       command: 'node',
-      args: ['dist/server/src/index.js'],
+      args: ['dist/index.js'],
       cwd: path.join(process.cwd(), 'server'),
       port: 8450,
       color: 'green'
@@ -134,8 +175,8 @@ ${colors.yellow}示例:${colors.reset}
 
 ${colors.yellow}端口分配:${colors.reset}
   前端开发服务器: 3010
-  后端API服务器:  8400
-  生产服务器:     8300
+  后端API服务器:  8400 (开发) / 8450 (生产)
+  生产网关服务器: 8350
 `);
 }
 
@@ -158,12 +199,18 @@ async function killPort(port) {
   try {
     const { execSync } = require('child_process');
     
+    // Docker环境中跳过端口清理
+    if (process.env.DOCKER_CONTAINER) {
+      colorLog('blue', 'PORT', `Docker环境跳过端口 ${port} 清理`);
+      return;
+    }
+    
     // 获取占用端口的进程PID
     const command = `lsof -ti :${port}`;
     const pids = execSync(command, { encoding: 'utf8', stdio: 'pipe' })
       .trim()
       .split('\n')
-      .filter(pid => pid);
+      .filter(pid => pid && /^\d+$/.test(pid)); // 只保留数字PID
     
     if (pids.length > 0) {
       colorLog('yellow', 'PORT', `发现端口 ${port} 被进程占用: ${pids.join(', ')}`);
@@ -335,6 +382,15 @@ ${colors.reset}`);
   const envConfig = environments[env];
   
   colorLog('blue', 'ENV', `启动环境: ${envConfig.name}`);
+  
+  // 加载环境变量配置
+  if (env === 'prod') {
+    loadEnvConfig('production');
+  } else if (env === 'dev') {
+    loadEnvConfig('development');
+  } else if (env === 'test') {
+    loadEnvConfig('test');
+  }
   
   // 清理所有相关端口（可选，如果用户传入 --clean 参数）
   if (process.argv.includes('--clean') || process.argv.includes('-c')) {

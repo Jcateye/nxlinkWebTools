@@ -88,8 +88,22 @@ check_requirements() {
             log_info "编辑完成后重新运行此脚本"
             exit 1
         else
-            log_error "找不到环境配置模板文件"
-            exit 1
+            log_warn "找不到环境配置模板文件，使用默认配置"
+            # 创建基础配置文件
+            cat > "$ENV_FILE" << EOF
+NODE_ENV=production
+BACKEND_PORT=8450
+GATEWAY_PORT=8350
+CORS_ORIGIN=http://localhost:8350
+JWT_SECRET=please-change-this-jwt-secret-$(date +%s)
+ADMIN_PASSWORD=ChangeMe123!
+LOG_LEVEL=info
+OPENAPI_ACCESS_KEY=
+OPENAPI_ACCESS_SECRET=
+OPENAPI_BIZ_TYPE=8
+OPENAPI_BASE_URL=https://api-westus.nxlink.ai
+EOF
+            log_warn "已创建基础配置文件 $ENV_FILE，请根据需要修改"
         fi
     fi
 

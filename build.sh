@@ -37,23 +37,35 @@ cd server
 echo "  安装后端依赖..."
 npm install --production=false
 echo "  编译 TypeScript..."
-npm run build
+if [ -f "tsconfig.json" ]; then
+    npm run build
+else
+    echo "  ⚠️  后端没有TypeScript配置，跳过编译"
+fi
 cd ..
 
 # 4. 准备打包文件
 echo ""
 echo "📋 准备打包文件..."
 
-# 复制必要文件到构建目录
+# 复制所有项目文件到构建目录
 cp -r dist "${BUILD_DIR}/"                    # 前端构建产物
-cp -r server/dist "${BUILD_DIR}/server-dist"  # 后端构建产物
-cp -r server/config "${BUILD_DIR}/server-config" # 后端配置目录
-cp -r server/public "${BUILD_DIR}/server-public" # 后端静态资源
-cp -r config "${BUILD_DIR}/"                  # 项目配置
-cp server.js "${BUILD_DIR}/"                  # 生产服务器
-cp start.js "${BUILD_DIR}/"                    # 启动脚本
+cp -r server "${BUILD_DIR}/"                  # 后端完整目录
+cp -r config "${BUILD_DIR}/"                  # 配置目录
+cp -r src "${BUILD_DIR}/"                     # 前端源码
+cp -r public "${BUILD_DIR}/"                  # 前端静态资源
+cp -r node_modules "${BUILD_DIR}/"            # 依赖包
+
+# 复制根目录文件
 cp package.json "${BUILD_DIR}/"
 cp package-lock.json "${BUILD_DIR}/"
+cp vite.config.ts "${BUILD_DIR}/"
+cp index.html "${BUILD_DIR}/"
+cp tsconfig*.json "${BUILD_DIR}/"
+cp server.js "${BUILD_DIR}/"
+cp start.js "${BUILD_DIR}/"
+cp ecosystem.config.js "${BUILD_DIR}/"
+cp README.md "${BUILD_DIR}/" 2>/dev/null || true
 
 # Docker相关文件
 cp Dockerfile "${BUILD_DIR}/"                  # Docker构建文件
@@ -128,8 +140,12 @@ npm install --production
 mkdir -p server
 cp server-package.json server/package.json
 cp server-package-lock.json server/package-lock.json
+cp -r server-routes/* server/routes/ 2>/dev/null || mkdir -p server/routes
+cp -r server-config/* server/config/ 2>/dev/null || mkdir -p server/config
+cp -r server-public/* server/public/ 2>/dev/null || mkdir -p server/public
+cp -r server-dist/* server/dist/ 2>/dev/null || mkdir -p server/dist
 cd server
-npm install --production
+npm ci --production
 cd ..
 
 # 4. 设置权限

@@ -121,8 +121,8 @@ function generateOpenApiSign(accessKey, action, bizType, ts, bodyJsonString, acc
 }
 
 const app = express();
-const PORT = process.env.PORT || 8300;
-const BACKEND_PORT = process.env.BACKEND_PORT || 8400;
+const PORT = process.env.PORT || 8350;
+const BACKEND_PORT = process.env.BACKEND_PORT || 8450;
 
 // 批量测试日志存储
 let batchTestLogs = [];

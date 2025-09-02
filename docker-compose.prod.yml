@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.3'
 
 services:
   # 主应用服务
@@ -6,7 +6,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: nxlink-webtools:latest
+      args:
+        - NODE_ENV=production
+    image: nxlink-webtools:${TAG:-latest}
     container_name: nxlink-webtools
     restart: unless-stopped
     ports:
@@ -17,12 +19,12 @@ services:
       - PORT=${BACKEND_PORT:-8450}
       - BACKEND_PORT=${BACKEND_PORT:-8450}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:8350}
-      - JWT_SECRET=${JWT_SECRET}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:-please-change-this-jwt-secret}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-ChangeMe123!}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       # OpenAPI配置
-      - OPENAPI_ACCESS_KEY=${OPENAPI_ACCESS_KEY}
-      - OPENAPI_ACCESS_SECRET=${OPENAPI_ACCESS_SECRET}
+      - OPENAPI_ACCESS_KEY=${OPENAPI_ACCESS_KEY:-}
+      - OPENAPI_ACCESS_SECRET=${OPENAPI_ACCESS_SECRET:-}
       - DOCKER_CONTAINER=true
       - OPENAPI_BIZ_TYPE=${OPENAPI_BIZ_TYPE:-8}
       - OPENAPI_BASE_URL=${OPENAPI_BASE_URL:-https://api-westus.nxlink.ai}
@@ -30,11 +32,7 @@ services:
       - ./logs:/app/logs:rw
       - ./server/config:/app/server/config:rw
       - ./uploads:/app/uploads:rw
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8450/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    depends_on: []
     networks:
       - nxlink-network
 

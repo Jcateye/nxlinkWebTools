@@ -52,8 +52,16 @@ cp -r server/public "${BUILD_DIR}/server-public" # 后端静态资源
 cp -r config "${BUILD_DIR}/"                  # 项目配置
 cp server.js "${BUILD_DIR}/"                  # 生产服务器
 cp start.js "${BUILD_DIR}/"                    # 启动脚本
-cp package.json "${BUILD_DIR}/"               
-cp package-lock.json "${BUILD_DIR}/"          
+cp package.json "${BUILD_DIR}/"
+cp package-lock.json "${BUILD_DIR}/"
+
+# Docker相关文件
+cp Dockerfile "${BUILD_DIR}/"                  # Docker构建文件
+cp docker-compose.yml "${BUILD_DIR}/"         # 开发环境Docker配置
+cp docker-compose.prod.yml "${BUILD_DIR}/"    # 生产环境Docker配置
+cp nginx-external.conf "${BUILD_DIR}/"        # 外部Nginx配置
+cp nginx-external-simple.conf "${BUILD_DIR}/" # 简化的外部Nginx配置
+cp EXTERNAL_NGINX_GUIDE.md "${BUILD_DIR}/"    # 外部Nginx配置指南          
 
 # 创建精简版 server package.json（只包含运行时依赖）
 cd server
@@ -168,6 +176,53 @@ cat > "${BUILD_DIR}/README.md" << EOF
    ./start.js prod
    \`\`\`
 
+## Docker部署（推荐）
+
+### 方法1：使用Docker Compose（推荐）
+\`\`\`bash
+# 1. 配置环境变量
+cp production.env.example production.env
+vim production.env  # 编辑配置
+
+# 2. 启动服务
+docker-compose -f docker-compose.prod.yml up -d
+
+# 3. 查看日志
+docker-compose -f docker-compose.prod.yml logs -f
+\`\`\`
+
+### 方法2：使用外部Nginx + Docker
+\`\`\`bash
+# 1. 配置环境变量
+cp production.env.example production.env
+vim production.env
+
+# 2. 启动应用容器
+docker-compose -f docker-compose.prod.yml up -d nxlink-app
+
+# 3. 配置外部Nginx
+sudo cp nginx-external.conf /etc/nginx/sites-available/nxlink
+sudo ln -s /etc/nginx/sites-available/nxlink /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+\`\`\`
+
+### 方法3：直接使用Docker
+\`\`\`bash
+# 构建镜像
+docker build -t nxlink-webtools:latest .
+
+# 运行容器
+docker run -d \
+  --name nxlink-webtools \
+  -p 8350:8350 \
+  -p 8450:8450 \
+  --env-file production.env \
+  -v ./logs:/app/logs \
+  -v ./server/config:/app/server/config \
+  nxlink-webtools:latest
+\`\`\`
+
 ## 服务端口
 
 - 网关服务: 8350
@@ -175,6 +230,7 @@ cat > "${BUILD_DIR}/README.md" << EOF
 
 ## 目录结构
 
+### 应用文件
 - \`dist/\` - 前端构建产物
 - \`server-dist/\` - 后端构建产物
 - \`server-config/\` - 后端配置文件
@@ -183,11 +239,33 @@ cat > "${BUILD_DIR}/README.md" << EOF
 - \`server.js\` - 生产服务器入口
 - \`start.js\` - 启动脚本
 
+### Docker部署文件
+- \`Dockerfile\` - Docker镜像构建文件
+- \`docker-compose.yml\` - 开发环境Docker配置
+- \`docker-compose.prod.yml\` - 生产环境Docker配置
+- \`nginx-external.conf\` - 外部Nginx配置（生产环境）
+- \`nginx-external-simple.conf\` - 外部Nginx配置（开发环境）
+- \`EXTERNAL_NGINX_GUIDE.md\` - 外部Nginx配置指南
+
 ## 注意事项
 
+### 传统部署
 1. 确保服务器已安装 Node.js 16+
 2. 确保配置文件中的敏感信息安全
 3. 建议使用 PM2 或 systemd 管理进程
+
+### Docker部署
+1. 确保服务器已安装 Docker 和 Docker Compose
+2. 确保端口 8350 和 8450 未被占用
+3. 确保有足够的磁盘空间用于日志和上传文件
+4. 生产环境建议配置外部Nginx进行反向代理
+5. 定期清理Docker日志：`docker system prune -f`
+
+### 安全建议
+- 不要将 production.env 提交到版本控制
+- 定期更新JWT密钥和管理员密码
+- 配置防火墙只开放必要端口
+- 使用强密码和安全的网络连接
 EOF
 
 # 8. 创建压缩包

@@ -60,6 +60,9 @@ Thumbs.db
 *.bak
 *.old
 
+# 发布包目录
+/releases
+
 # IDE文件
 .vscode/
 .idea/

@@ -12,7 +12,7 @@ command -v npm >/dev/null 2>&1 || { echo "❌ 需要安装 npm"; exit 1; }
 
 # 定义变量
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BUILD_DIR="build_${TIMESTAMP}"
+BUILD_DIR="nxlinkWebTools_${TIMESTAMP}"
 RELEASE_DIR="releases"
 
 # 创建构建目录
@@ -286,6 +286,6 @@ echo ""
 echo "部署说明："
 echo "1. 将 ${RELEASE_FILE} 上传到服务器"
 echo "2. 解压: tar -xzf $(basename ${RELEASE_FILE})"
-echo "3. 进入目录: cd ${BUILD_DIR}"
+echo "3. 进入目录: cd nxlinkWebTools_${TIMESTAMP}"
 echo "4. 按照 README.md 进行部署"
 echo ""

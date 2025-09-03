@@ -1,6 +1,29 @@
-# 标签分组迁移工具
+# NXLink WebTools
 
-这个工具用于在不同租户之间复制标签分组和标签。
+一个功能强大的Web工具平台，提供表单集成、AI对话管理等核心功能。
+
+## 📁 项目结构
+
+```
+nxlinkWebTools/
+├── config/                 # 配置文件目录
+│   ├── form-templates.config.ts    # 表单模板配置 ⭐
+│   ├── project.config.ts           # 项目基础配置
+│   └── README.md                   # 配置说明
+├── tests/                  # 测试脚本目录
+│   ├── api/                        # API功能测试
+│   ├── docker/                     # Docker测试
+│   ├── integration/                # 集成测试
+│   └── README.md                   # 测试说明
+├── docs/                   # 文档目录
+│   ├── new-webhook-api-guide.md    # 新API使用指南 ⭐
+│   └── ...                        # 其他文档
+├── src/                    # 前端源码
+├── server/                 # 后端源码
+│   ├── src/routes/                 # API路由
+│   └── ...
+└── README.md               # 项目说明
+```
 
 ## 功能
 

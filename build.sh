@@ -141,6 +141,7 @@ cp tsconfig*.json "${BUILD_DIR}/"
 cp server.js "${BUILD_DIR}/"
 cp start.js "${BUILD_DIR}/"
 cp ecosystem.config.js "${BUILD_DIR}/"
+cp log-manager.sh "${BUILD_DIR}/"
 cp README.md "${BUILD_DIR}/" 2>/dev/null || true
 
 # Docker相关文件

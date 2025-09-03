@@ -60,6 +60,7 @@ cp start.js "${BUILD_DIR}/"                   # 启动脚本
 cp package.json "${BUILD_DIR}/"
 cp package-lock.json "${BUILD_DIR}/"
 cp ecosystem.config.js "${BUILD_DIR}/"        # PM2配置
+cp log-manager.sh "${BUILD_DIR}/"             # 日志管理脚本
 
 # 删除不需要的文件，但保留必要的构建产物和依赖
 rm -rf "${BUILD_DIR}/server/logs"

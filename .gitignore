@@ -60,12 +60,6 @@ Thumbs.db
 *.bak
 *.old
 
-# 发布包目录
-/releases
-
-# 打包后的部署文件（以nxlinkWebTools_开头的目录和文件）
-nxlinkWebTools_*
-
 # IDE文件
 .vscode/
 .idea/
@@ -73,4 +67,10 @@ nxlinkWebTools_*
 *.ntvs*
 *.njsproj
 *.sln
-*.sw? 
+*.sw?
+
+# 发布包目录
+/releases
+
+# 打包后的部署文件（以nxlinkWebTools_开头的目录和文件）
+nxlinkWebTools_* 

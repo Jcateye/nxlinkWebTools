@@ -288,8 +288,36 @@ POST /api/webhook/{taskId}/form-submission?templateId={templateId}&countryCode={
 
 **URL参数：**
 - `taskId` (必填): 目标任务ID
-- `templateId` (可选): 模板ID，默认为 `contact`
+- `templateId` (可选): 模板ID，用于指定字段映射规则，默认为 `contact`
 - `countryCode` (可选): 国家代码，默认为 `86`
+
+### 🔧 模板ID (templateId) 详解
+
+**什么是模板？**
+模板定义了表单字段如何映射到系统内部的数据结构。不同的表单可能有不同的字段命名约定，通过指定模板ID，系统会按照预定义的映射规则处理数据。
+
+**支持的模板：**
+- `contact` - 联系我们表单 (默认)
+- `registration` - 活动报名表单
+- `inquiry` - 产品咨询表单
+- `feedback` - 意见反馈表单
+- `demo` - 演示申请表单
+
+**模板映射示例：**
+```javascript
+// 使用 contact 模板
+GET /api/webhook/9cf75e77-223e-4f17-8da5-40b4c6da467b/form-submission?templateId=contact
+
+// 字段映射规则：
+// field_5 (表单字段) -> phone (系统字段) -> phoneNumber (API字段)
+// field_2 (表单字段) -> name (系统字段) -> name (API字段)
+// field_6 (表单字段) -> email (系统字段) -> params["email"] (API字段)
+```
+
+**如何选择合适的模板：**
+1. 查看表单字段名称
+2. 匹配对应的模板映射规则
+3. 在API调用中指定相应的templateId
 
 **请求头：**
 ```

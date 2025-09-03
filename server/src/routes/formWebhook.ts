@@ -1,11 +1,21 @@
 import express from 'express';
 import { apiKeyAuth, AuthenticatedRequest } from '../middleware/apiKeyAuth';
-import {
+const {
   getTemplateById,
   getAvailableTemplates,
-  isValidTemplateId,
-  FormTemplate
-} from '../../../config/form-templates.config';
+  isValidTemplateId
+} = require('../config/form-templates.config.js');
+
+// 简单的类型定义
+interface FormTemplate {
+  templateId: string;
+  name: string;
+  description: string;
+  fieldMapping: Record<string, string>;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const router = express.Router();
 

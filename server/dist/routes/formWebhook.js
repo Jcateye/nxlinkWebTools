@@ -38,13 +38,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const apiKeyAuth_1 = require("../middleware/apiKeyAuth");
-const form_templates_config_1 = require("../../../config/form-templates.config");
+const { getTemplateById, getAvailableTemplates, isValidTemplateId } = require('../config/form-templates.config.js');
 const router = express_1.default.Router();
 function getTemplateMapping(templateId) {
-    return (0, form_templates_config_1.getTemplateById)(templateId);
+    return getTemplateById(templateId);
 }
 function isValidTemplate(templateId) {
-    return (0, form_templates_config_1.isValidTemplateId)(templateId);
+    return isValidTemplateId(templateId);
 }
 router.post('/:taskId/form-submission', express_1.default.json(), apiKeyAuth_1.apiKeyAuth, async (req, res) => {
     try {
@@ -81,7 +81,7 @@ router.post('/:taskId/form-submission', express_1.default.json(), apiKeyAuth_1.a
                 code: 400,
                 message: `Template not found: ${templateId}`,
                 error: 'TEMPLATE_NOT_FOUND',
-                availableTemplates: (0, form_templates_config_1.getAvailableTemplates)()
+                availableTemplates: getAvailableTemplates()
             });
         }
         console.log(`[${new Date().toLocaleString()}] 🎨 使用模板: ${templateId} (${templateMapping.name})`);
@@ -369,7 +369,7 @@ router.get('/templates', (req, res) => {
         code: 200,
         message: '可用模板列表',
         data: {
-            templates: (0, form_templates_config_1.getAvailableTemplates)(),
+            templates: getAvailableTemplates(),
             description: '支持的表单模板配置'
         }
     });
@@ -379,7 +379,7 @@ router.get('/form-mapping', (req, res) => {
         code: 200,
         message: '表单映射配置（已废弃，请使用 /api/webhook/templates）',
         data: {
-            mappings: (0, form_templates_config_1.getAvailableTemplates)(),
+            mappings: getAvailableTemplates(),
             description: '表单模板配置（新版）'
         }
     });
@@ -392,7 +392,7 @@ router.get('/templates/:templateId', (req, res) => {
             code: 404,
             message: `Template not found: ${templateId}`,
             error: 'TEMPLATE_NOT_FOUND',
-            availableTemplates: (0, form_templates_config_1.getAvailableTemplates)()
+            availableTemplates: getAvailableTemplates()
         });
         return;
     }

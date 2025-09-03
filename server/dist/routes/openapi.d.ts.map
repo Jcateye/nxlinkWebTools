@@ -1,1 +1,1 @@
-{"version":3,"file":"openapi.d.ts","sourceRoot":"","sources":["../../../../src/routes/openapi.ts"],"names":[],"mappings":"AAKA,QAAA,MAAM,MAAM,4CAAmB,CAAC;AA4jBhC,eAAe,MAAM,CAAC"}
+{"version":3,"file":"openapi.d.ts","sourceRoot":"","sources":["../../src/routes/openapi.ts"],"names":[],"mappings":"AAKA,QAAA,MAAM,MAAM,4CAAmB,CAAC;AA4jBhC,eAAe,MAAM,CAAC"}

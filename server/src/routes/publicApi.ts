@@ -2,7 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
 import { getAllApiKeys } from '../services/configManager';
-import { getTemplateById } from '../../../config/form-templates.config';
+const { getTemplateById } = require('../config/form-templates.config.js');
 
 // 使用配置文件中的模板
 
@@ -623,15 +623,6 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
     const { countryCode, templateId = 'contact' } = req.query;
     const webhookData = req.body;
 
-    console.log(`[${new Date().toLocaleString()}] 📝 公开表单提交接口（统一版）:`, {
-      apiKey: apiKey.substring(0, 8) + '***',
-      taskId,
-      templateId,
-      countryCode,
-      formId: webhookData.form,
-      phoneNumber: webhookData.entry?.field_5
-    });
-
     // 验证API Key
     const validation = validateApiKey(apiKey);
     if (!validation.valid) {
@@ -679,6 +670,15 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
     // 使用模板映射验证电话号码
     const phoneField = templateMapping.fieldMapping.phone;
     const phoneValue = (webhookData.entry as any)[phoneField];
+
+    console.log(`[${new Date().toLocaleString()}] 📝 公开表单提交接口（统一版）:`, {
+      apiKey: apiKey.substring(0, 8) + '***',
+      taskId,
+      templateId,
+      countryCode,
+      formId: webhookData.form,
+      phoneNumber: phoneValue
+    });
 
     if (!phoneValue) {
       res.status(400).json({

@@ -4,16 +4,46 @@
 
 公开表单API专门为表单系统设计，支持将表单数据直接提交到指定任务，无需Header认证。
 
-- **URL格式**: `/api/openapi/public/{apiKey}/{taskId}/form-submission?countryCode={countryCode}`
+- **URL格式**: `/api/openapi/public/{apiKey}/{taskId}/form-submission?templateId={templateId}&countryCode={countryCode}`
 - **方法**: POST
 - **认证**: API Key在URL中
+
+## 📋 URL参数说明
+
+- `apiKey` (必填): API访问密钥
+- `taskId` (必填): 目标任务ID
+- `templateId` (可选): 模板ID，用于指定字段映射规则，默认为 `contact`
+- `countryCode` (可选): 国家代码，默认为 `86`
+
+### 🔧 模板ID (templateId) 参数详解
+
+**支持的模板：**
+- `contact` - 联系我们表单 (默认)
+- `registration` - 活动报名表单
+- `inquiry` - 产品咨询表单
+- `feedback` - 意见反馈表单
+- `demo` - 演示申请表单
+
+**模板选择指南：**
+根据您的表单字段选择合适的模板：
+
+```javascript
+// 联系表单 - 使用 contact 模板
+POST /api/openapi/public/YOUR_API_KEY/TASK_ID/form-submission?templateId=contact&countryCode=86
+
+// 活动报名 - 使用 registration 模板
+POST /api/openapi/public/YOUR_API_KEY/TASK_ID/form-submission?templateId=registration&countryCode=86
+
+// 产品咨询 - 使用 inquiry 模板
+POST /api/openapi/public/YOUR_API_KEY/TASK_ID/form-submission?templateId=inquiry&countryCode=86
+```
 
 ## 基本示例
 
 ### 1. 完整表单提交
 
 ```bash
-curl -X POST "https://api.example.com/api/openapi/public/YOUR_API_KEY/TASK_ID/form-submission?countryCode=86" \
+curl -X POST "https://api.example.com/api/openapi/public/YOUR_API_KEY/TASK_ID/form-submission?templateId=contact&countryCode=86" \
   -H "Content-Type: application/json" \
   -d '{
     "form": "contact_form_001",
@@ -36,7 +66,7 @@ curl -X POST "https://api.example.com/api/openapi/public/YOUR_API_KEY/TASK_ID/fo
 ### 2. 最简表单提交（只有必填字段）
 
 ```bash
-curl -X POST "https://api.example.com/api/openapi/public/YOUR_API_KEY/TASK_ID/form-submission?countryCode=86" \
+curl -X POST "https://api.example.com/api/openapi/public/YOUR_API_KEY/TASK_ID/form-submission?templateId=contact&countryCode=86" \
   -H "Content-Type: application/json" \
   -d '{
     "entry": {
@@ -114,7 +144,7 @@ curl -X POST "https://api.example.com/api/openapi/public/YOUR_API_KEY/TASK_ID/fo
         
         try {
             const response = await fetch(
-                `${API_URL}/api/openapi/public/${API_KEY}/${TASK_ID}/form-submission?countryCode=${countryCode}`,
+                `${API_URL}/api/openapi/public/${API_KEY}/${TASK_ID}/form-submission?templateId=contact&countryCode=${countryCode}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -164,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 过滤空值
     $formData['entry'] = array_filter($formData['entry']);
     
-    $url = "https://api.example.com/api/openapi/public/{$apiKey}/{$taskId}/form-submission?countryCode={$countryCode}";
+    $url = "https://api.example.com/api/openapi/public/{$apiKey}/{$taskId}/form-submission?templateId=contact&countryCode={$countryCode}";
     
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, 1);
@@ -287,7 +317,7 @@ def submit_form():
     # 移除空值
     form_data['entry'] = {k: v for k, v in form_data['entry'].items() if v}
     
-    url = f"{API_BASE_URL}/api/openapi/public/{API_KEY}/{TASK_ID}/form-submission?countryCode={country_code}"
+    url = f"{API_BASE_URL}/api/openapi/public/{API_KEY}/{TASK_ID}/form-submission?templateId=contact&countryCode={country_code}"
     
     try:
         response = requests.post(url, json=form_data)
@@ -309,7 +339,7 @@ if __name__ == '__main__':
 1. 创建Webhook触发器
 2. 配置URL：
    ```
-   https://api.example.com/api/openapi/public/YOUR_API_KEY/YOUR_TASK_ID/form-submission?countryCode=86
+   https://api.example.com/api/openapi/public/YOUR_API_KEY/YOUR_TASK_ID/form-submission?templateId=contact&countryCode=86
    ```
 3. 配置请求体映射：
    ```json
@@ -348,7 +378,7 @@ function onFormSubmit(e) {
   };
   
   // 发送到API
-  const url = `https://api.example.com/api/openapi/public/${API_KEY}/${TASK_ID}/form-submission?countryCode=${COUNTRY_CODE}`;
+  const url = `https://api.example.com/api/openapi/public/${API_KEY}/${TASK_ID}/form-submission?templateId=contact&countryCode=${COUNTRY_CODE}`;
   
   UrlFetchApp.fetch(url, {
     method: 'post',

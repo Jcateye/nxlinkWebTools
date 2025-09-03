@@ -67,7 +67,7 @@ export const DEFAULT_FORM_TEMPLATES: FormTemplate[] = [
     name: '活动报名表单',
     description: '活动报名表单模板，包含公司信息',
     fieldMapping: {
-      phone: 'field_8',
+      phone: 'field_5',
       name: 'field_2',
       email: 'field_6',
       company: 'field_3',

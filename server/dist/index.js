@@ -25,7 +25,26 @@ const openapi_1 = __importDefault(require("./routes/openapi"));
 const apiKeyManagement_1 = __importDefault(require("./routes/apiKeyManagement"));
 const formWebhook_1 = __importDefault(require("./routes/formWebhook"));
 const publicApi_1 = __importDefault(require("./routes/publicApi"));
-dotenv_1.default.config();
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFiles = [
+    `.env.${nodeEnv}`,
+    '../production.env',
+    '.env'
+];
+let envLoaded = false;
+for (const envFile of envFiles) {
+    const envPath = path_1.default.resolve(envFile);
+    if (require('fs').existsSync(envPath)) {
+        console.log(`🔧 后端加载环境配置: ${envFile}`);
+        dotenv_1.default.config({ path: envPath });
+        envLoaded = true;
+        break;
+    }
+}
+if (!envLoaded) {
+    console.log(`⚠️  后端未找到环境配置文件，使用默认配置`);
+    dotenv_1.default.config();
+}
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
 const corsOrigins = project_config_1.PROJECT_CONFIG.server.corsOrigin.split(',').map(origin => origin.trim());

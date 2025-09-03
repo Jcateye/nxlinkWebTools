@@ -7,8 +7,31 @@ echo "🚀 开始打包 nxlinkWebTools..."
 echo ""
 
 # 检查必要的命令
+echo "🔍 检查系统依赖..."
 command -v node >/dev/null 2>&1 || { echo "❌ 需要安装 Node.js"; exit 1; }
 command -v npm >/dev/null 2>&1 || { echo "❌ 需要安装 npm"; exit 1; }
+command -v tsc >/dev/null 2>&1 || { echo "⚠️  TypeScript编译器未全局安装，将使用npm脚本"; }
+
+# 检查Node.js版本
+NODE_VERSION=$(node -v | sed 's/v//')
+REQUIRED_VERSION="16.0.0"
+if ! [ "$(printf '%s\n' "$REQUIRED_VERSION" "$NODE_VERSION" | sort -V | head -n1)" = "$REQUIRED_VERSION" ]; then
+    echo "⚠️  当前Node.js版本: $NODE_VERSION，推荐使用 $REQUIRED_VERSION 或更高版本"
+fi
+
+# 检查项目文件
+echo "📂 检查项目文件..."
+if [ ! -f "package.json" ]; then
+    echo "❌ 找不到 package.json 文件"
+    exit 1
+fi
+
+if [ ! -f "server/package.json" ]; then
+    echo "❌ 找不到 server/package.json 文件"
+    exit 1
+fi
+
+echo "✅ 项目文件检查通过"
 
 # 定义变量
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -39,6 +62,27 @@ npm install --production=false
 echo "  编译 TypeScript..."
 if [ -f "tsconfig.json" ]; then
     npm run build
+
+    # 验证构建产物
+    if [ -d "dist" ]; then
+        echo "  ✅ 后端构建成功"
+
+        # 检查关键文件是否存在
+        if [ -f "dist/config/form-templates.config.js" ]; then
+            echo "  ✅ 表单模板配置文件存在"
+        else
+            echo "  ❌ 表单模板配置文件缺失"
+        fi
+
+        if [ -f "dist/config/project.config.js" ]; then
+            echo "  ✅ 项目配置文件存在"
+        else
+            echo "  ❌ 项目配置文件缺失"
+        fi
+    else
+        echo "  ❌ 后端构建失败，dist目录不存在"
+        exit 1
+    fi
 else
     echo "  ⚠️  后端没有TypeScript配置，跳过编译"
 fi
@@ -49,12 +93,44 @@ echo ""
 echo "📋 准备打包文件..."
 
 # 复制所有项目文件到构建目录
-cp -r dist "${BUILD_DIR}/"                    # 前端构建产物
-cp -r server "${BUILD_DIR}/"                  # 后端完整目录
-cp -r config "${BUILD_DIR}/"                  # 配置目录
-cp -r src "${BUILD_DIR}/"                     # 前端源码
-cp -r public "${BUILD_DIR}/"                  # 前端静态资源
-cp -r node_modules "${BUILD_DIR}/"            # 依赖包
+echo "  复制前端构建产物..."
+cp -r dist "${BUILD_DIR}/"
+
+echo "  复制后端完整目录..."
+cp -r server "${BUILD_DIR}/"
+
+echo "  复制配置目录..."
+cp -r config "${BUILD_DIR}/"
+
+echo "  复制前端源码..."
+cp -r src "${BUILD_DIR}/"
+
+echo "  复制前端静态资源..."
+cp -r public "${BUILD_DIR}/"
+
+echo "  复制依赖包..."
+cp -r node_modules "${BUILD_DIR}/"
+
+# 验证关键文件是否被正确复制
+echo "  验证关键文件..."
+if [ -d "${BUILD_DIR}/server/dist/config" ]; then
+    if [ -f "${BUILD_DIR}/server/dist/config/form-templates.config.js" ]; then
+        echo "  ✅ 表单模板配置文件已复制"
+    else
+        echo "  ❌ 表单模板配置文件复制失败"
+        exit 1
+    fi
+
+    if [ -f "${BUILD_DIR}/server/dist/config/project.config.js" ]; then
+        echo "  ✅ 项目配置文件已复制"
+    else
+        echo "  ❌ 项目配置文件复制失败"
+        exit 1
+    fi
+else
+    echo "  ❌ 后端配置文件目录不存在"
+    exit 1
+fi
 
 # 复制根目录文件
 cp package.json "${BUILD_DIR}/"
@@ -71,9 +147,11 @@ cp README.md "${BUILD_DIR}/" 2>/dev/null || true
 cp Dockerfile "${BUILD_DIR}/"                  # Docker构建文件
 cp docker-compose.yml "${BUILD_DIR}/"         # 开发环境Docker配置
 cp docker-compose.prod.yml "${BUILD_DIR}/"    # 生产环境Docker配置
-cp nginx-external.conf "${BUILD_DIR}/"        # 外部Nginx配置
-cp nginx-external-simple.conf "${BUILD_DIR}/" # 简化的外部Nginx配置
-cp EXTERNAL_NGINX_GUIDE.md "${BUILD_DIR}/"    # 外部Nginx配置指南          
+
+# Nginx配置文件
+cp docs/nginx/nginx-external.conf "${BUILD_DIR}/"        # 外部Nginx配置
+cp docs/nginx/nginx-external-simple.conf "${BUILD_DIR}/" # 简化的外部Nginx配置
+cp docs/nginx/EXTERNAL_NGINX_GUIDE.md "${BUILD_DIR}/"    # 外部Nginx配置指南          
 
 # 创建精简版 server package.json（只包含运行时依赖）
 cd server
@@ -84,7 +162,12 @@ cd ..
 # 5. 创建生产环境配置模板
 echo ""
 echo "📝 创建配置文件模板..."
-cat > "${BUILD_DIR}/production.env.example" << EOF
+if [ -f "config/production.env.example" ]; then
+    cp config/production.env.example "${BUILD_DIR}/"
+    echo "✅ 使用现有的生产环境配置模板"
+else
+    echo "⚠️  未找到 config/production.env.example，使用默认模板"
+    cat > "${BUILD_DIR}/production.env.example" << EOF
 # 生产环境配置
 # 将此文件复制为 production.env 并填入实际值
 
@@ -109,6 +192,7 @@ LOG_LEVEL=warn
 # OPENAPI_BIZ_TYPE=8
 # OPENAPI_BASE_URL=https://api-westus.nxlink.ai
 EOF
+fi
 
 # 6. 创建部署脚本
 echo ""
@@ -290,18 +374,46 @@ echo "📦 创建发布包..."
 RELEASE_FILE="${RELEASE_DIR}/nxlinkWebTools_${TIMESTAMP}.tar.gz"
 tar -czf "${RELEASE_FILE}" -C . "${BUILD_DIR}"
 
-# 9. 清理构建目录（可选）
-# rm -rf "${BUILD_DIR}"
+# 9. 清理和最终验证
+echo ""
+echo "🔍 最终验证..."
+if [ -f "${RELEASE_FILE}" ]; then
+    RELEASE_SIZE=$(du -h "${RELEASE_FILE}" | cut -f1)
+    echo "✅ 发布包创建成功，大小: ${RELEASE_SIZE}"
+else
+    echo "❌ 发布包创建失败"
+    exit 1
+fi
+
+if [ -d "${BUILD_DIR}" ]; then
+    BUILD_SIZE=$(du -sh "${BUILD_DIR}" | cut -f1)
+    echo "✅ 构建目录创建成功，大小: ${BUILD_SIZE}"
+else
+    echo "❌ 构建目录创建失败"
+    exit 1
+fi
+
+# 10. 清理构建目录（可选）
+read -p "是否保留构建目录 ${BUILD_DIR}？(y/N): " -n 1 -r
+echo ""
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "🧹 清理构建目录..."
+    rm -rf "${BUILD_DIR}"
+    echo "✅ 构建目录已清理"
+else
+    echo "📁 构建目录已保留: ${BUILD_DIR}"
+fi
 
 echo ""
-echo "✅ 打包完成！"
+echo "🎉 打包完成！"
 echo ""
 echo "📦 发布包: ${RELEASE_FILE}"
-echo "📁 构建目录: ${BUILD_DIR}"
+echo "📊 包大小: ${RELEASE_SIZE}"
 echo ""
-echo "部署说明："
-echo "1. 将 ${RELEASE_FILE} 上传到服务器"
-echo "2. 解压: tar -xzf $(basename ${RELEASE_FILE})"
+echo "🚀 快速部署："
+echo "1. 上传发布包到服务器: scp ${RELEASE_FILE} user@server:/path/to/"
+echo "2. 在服务器上解压: tar -xzf $(basename ${RELEASE_FILE})"
 echo "3. 进入目录: cd nxlinkWebTools_${TIMESTAMP}"
 echo "4. 按照 README.md 进行部署"
 echo ""
+echo "📖 详细说明请查看: ${BUILD_DIR}/README.md (如果保留了构建目录)"

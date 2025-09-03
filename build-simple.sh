@@ -8,7 +8,7 @@ echo ""
 
 # 定义变量
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BUILD_DIR="build_${TIMESTAMP}"
+BUILD_DIR="nxlinkWebTools_${TIMESTAMP}"
 RELEASE_DIR="releases"
 
 # 创建构建目录
@@ -16,37 +16,80 @@ echo "📁 创建构建目录: ${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
 mkdir -p "${RELEASE_DIR}"
 
+# 检查必要的命令
+command -v node >/dev/null 2>&1 || { echo "❌ 需要安装 Node.js"; exit 1; }
+command -v npm >/dev/null 2>&1 || { echo "❌ 需要安装 npm"; exit 1; }
+
 # 1. 构建前端
 echo ""
 echo "🎨 构建前端项目..."
 npm run build
 
-# 2. 准备打包文件
+# 2. 构建后端
+echo ""
+echo "⚙️ 构建后端项目..."
+cd server
+echo "  安装后端依赖..."
+npm install
+echo "  编译 TypeScript..."
+if [ -f "tsconfig.json" ]; then
+    npm run build
+
+    # 验证构建产物
+    if [ -d "dist" ]; then
+        echo "  ✅ 后端构建成功"
+    else
+        echo "  ❌ 后端构建失败"
+        exit 1
+    fi
+else
+    echo "  ⚠️  后端没有TypeScript配置"
+fi
+cd ..
+
+# 3. 准备打包文件
 echo ""
 echo "📋 准备打包文件..."
 
 # 复制必要文件到构建目录
 cp -r dist "${BUILD_DIR}/"                    # 前端构建产物
-cp -r server "${BUILD_DIR}/"                  # 整个后端目录（包含源码）
+cp -r server "${BUILD_DIR}/"                  # 整个后端目录（包含源码和构建产物）
 cp -r config "${BUILD_DIR}/"                  # 项目配置
 cp server.js "${BUILD_DIR}/"                  # 生产服务器
-cp start.js "${BUILD_DIR}/"                    # 启动脚本
-cp package.json "${BUILD_DIR}/"               
-cp package-lock.json "${BUILD_DIR}/"          
+cp start.js "${BUILD_DIR}/"                   # 启动脚本
+cp package.json "${BUILD_DIR}/"
+cp package-lock.json "${BUILD_DIR}/"
 cp ecosystem.config.js "${BUILD_DIR}/"        # PM2配置
 
-# 删除不需要的文件
-rm -rf "${BUILD_DIR}/server/node_modules"
-rm -rf "${BUILD_DIR}/server/dist"
+# 删除不需要的文件，但保留必要的构建产物和依赖
 rm -rf "${BUILD_DIR}/server/logs"
-rm -rf "${BUILD_DIR}/server/database.db"
+rm -rf "${BUILD_DIR}/server/database.db" 2>/dev/null || true
+# 注意：保留 server/node_modules 以确保后端依赖可用
 
-# 3. 创建生产环境配置模板
+# 验证关键文件
+if [ ! -d "${BUILD_DIR}/server/dist/config" ]; then
+    echo "❌ 后端配置文件缺失"
+    exit 1
+fi
+
+if [ ! -f "${BUILD_DIR}/server/dist/config/form-templates.config.js" ]; then
+    echo "❌ 表单模板配置文件缺失"
+    exit 1
+fi
+
+if [ ! -f "${BUILD_DIR}/server/dist/config/project.config.js" ]; then
+    echo "❌ 项目配置文件缺失"
+    exit 1
+fi
+
+echo "✅ 关键文件验证通过"
+
+# 4. 创建生产环境配置模板
 echo ""
 echo "📝 创建配置文件模板..."
 cp config/production.env.example "${BUILD_DIR}/"
 
-# 4. 创建部署脚本
+# 5. 创建部署脚本
 echo ""
 echo "🔧 创建部署脚本..."
 cat > "${BUILD_DIR}/deploy.sh" << 'EOF'
@@ -72,9 +115,16 @@ export $(cat production.env | grep -v '^#' | xargs)
 echo "📦 安装生产依赖..."
 npm install --production
 
-# 进入 server 目录安装后端依赖
+# 进入 server 目录安装后端依赖并编译
 cd server
 npm install
+
+# 如果有构建产物，直接使用；否则重新编译
+if [ ! -d "dist" ]; then
+    echo "  编译 TypeScript..."
+    npm run build
+fi
+
 cd ..
 
 # 4. 设置权限
@@ -92,7 +142,7 @@ EOF
 
 chmod +x "${BUILD_DIR}/deploy.sh"
 
-# 5. 创建 README
+# 6. 创建 README
 cat > "${BUILD_DIR}/README.md" << EOF
 # nxlinkWebTools 生产部署包
 
@@ -136,24 +186,44 @@ cat > "${BUILD_DIR}/README.md" << EOF
 - 建议使用 PM2 管理进程
 EOF
 
-# 6. 创建压缩包
+# 7. 创建压缩包
 echo ""
 echo "📦 创建发布包..."
 RELEASE_FILE="${RELEASE_DIR}/nxlinkWebTools_${TIMESTAMP}.tar.gz"
 tar -czf "${RELEASE_FILE}" -C . "${BUILD_DIR}"
 
-# 7. 清理构建目录（可选）
-# rm -rf "${BUILD_DIR}"
+# 8. 清理和最终验证
+echo ""
+echo "🔍 最终验证..."
+if [ -f "${RELEASE_FILE}" ]; then
+    RELEASE_SIZE=$(du -h "${RELEASE_FILE}" | cut -f1)
+    echo "✅ 发布包创建成功，大小: ${RELEASE_SIZE}"
+else
+    echo "❌ 发布包创建失败"
+    exit 1
+fi
+
+# 9. 清理构建目录（可选）
+read -p "是否保留构建目录 ${BUILD_DIR}？(y/N): " -n 1 -r
+echo ""
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "🧹 清理构建目录..."
+    rm -rf "${BUILD_DIR}"
+    echo "✅ 构建目录已清理"
+else
+    echo "📁 构建目录已保留: ${BUILD_DIR}"
+fi
 
 echo ""
-echo "✅ 打包完成！"
+echo "🎉 打包完成！"
 echo ""
 echo "📦 发布包: ${RELEASE_FILE}"
-echo "📁 构建目录: ${BUILD_DIR}"
+echo "📊 包大小: ${RELEASE_SIZE}"
 echo ""
-echo "部署说明："
-echo "1. 将 ${RELEASE_FILE} 上传到服务器"
-echo "2. 解压: tar -xzf $(basename ${RELEASE_FILE})"
-echo "3. 进入目录: cd ${BUILD_DIR}"
+echo "🚀 快速部署："
+echo "1. 上传发布包到服务器: scp ${RELEASE_FILE} user@server:/path/to/"
+echo "2. 在服务器上解压: tar -xzf $(basename ${RELEASE_FILE})"
+echo "3. 进入目录: cd nxlinkWebTools_${TIMESTAMP}"
 echo "4. 按照 README.md 进行部署"
 echo ""
+echo "📖 详细说明请查看: ${BUILD_DIR}/README.md (如果保留了构建目录)"

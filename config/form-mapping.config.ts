@@ -35,6 +35,15 @@ export const DEFAULT_FORM_MAPPINGS: FormMapping[] = [
     updatedAt: new Date().toISOString()
   },
   {
+    formId: 'jJmQtb',
+    taskId: '9cf75e77-223e-4f17-8da5-40b4c6da467b', // 追加号码任务ID
+    formName: '追加号码表单',
+    description: '追加号码到呼叫任务的表单',
+    enabled: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
     formId: 'wE4D2a',
     taskId: 'huawei-connect-2025-task-001', // 华为CONNECT 2025英文版专用任务ID
     formName: 'HUAWEI CONNECT 2025 | NXAI AI Interactive Experience Sign-up',

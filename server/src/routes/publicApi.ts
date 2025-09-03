@@ -2,6 +2,11 @@ import express from 'express';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
 import { getAllApiKeys } from '../services/configManager';
+import { getTemplateById } from '../../../config/form-templates.config';
+
+// 使用配置文件中的模板
+
+// 直接使用字段key作为参数名称
 
 const router = express.Router();
 
@@ -615,12 +620,13 @@ router.delete('/public/:apiKey/:taskId/:contactId/delete', async (req, res): Pro
 router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise<void> => {
   try {
     const { apiKey, taskId } = req.params;
-    const { countryCode } = req.query;
+    const { countryCode, templateId = 'contact' } = req.query;
     const webhookData = req.body;
 
-    console.log(`[${new Date().toLocaleString()}] 📝 公开表单提交接口（重构版）:`, {
+    console.log(`[${new Date().toLocaleString()}] 📝 公开表单提交接口（统一版）:`, {
       apiKey: apiKey.substring(0, 8) + '***',
       taskId,
+      templateId,
       countryCode,
       formId: webhookData.form,
       phoneNumber: webhookData.entry?.field_5
@@ -647,12 +653,40 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
       return;
     }
 
-    // 验证表单数据
-    if (!webhookData.entry || !webhookData.entry.field_5) {
+    // 获取模板映射配置
+    const templateMapping = getTemplateById(templateId as string);
+    if (!templateMapping) {
       res.status(400).json({
         code: 400,
-        message: 'Missing required field: field_5 (phone number)',
-        error: 'MISSING_PHONE_NUMBER'
+        message: `Template not found: ${templateId}`,
+        error: 'TEMPLATE_NOT_FOUND'
+      });
+      return;
+    }
+
+    console.log(`[${new Date().toLocaleString()}] 🎨 使用模板: ${templateId} (${templateMapping.name})`);
+
+    // 验证表单数据
+    if (!webhookData.entry) {
+      res.status(400).json({
+        code: 400,
+        message: 'Invalid webhook data: missing entry',
+        error: 'INVALID_WEBHOOK_DATA'
+      });
+      return;
+    }
+
+    // 使用模板映射验证电话号码
+    const phoneField = templateMapping.fieldMapping.phone;
+    const phoneValue = (webhookData.entry as any)[phoneField];
+
+    if (!phoneValue) {
+      res.status(400).json({
+        code: 400,
+        message: `Missing required phone number in field: ${phoneField}`,
+        error: 'MISSING_PHONE_NUMBER',
+        templateId,
+        requiredField: phoneField
       });
       return;
     }
@@ -671,14 +705,87 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
     };
 
     // 根据成功请求格式构建（使用list格式，包含contactId和name）
-    const phoneNumber = String(webhookData.entry.field_5);
+    const phoneNumber = String(phoneValue);
+
+    // 构建参数数组，包含所有表单字段
+    const params: Array<{ name: string; value: string }> = [];
+
+    // 使用模板映射处理其他字段
+    const fieldMapping = templateMapping.fieldMapping;
+
+    // 处理姓名字段 - 在后面单独处理，不放到params里
+
+    // 处理邮箱字段
+    if (fieldMapping.email && (webhookData.entry as any)[fieldMapping.email]) {
+      params.push({
+        name: 'email',
+        value: String((webhookData.entry as any)[fieldMapping.email])
+      });
+    }
+
+    // 处理公司字段
+    if (fieldMapping.company && (webhookData.entry as any)[fieldMapping.company]) {
+      params.push({
+        name: 'company',
+        value: String((webhookData.entry as any)[fieldMapping.company])
+      });
+    }
+
+    // 处理留言字段
+    if (fieldMapping.message && (webhookData.entry as any)[fieldMapping.message]) {
+      params.push({
+        name: 'message',
+        value: String((webhookData.entry as any)[fieldMapping.message])
+      });
+    }
+
+    // 处理地区信息（如果有的话）
+    if (webhookData.entry.info_region) {
+      const region = webhookData.entry.info_region;
+      const regionStr = `${region.province || ''}${region.city || ''}${region.district || ''}`.trim();
+      if (regionStr) {
+        params.push({
+          name: 'region',
+          value: regionStr
+        });
+      }
+    }
+
+    // 添加表单信息
+    if (webhookData.form_name) {
+      params.push({
+        name: '表单名称',
+        value: String(webhookData.form_name)
+      });
+    }
+
+    if (webhookData.entry.created_at) {
+      params.push({
+        name: '提交时间',
+        value: String(webhookData.entry.created_at)
+      });
+    }
+
+    if (webhookData.entry.creator_name) {
+      params.push({
+        name: '创建者',
+        value: String(webhookData.entry.creator_name)
+      });
+    }
+
+    // 使用姓名作为联系人名称，如果没有则使用电话号码
+    const nameField = fieldMapping.name;
+    const contactName = nameField && (webhookData.entry as any)[nameField]
+      ? String((webhookData.entry as any)[nameField])
+      : phoneNumber;
+
     const requestBody = {
       taskId,
       list: [{
         contactId: generateContactIdFromPhone(phoneNumber),
         phoneNumber: phoneNumber,
-        name: phoneNumber, // 使用号码作为默认名称
-        params: [] // 关键：必须是空数组！
+        name: contactName,
+        params: params
       }]
     };
 
@@ -717,9 +824,12 @@ router.post('/public/:apiKey/:taskId/form-submission', async (req, res): Promise
       data: response.data?.data || response.data,
       request: {
         taskId,
+        templateId,
+        templateName: templateMapping.name,
         countryCode: finalCountryCode,
-        phoneNumber: String(webhookData.entry.field_5),
-        formId: webhookData.form
+        phoneNumber: phoneNumber,
+        formId: webhookData.form,
+        paramsCount: params.length
       }
     });
     return;

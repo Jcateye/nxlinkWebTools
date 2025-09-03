@@ -1,7 +1,12 @@
 import express from 'express';
 import { apiKeyAuth, AuthenticatedRequest } from '../middleware/apiKeyAuth';
-const { getTaskIdByFormId, getAvailableFormMappings } = require('../config/form-mapping.config')
-// 动态导入将在需要时进行
+import {
+  getTemplateById,
+  getAvailableTemplates,
+  isValidTemplateId,
+  FormTemplate,
+  ParameterNameMapping
+} from '../../../config/form-templates.config';
 
 const router = express.Router();
 
@@ -37,113 +42,165 @@ interface FormWebhookData {
   entry: FormEntry;
 }
 
+// 获取模板映射配置（从配置文件加载）
+function getTemplateMapping(templateId: string): FormTemplate | null {
+  return getTemplateById(templateId);
+}
+
+// 验证模板ID是否存在
+function isValidTemplate(templateId: string): boolean {
+  return isValidTemplateId(templateId);
+}
+
+// 直接使用字段key作为参数名称
+
 /**
- * 表单数据推送接收接口
- * POST /api/webhook/form-submission
+ * 表单数据推送接收接口（新版）
+ * POST /api/webhook/:taskId/form-submission?templateId=contact
+ *
+ * URL参数:
+ * - taskId: 任务ID
+ *
+ * Query参数:
+ * - templateId: 模板ID (可选，默认使用contact模板)
+ * - countryCode: 国家代码 (可选，默认86)
  */
-router.post('/form-submission', express.json(), apiKeyAuth, async (req: AuthenticatedRequest, res): Promise<any> => {
+router.post('/:taskId/form-submission', express.json(), apiKeyAuth, async (req: AuthenticatedRequest, res): Promise<any> => {
   try {
+    const { taskId } = req.params;
+    const { templateId = 'contact', countryCode = '86' } = req.query;
     const webhookData: FormWebhookData = req.body;
 
-    console.log(`[${new Date().toLocaleString()}] 📝 收到表单数据推送:`, {
+    console.log(`[${new Date().toLocaleString()}] 📝 收到表单数据推送（新版）:`, {
+      taskId,
+      templateId,
+      countryCode,
       formId: webhookData.form,
       formName: webhookData.form_name,
-      serialNumber: webhookData.entry.serial_number,
-      creator: webhookData.entry.creator_name,
-      ip: webhookData.entry.info_remote_ip
+      serialNumber: webhookData.entry?.serial_number,
+      creator: webhookData.entry?.creator_name,
+      ip: webhookData.entry?.info_remote_ip
     });
 
-    // 验证必需字段
-    if (!webhookData.form || !webhookData.entry) {
+    // 验证必需参数
+    if (!taskId) {
       return res.status(400).json({
         code: 400,
-        message: 'Invalid webhook data: missing form or entry',
+        message: 'Missing required parameter: taskId',
+        error: 'MISSING_TASK_ID'
+      });
+    }
+
+    // 验证必需字段
+    if (!webhookData.entry) {
+      return res.status(400).json({
+        code: 400,
+        message: 'Invalid webhook data: missing entry',
         error: 'INVALID_WEBHOOK_DATA'
       });
     }
 
-    // 检查表单ID是否有对应的taskID映射
-    const taskId = getTaskIdByFormId(webhookData.form);
-    if (!taskId) {
+    // 获取模板映射配置
+    const templateMapping = getTemplateMapping(templateId as string);
+    if (!templateMapping) {
       return res.status(400).json({
         code: 400,
-        message: `No taskID mapping found for form: ${webhookData.form}`,
-        error: 'FORM_NOT_CONFIGURED',
-        availableForms: getAvailableFormMappings()
+        message: `Template not found: ${templateId}`,
+        error: 'TEMPLATE_NOT_FOUND',
+        availableTemplates: getAvailableTemplates()
       });
     }
 
-    // 提取并验证电话号码
-    const phoneNumber = webhookData.entry.field_5;
-    if (!phoneNumber || !/^1[3-9]\d{9}$/.test(phoneNumber)) {
-      console.warn(`[${new Date().toLocaleString()}] ⚠️  无效电话号码: ${phoneNumber}，跳过验证继续处理`);
+    console.log(`[${new Date().toLocaleString()}] 🎨 使用模板: ${templateId} (${templateMapping.name})`);
 
-      // 为了测试目的，暂时注释掉错误返回，继续处理
-      // return res.status(400).json({
-      //   code: 400,
-      //   message: 'Invalid phone number in field_5',
-      //   error: 'INVALID_PHONE_NUMBER',
-      //   receivedPhone: phoneNumber
-      // });
+    // 使用模板映射提取字段
+    const phoneField = templateMapping.fieldMapping.phone;
+    const phoneNumber = (webhookData.entry as any)[phoneField];
+
+    if (!phoneNumber) {
+      return res.status(400).json({
+        code: 400,
+        message: `Missing required phone number in field: ${phoneField}`,
+        error: 'MISSING_PHONE_NUMBER',
+        templateId,
+        requiredField: phoneField
+      });
+    }
+
+    // 验证电话号码格式（中国手机号）
+    if (!/^1[3-9]\d{9}$/.test(phoneNumber)) {
+      console.warn(`[${new Date().toLocaleString()}] ⚠️  无效电话号码: ${phoneNumber}，跳过验证继续处理`);
     }
 
     // 构建追加号码的数据
     const phoneData: {
       phoneNumber: string;
+      name: string;
       params: Array<{ name: string; value: string }>;
     } = {
       phoneNumber: phoneNumber,
+      name: phoneNumber, // 默认使用电话号码作为姓名
       params: []
     };
 
-    // 如果有field_2（姓名），添加到参数中
-    if (webhookData.entry.field_2) {
+    // 使用模板映射处理其他字段
+    const fieldMapping = templateMapping.fieldMapping;
+
+    // 处理姓名字段 - 直接映射到name字段
+    if (fieldMapping.name && (webhookData.entry as any)[fieldMapping.name]) {
+      phoneData.name = String((webhookData.entry as any)[fieldMapping.name]);
+    }
+
+    // 处理邮箱字段
+    if (fieldMapping.email && (webhookData.entry as any)[fieldMapping.email]) {
       phoneData.params.push({
-        name: webhookData.entry.field_2, // 姓名作为参数名
-        value: webhookData.entry.field_2  // 姓名也作为参数值
+        name: 'email',
+        value: String((webhookData.entry as any)[fieldMapping.email])
       });
     }
 
-    // 添加其他有用的表单信息到参数
-    if (webhookData.entry.field_3) {
+    // 处理公司字段
+    if (fieldMapping.company && (webhookData.entry as any)[fieldMapping.company]) {
       phoneData.params.push({
-        name: 'field_3',
-        value: webhookData.entry.field_3
+        name: 'company',
+        value: String((webhookData.entry as any)[fieldMapping.company])
       });
     }
 
-    if (webhookData.entry.field_4) {
+    // 处理留言字段
+    if (fieldMapping.message && (webhookData.entry as any)[fieldMapping.message]) {
       phoneData.params.push({
-        name: 'field_4',
-        value: webhookData.entry.field_4
+        name: 'message',
+        value: String((webhookData.entry as any)[fieldMapping.message])
       });
     }
 
-    if (webhookData.entry.field_6) {
-      phoneData.params.push({
-        name: '邮箱',
-        value: webhookData.entry.field_6
-      });
-    }
-
+    // 处理地区信息（如果有的话）
     if (webhookData.entry.info_region) {
       const region = webhookData.entry.info_region;
-      phoneData.params.push({
-        name: '地区',
-        value: `${region.province || ''}${region.city || ''}${region.district || ''}`.trim()
-      });
+      const regionStr = `${region.province || ''}${region.city || ''}${region.district || ''}`.trim();
+      if (regionStr) {
+        phoneData.        params.push({
+          name: 'region',
+          value: regionStr
+        });
+      }
     }
 
     // 添加表单元信息
-    phoneData.params.push({
-      name: '表单名称',
-      value: webhookData.form_name
-    });
+    if (webhookData.form_name) {
+      phoneData.params.push({
+        name: '表单名称',
+        value: webhookData.form_name
+      });
+    }
 
-    phoneData.params.push({
-      name: '提交时间',
-      value: webhookData.entry.created_at
-    });
+    if (webhookData.entry.created_at) {
+      phoneData.params.push({
+        name: '提交时间',
+        value: webhookData.entry.created_at
+      });
+    }
 
     if (webhookData.entry.creator_name) {
       phoneData.params.push({
@@ -153,10 +210,11 @@ router.post('/form-submission', express.json(), apiKeyAuth, async (req: Authenti
     }
 
     console.log(`[${new Date().toLocaleString()}] 🔄 处理表单数据:`, {
-      formId: webhookData.form,
+      taskId,
+      templateId,
       phoneNumber: phoneNumber,
       paramsCount: phoneData.params.length,
-      taskId: taskId
+      templateName: templateMapping.name
     });
 
     // 使用真实的AuthenticatedRequest对象
@@ -165,7 +223,7 @@ router.post('/form-submission', express.json(), apiKeyAuth, async (req: Authenti
         taskId: taskId,
         phoneNumbers: [phoneData],
         autoFlowId: null,
-        countryCode: '86'
+        countryCode: countryCode as string
       },
       apiKey: req.apiKey,
       apiKeyConfig: req.apiKeyConfig
@@ -175,7 +233,8 @@ router.post('/form-submission', express.json(), apiKeyAuth, async (req: Authenti
     const result = await processAppendNumbers(appendReq);
 
     console.log(`[${new Date().toLocaleString()}] ✅ 表单数据处理完成:`, {
-      formId: webhookData.form,
+      taskId,
+      templateId,
       serialNumber: webhookData.entry.serial_number,
       success: result.code === 200,
       total: result.data?.total || 0,
@@ -188,10 +247,13 @@ router.post('/form-submission', express.json(), apiKeyAuth, async (req: Authenti
       code: 200,
       message: '表单数据处理成功',
       data: {
-        formId: webhookData.form,
+        taskId,
+        templateId,
+        templateName: templateMapping.name,
         serialNumber: webhookData.entry.serial_number,
         phoneNumber: phoneNumber,
-        taskId: taskId,
+        countryCode: countryCode,
+        paramsCount: phoneData.params.length,
         appendResult: result
       }
     });
@@ -310,6 +372,7 @@ async function processAppendNumbers(req: any): Promise<any> {
     try {
       const phoneNumber = typeof phoneData === 'string' ? phoneData : phoneData.phoneNumber;
       const phoneParams = typeof phoneData === 'object' ? phoneData.params || [] : [];
+      const contactName = typeof phoneData === 'object' ? phoneData.name || phoneNumber : phoneNumber;
 
       if (!phoneNumber) {
         failCount++;
@@ -329,7 +392,7 @@ async function processAppendNumbers(req: any): Promise<any> {
         list: [{
           contactId: generateContactIdFromPhone(phoneNumber),
           phoneNumber,
-          name: phoneNumber,
+          name: contactName,
           params: phoneParams
         }]
       };
@@ -409,84 +472,142 @@ async function processAppendNumbers(req: any): Promise<any> {
 }
 
 /**
- * 获取表单映射配置
- * GET /api/webhook/form-mapping
+ * 获取可用模板列表
+ * GET /api/webhook/templates
  */
-router.get('/form-mapping', (req, res) => {
+router.get('/templates', (req, res) => {
   res.json({
     code: 200,
-    message: '表单映射配置',
+    message: '可用模板列表',
     data: {
-      mappings: getAvailableFormMappings(),
-      description: '表单ID到taskID的映射配置'
+      templates: getAvailableTemplates(),
+      description: '支持的表单模板配置'
     }
   });
 });
 
 /**
- * 更新表单映射配置（仅用于开发调试）
- * POST /api/webhook/update-mapping
+ * 获取表单映射配置（向后兼容）
+ * GET /api/webhook/form-mapping
  */
-router.post('/update-mapping', express.json(), async (req, res): Promise<any> => {
-  const { formId, taskId, formName, description } = req.body;
+router.get('/form-mapping', (req, res) => {
+  res.json({
+    code: 200,
+    message: '表单映射配置（已废弃，请使用 /api/webhook/templates）',
+    data: {
+      mappings: getAvailableTemplates(),
+      description: '表单模板配置（新版）'
+    }
+  });
+});
 
-  if (!formId || !taskId) {
-    return res.status(400).json({
+/**
+ * 获取模板详情
+ * GET /api/webhook/templates/:templateId
+ */
+router.get('/templates/:templateId', (req, res): void => {
+  const { templateId } = req.params;
+
+  const templateMapping = getTemplateMapping(templateId);
+  if (!templateMapping) {
+    res.status(404).json({
+      code: 404,
+      message: `Template not found: ${templateId}`,
+      error: 'TEMPLATE_NOT_FOUND',
+      availableTemplates: getAvailableTemplates()
+    });
+    return;
+  }
+
+  res.json({
+    code: 200,
+    message: '模板详情',
+    data: templateMapping
+  });
+});
+
+/**
+ * 添加新模板（开发调试用）
+ * POST /api/webhook/templates
+ */
+router.post('/templates', express.json(), (req, res): void => {
+  const { templateId, name, description, fieldMapping, tags, useCase } = req.body;
+
+  if (!templateId || !name || !fieldMapping?.phone) {
+    res.status(400).json({
       code: 400,
-      message: 'Missing formId or taskId',
+      message: 'Missing required fields: templateId, name, fieldMapping.phone',
       error: 'INVALID_PARAMETERS'
     });
+    return;
   }
 
   try {
-    // 动态导入配置文件进行更新
-    const configModule = await import('../config/form-mapping.config');
-    const { DEFAULT_FORM_MAPPINGS } = configModule;
-
-    // 查找或创建映射
-    let existingMapping = DEFAULT_FORM_MAPPINGS.find(m => m.formId === formId);
-
-    if (existingMapping) {
-      // 更新现有映射
-      existingMapping.taskId = taskId;
-      existingMapping.formName = formName || existingMapping.formName;
-      existingMapping.description = description || existingMapping.description;
-      existingMapping.updatedAt = new Date().toISOString();
-      existingMapping.enabled = true;
-    } else {
-      // 创建新映射
-      const newMapping = {
-        formId,
-        taskId,
-        formName: formName || `表单 ${formId}`,
-        description: description || '动态添加的表单映射',
-        enabled: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      DEFAULT_FORM_MAPPINGS.push(newMapping);
-    }
-
-    console.log(`[${new Date().toLocaleString()}] 🔧 更新表单映射: ${formId} -> ${taskId}`);
-
-    res.json({
-      code: 200,
-      message: '表单映射更新成功',
-      data: {
-        formId,
-        taskId,
-        formName,
-        description,
-        mappings: getAvailableFormMappings()
-      }
+    // 这里可以实现动态添加模板的逻辑
+    // 由于当前是只读配置，暂时返回提示信息
+    res.status(501).json({
+      code: 501,
+      message: 'Dynamic template creation not implemented. Please edit config/form-templates.config.ts directly.',
+      error: 'NOT_IMPLEMENTED',
+      suggestion: 'Edit config/form-templates.config.ts to add new templates'
     });
-
   } catch (error: any) {
-    console.error(`[${new Date().toLocaleString()}] ❌ 更新表单映射失败:`, error);
-
     res.status(500).json({
       code: 500,
-      message: '更新表单映射失败',
+      message: 'Failed to create template',
+      error: 'INTERNAL_ERROR',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * 更新模板（开发调试用）
+ * PUT /api/webhook/templates/:templateId
+ */
+router.put('/templates/:templateId', express.json(), (req, res): void => {
+  const { templateId } = req.params;
+  const updates = req.body;
+
+  try {
+    // 这里可以实现动态更新模板的逻辑
+    // 由于当前是只读配置，暂时返回提示信息
+    res.status(501).json({
+      code: 501,
+      message: 'Dynamic template update not implemented. Please edit config/form-templates.config.ts directly.',
+      error: 'NOT_IMPLEMENTED',
+      suggestion: 'Edit config/form-templates.config.ts to modify templates'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      code: 500,
+      message: 'Failed to update template',
+      error: 'INTERNAL_ERROR',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * 删除模板（开发调试用）
+ * DELETE /api/webhook/templates/:templateId
+ */
+router.delete('/templates/:templateId', (req, res): void => {
+  const { templateId } = req.params;
+
+  try {
+    // 这里可以实现动态删除模板的逻辑
+    // 由于当前是只读配置，暂时返回提示信息
+    res.status(501).json({
+      code: 501,
+      message: 'Dynamic template deletion not implemented. Please edit config/form-templates.config.ts directly.',
+      error: 'NOT_IMPLEMENTED',
+      suggestion: 'Edit config/form-templates.config.ts to remove templates'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      code: 500,
+      message: 'Failed to delete template',
       error: 'INTERNAL_ERROR',
       details: error.message
     });

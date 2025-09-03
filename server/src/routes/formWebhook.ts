@@ -4,8 +4,7 @@ import {
   getTemplateById,
   getAvailableTemplates,
   isValidTemplateId,
-  FormTemplate,
-  ParameterNameMapping
+  FormTemplate
 } from '../../../config/form-templates.config';
 
 const router = express.Router();

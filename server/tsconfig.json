@@ -29,7 +29,8 @@
     ]
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "../config/form-templates.config.ts"
   ],
   "exclude": [
     "node_modules",

@@ -38,7 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const apiKeyAuth_1 = require("../middleware/apiKeyAuth");
-const form_templates_config_1 = require("../../config/form-templates.config");
+const form_templates_config_1 = require("../../../config/form-templates.config");
 const router = express_1.default.Router();
 function getTemplateMapping(templateId) {
     return (0, form_templates_config_1.getTemplateById)(templateId);
@@ -101,30 +101,28 @@ router.post('/:taskId/form-submission', express_1.default.json(), apiKeyAuth_1.a
         }
         const phoneData = {
             phoneNumber: phoneNumber,
+            name: phoneNumber,
             params: []
         };
         const fieldMapping = templateMapping.fieldMapping;
         if (fieldMapping.name && webhookData.entry[fieldMapping.name]) {
-            phoneData.params.push({
-                name: '姓名',
-                value: String(webhookData.entry[fieldMapping.name])
-            });
+            phoneData.name = String(webhookData.entry[fieldMapping.name]);
         }
         if (fieldMapping.email && webhookData.entry[fieldMapping.email]) {
             phoneData.params.push({
-                name: '邮箱',
+                name: 'email',
                 value: String(webhookData.entry[fieldMapping.email])
             });
         }
         if (fieldMapping.company && webhookData.entry[fieldMapping.company]) {
             phoneData.params.push({
-                name: '公司',
+                name: 'company',
                 value: String(webhookData.entry[fieldMapping.company])
             });
         }
         if (fieldMapping.message && webhookData.entry[fieldMapping.message]) {
             phoneData.params.push({
-                name: '留言',
+                name: 'message',
                 value: String(webhookData.entry[fieldMapping.message])
             });
         }
@@ -133,7 +131,7 @@ router.post('/:taskId/form-submission', express_1.default.json(), apiKeyAuth_1.a
             const regionStr = `${region.province || ''}${region.city || ''}${region.district || ''}`.trim();
             if (regionStr) {
                 phoneData.params.push({
-                    name: '地区',
+                    name: 'region',
                     value: regionStr
                 });
             }
@@ -284,6 +282,7 @@ async function processAppendNumbers(req) {
         try {
             const phoneNumber = typeof phoneData === 'string' ? phoneData : phoneData.phoneNumber;
             const phoneParams = typeof phoneData === 'object' ? phoneData.params || [] : [];
+            const contactName = typeof phoneData === 'object' ? phoneData.name || phoneNumber : phoneNumber;
             if (!phoneNumber) {
                 failCount++;
                 results.push({
@@ -300,7 +299,7 @@ async function processAppendNumbers(req) {
                 list: [{
                         contactId: generateContactIdFromPhone(phoneNumber),
                         phoneNumber,
-                        name: phoneNumber,
+                        name: contactName,
                         params: phoneParams
                     }]
             };

@@ -16,6 +16,12 @@ nxlinkWebTools/
 │   ├── integration/                # 集成测试
 │   └── README.md                   # 测试说明
 ├── docs/                   # 文档目录
+│   ├── env/                        # 环境配置文档
+│   ├── docker/                     # Docker部署文档
+│   ├── nginx/                      # Nginx配置文档
+│   ├── deployment/                 # 部署指南文档
+│   ├── llm/                        # LLM与AI服务文档
+│   ├── security/                   # 安全配置文档
 │   ├── new-webhook-api-guide.md    # 新API使用指南 ⭐
 │   └── ...                        # 其他文档
 ├── src/                    # 前端源码

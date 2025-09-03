@@ -84,7 +84,7 @@ export const DEFAULT_FORM_TEMPLATES: FormTemplate[] = [
     name: '产品咨询表单',
     description: '产品咨询表单模板，适用于产品页面的咨询表单',
     fieldMapping: {
-      phone: 'field_5',
+      phone: 'field_8',
       name: 'field_2',
       email: 'field_6',
       company: 'field_3',
@@ -101,7 +101,7 @@ export const DEFAULT_FORM_TEMPLATES: FormTemplate[] = [
     name: '意见反馈表单',
     description: '用户意见反馈表单模板',
     fieldMapping: {
-      phone: 'field_5',
+      phone: 'field_8',
       name: 'field_2',
       email: 'field_6',
       message: 'field_3',

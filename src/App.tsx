@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs } from 'antd';
-import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined, CloudServerOutlined, KeyOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined, CloudServerOutlined, KeyOutlined, PieChartOutlined } from '@ant-design/icons';
 import TagParamsForm from './components/TagParamsForm';
 import FaqParamsForm from './components/FaqParamsForm';
 import TagGroupMigration, { TagGroupMigrationHandle } from './components/TagGroupMigration';
@@ -13,6 +13,7 @@ import VoiceList from './components/VoiceList';
 import VoiceMigration from './components/VoiceMigration';
 import ScriptTestSystem from './components/ScriptTestSystem';
 import BillManagementPage from './pages/BillManagementPage';
+import BillAnalysisPage from './pages/BillAnalysisPage';
 import MemberManagementPage from './pages/MemberManagementPage';
 import PromptValidationPage from './pages/PromptValidationPage';
 import VendorAppManagementPage from './pages/VendorAppManagementPage';
@@ -119,6 +120,7 @@ const AppContent = () => {
     const titles: Record<string, string> = {
       'tag': '标签迁移工具',
       'bill': '账单管理',
+      'bill-analysis': '账单数据分析',
       'faq': 'FAQ管理',
       'voice': '声音管理',
       'script': '话术测试系统',
@@ -148,6 +150,8 @@ const AppContent = () => {
         );
       case 'bill':
         return <BillManagementPage />;
+      case 'bill-analysis':
+        return <BillAnalysisPage />;
       case 'faq':
         return (
           <Row gutter={24} style={{ width: '100%' }}>
@@ -304,6 +308,9 @@ const AppContent = () => {
             </Menu.Item>
             <Menu.Item key="bill" icon={<DollarOutlined />}>
               账单管理
+            </Menu.Item>
+            <Menu.Item key="bill-analysis" icon={<PieChartOutlined />}>
+              账单数据分析
             </Menu.Item>
             <Menu.Item key="vendor-app" icon={<ApiOutlined />}>
               供应商应用管理

@@ -71,7 +71,7 @@ import {
   SERVICE_TYPE_MAP
 } from '../config/vendorConfig';
 import { getUniqueLanguages, ttsConfig, getLanguageDescByLocale } from '../config/ttsConfig';
-import TokenManager from '../components/TokenManager';
+import TokenManager from '../components/bill/TokenManager';
 import DataCenterSelector from '../components/DataCenterSelector';
 
 // 供应商应用类型常量
@@ -123,8 +123,9 @@ const VendorAppManagementPage: React.FC = () => {
       total: 0
     });
     const [idInput, setIdInput] = useState('');
-    const [exportModalVisible, setExportModalVisible] = useState(false);
-    const [exportData, setExportData] = useState('');
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportData, setExportData] = useState('');
+  const [hasValidToken, setHasValidToken] = useState(false);
 
   const handleSelectByIds = () => {
     const idsToSelect = idInput
@@ -1054,7 +1055,7 @@ const VendorAppManagementPage: React.FC = () => {
                 onChange={handleDataCenterChange} 
                 size="small"
               />
-              <TokenManager />
+              <TokenManager onTokenChange={setHasValidToken} />
             </div>
           </div>
           <Alert

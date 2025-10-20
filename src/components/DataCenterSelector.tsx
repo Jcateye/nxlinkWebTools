@@ -65,7 +65,10 @@ const DataCenterSelector: React.FC<DataCenterSelectorProps> = ({
               {dataCenter.description && (
                 <Tooltip title={dataCenter.description}>
                   <Text type="secondary" style={{ fontSize: '12px' }}>
-                    ({dataCenter.id === 'hk' ? 'nxlink.nxcloud.com' : 'nxlink.nxcloud.com/chl'})
+                    ({dataCenter.id === 'hk' ? 'nxlink.nxcloud.com' : 
+                      dataCenter.id === 'chl' ? 'nxlink.nxcloud.com/chl' : 
+                      dataCenter.id === 'idn' ? 'nxlink.nxcloud.com/public_idn' : 
+                      'nxlink.nxcloud.com'})
                   </Text>
                 </Tooltip>
               )}
@@ -73,7 +76,11 @@ const DataCenterSelector: React.FC<DataCenterSelectorProps> = ({
           </Option>
         ))}
       </Select>
-      <Tag color={selectedDataCenter.id === 'hk' ? 'blue' : 'green'}>
+      <Tag color={
+        selectedDataCenter.id === 'hk' ? 'blue' : 
+        selectedDataCenter.id === 'chl' ? 'green' : 
+        selectedDataCenter.id === 'idn' ? 'orange' : 'blue'
+      }>
         {selectedDataCenter.name}
       </Tag>
     </Space>

@@ -116,6 +116,12 @@ export const DATA_CENTERS: DataCenter[] = [
     name: 'CHL',
     baseURL: '/api/chl',
     description: 'CHL环境数据中心'
+  },
+  {
+    id: 'idn',
+    name: 'IDN',
+    baseURL: '/api/public_idn',
+    description: '印尼数据中心'
   }
 ];
 

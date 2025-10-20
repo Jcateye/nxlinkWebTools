@@ -238,6 +238,41 @@ app.use('/api/chl', createProxyMiddleware({
   }
 }));
 
+// IDN数据中心代理
+app.use('/api/public_idn', createProxyMiddleware({
+  target: 'https://nxlink.nxcloud.com/public_idn',
+  changeOrigin: true,
+  secure: false,
+  followRedirects: false,
+  pathRewrite: {
+    '^/api/public_idn': ''
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Host', 'nxlink.nxcloud.com');
+    proxyReq.setHeader('Origin', 'https://nxlink.nxcloud.com');
+    console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(IDN): ${req.method} ${req.url}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    if (proxyRes.statusCode >= 300 && proxyRes.statusCode < 400 && proxyRes.headers.location) {
+      const originalLocation = proxyRes.headers.location;
+      if (originalLocation.includes('nxlink.ai')) {
+        proxyRes.headers.location = originalLocation
+          .replace('https://nxlink.ai/public_idn/', '/api/public_idn/')
+          .replace('http://nxlink.ai/public_idn/', '/api/public_idn/');
+        console.log(`[${new Date().toLocaleTimeString()}] 🔀 修改重定向: ${originalLocation} -> ${proxyRes.headers.location}`);
+      }
+    }
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
+    console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应(IDN): ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`[${new Date().toLocaleTimeString()}] ❌ 代理错误(IDN):`, err.message);
+    res.status(502).send('IDN API 代理出错');
+  }
+}));
+
 // OpenAPI 平台代理 - 代理到本地后端服务，而不是直接访问外部API
 app.use('/api/openapi', createProxyMiddleware({
   target: `http://localhost:${BACKEND_PORT}`,

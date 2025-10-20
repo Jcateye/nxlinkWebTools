@@ -101,6 +101,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/chl/, ''),
       },
+      '/api/public_idn': {
+        target: 'https://nxlink.nxcloud.com/public_idn',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/public_idn/, ''),
+      },
       '/api/openapi': {
         target: 'http://localhost:8400',
         changeOrigin: true,

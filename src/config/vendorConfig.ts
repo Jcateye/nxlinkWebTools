@@ -16,8 +16,8 @@ export const aiSupplierManufacturerConfig: Record<number, VendorConfig[]> = {
     { value: '10', name: "Deepgram", codeName: "Gamma" },
     { value: '15', name: "火山 / Kappa", codeName: "Kappa" },
     { value: '16', name: "My Vocal / Omega", codeName: "Omega" },
-    { value: '17', name: "Cloudsway / Xi", codeName: "Xi" },
-    { value: '18', name: "Fano / Pi", codeName: "Pi" },
+    { value: '18', name: "Cloudsway / Xi", codeName: "Xi" },
+    { value: '17', name: "Fano / Pi", codeName: "Pi" },
   ],
   2: [ // TTS
     { value: '4', name: '微软', codeName:'Upsilon' },
@@ -27,8 +27,8 @@ export const aiSupplierManufacturerConfig: Record<number, VendorConfig[]> = {
     { value: '13', name: '11labs', codeName:'Tau' },
     { value: '15', name: "火山 / Kappa", codeName: "Kappa" },
     { value: '16', name: "My Vocal / Omega", codeName: "Omega" },
-    { value: '17', name: "Cloudsway / Xi", codeName: "Xi" },
-    { value: '18', name: "Fano / Pi", codeName: "Pi" },
+    { value: '18', name: "Cloudsway / Xi", codeName: "Xi" },
+    { value: '17', name: "Fano / Pi", codeName: "Pi" },
   ],
   3: [ // LLM
     { value: '14', name: "Azure-openai", codeName: "Azure-openai" },

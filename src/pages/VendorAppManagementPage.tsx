@@ -126,6 +126,7 @@ const VendorAppManagementPage: React.FC = () => {
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportData, setExportData] = useState('');
   const [hasValidToken, setHasValidToken] = useState(false);
+  const [highlightDuplicates, setHighlightDuplicates] = useState(false);
 
   const handleSelectByIds = () => {
     const idsToSelect = idInput
@@ -437,6 +438,31 @@ const VendorAppManagementPage: React.FC = () => {
     } catch {
       return {};
     }
+  };
+
+  // 检测重复组合（代号+国家+音色+模型）
+  const getDuplicateCombinations = (data: SceneVendorApp[], type: string): Set<number> => {
+    const combinationCount: Record<string, number[]> = {};
+    const duplicateIds = new Set<number>();
+
+    data.forEach(item => {
+      // 统一使用四个字段的组合键：代号 + 国家 + 音色 + 模型
+      const combinationKey = `${item.vendor || ''}|${item.language || ''}|${item.timbre || ''}|${item.model || ''}`;
+
+      if (!combinationCount[combinationKey]) {
+        combinationCount[combinationKey] = [];
+      }
+      combinationCount[combinationKey].push(item.id);
+    });
+
+    // 找出出现次数大于1的组合
+    Object.values(combinationCount).forEach(ids => {
+      if (ids.length > 1) {
+        ids.forEach(id => duplicateIds.add(id));
+      }
+    });
+
+    return duplicateIds;
   };
 
   // 批量编辑相关函数
@@ -975,6 +1001,18 @@ const VendorAppManagementPage: React.FC = () => {
               <Button onClick={handleExportIds}>
                 导出当前页ID
               </Button>
+              {(activeTab === 'TTS' || activeTab === 'ASR') && (
+                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 16 }}>
+                  <span style={{ marginRight: 8, fontWeight: '500' }}>重复项高亮：</span>
+                  <Switch
+                    checked={highlightDuplicates}
+                    onChange={setHighlightDuplicates}
+                    checkedChildren="开"
+                    unCheckedChildren="关"
+                    size="small"
+                  />
+                </div>
+              )}
             </Space>
           </Col>
         </Row>
@@ -1081,6 +1119,13 @@ const VendorAppManagementPage: React.FC = () => {
               rowKey="id"
               loading={loading}
               rowSelection={rowSelection}
+              rowClassName={(record) => {
+                if (highlightDuplicates) {
+                  const duplicateIds = getDuplicateCombinations(sceneVendorApps, 'TTS');
+                  return duplicateIds.has(record.id) ? 'duplicate-row-highlight' : '';
+                }
+                return '';
+              }}
               pagination={{
                 current: currentPage,
                 pageSize: pageSize,
@@ -1107,6 +1152,13 @@ const VendorAppManagementPage: React.FC = () => {
               rowKey="id"
               loading={loading}
               rowSelection={rowSelection}
+              rowClassName={(record) => {
+                if (highlightDuplicates) {
+                  const duplicateIds = getDuplicateCombinations(sceneVendorApps, 'ASR');
+                  return duplicateIds.has(record.id) ? 'duplicate-row-highlight' : '';
+                }
+                return '';
+              }}
               pagination={{
                 current: currentPage,
                 pageSize: pageSize,

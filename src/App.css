@@ -587,4 +587,18 @@ form {
 /* NXAI管理工具菜单项特定样式 */
 .ant-menu-item:nth-child(2) {
   min-width: 160px;
+}
+
+/* 重复数据高亮样式 */
+.duplicate-row-highlight {
+  background-color: #fff2f0 !important;
+  border-left: 3px solid #ff4d4f;
+}
+
+.duplicate-row-highlight:hover {
+  background-color: #ffccc7 !important;
+}
+
+.duplicate-row-highlight td {
+  color: #cf1322 !important;
 } 

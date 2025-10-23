@@ -23,6 +23,7 @@ import {
   ClearOutlined,
   ArrowRightOutlined,
   PlusOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import {
   parseJsonInput,
@@ -56,6 +57,31 @@ const ElevenLabsParamsConverter: React.FC = () => {
   }>>([]);
   const [totalTasks, setTotalTasks] = useState<number>(0);
   const [completedTasks, setCompletedTasks] = useState<number>(0);
+  const [searchText, setSearchText] = useState<string>('');
+
+  // 模糊搜索过滤
+  const filteredParams = searchText.trim() === '' 
+    ? convertedParams 
+    : convertedParams.filter(item => {
+        const searchLower = searchText.toLowerCase();
+        
+        // 搜索字段：名称、ID、标签信息、语言等
+        const matchFields = [
+          item.name?.toLowerCase(),
+          item.id?.toLowerCase(),
+          item.labels?.descriptive?.toLowerCase(),
+          item.labels?.gender?.toLowerCase(),
+          item.labels?.age?.toLowerCase(),
+          item.labels?.accent?.toLowerCase(),
+          item.labels?.use_case?.toLowerCase(),
+          item.labels?.category?.toLowerCase(),
+          item.labels?.languages?.join(' ').toLowerCase(),
+          item.model_list?.join(' ').toLowerCase(),
+        ].filter(Boolean);
+        
+        // 检查是否有任何字段匹配搜索文本
+        return matchFields.some(field => field?.includes(searchLower));
+      });
 
   // 处理转换
   const handleConvert = async () => {
@@ -485,9 +511,26 @@ const ElevenLabsParamsConverter: React.FC = () => {
             </Row>
 
             <Divider>转换后的参数列表</Divider>
+            <div style={{ marginBottom: 16 }}>
+              <Input
+                placeholder="搜索参数（名称、ID、标签等）"
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+              />
+              {searchText && (
+                <div style={{ marginTop: 8, color: '#666', fontSize: '12px' }}>
+                  搜索结果: <span style={{ fontWeight: 'bold', color: '#1890ff' }}>{filteredParams.length}</span> 条 
+                  {filteredParams.length > 0 && convertedParams.length > 0 && (
+                    <span>（共 {convertedParams.length} 条，匹配率 {Math.round((filteredParams.length / convertedParams.length) * 100)}%）</span>
+                  )}
+                </div>
+              )}
+            </div>
             <Table
               columns={convertedColumns}
-              dataSource={convertedParams.map((item, index) => ({
+              dataSource={filteredParams.map((item, index) => ({
                 ...item,
                 key: `${item.id}-${index}`,
               }))}
@@ -496,7 +539,7 @@ const ElevenLabsParamsConverter: React.FC = () => {
                 showSizeChanger: true,
                 showQuickJumper: true,
                 pageSizeOptions: ['10', '20', '50', '100'],
-                showTotal: (total) => `总计 ${total} 条`,
+                showTotal: (total) => searchText ? `搜索结果 ${total} 条 / 总计 ${convertedParams.length} 条` : `总计 ${total} 条`,
               }}
               scroll={{ x: 1200 }}
               size="small"

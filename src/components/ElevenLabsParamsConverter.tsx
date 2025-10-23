@@ -16,7 +16,6 @@ import {
   Drawer,
   Modal,
   Checkbox,
-  Spin,
 } from 'antd';
 import {
   CopyOutlined,
@@ -562,115 +561,197 @@ const ElevenLabsParamsConverter: React.FC = () => {
         cancelText="取消"
         onOk={handleBatchCreate}
         confirmLoading={creating}
-        okButtonProps={{ disabled: selectedRows.size === 0 || selectedDataCenters.length === 0 }}
+        okButtonProps={{ disabled: selectedRows.size === 0 || selectedDataCenters.length === 0 || creating }}
+        cancelButtonProps={{ disabled: creating }}
       >
-        <Spin spinning={creating}>
+        {/* 创建过程中显示进度页面 */}
+        {creating && totalTasks > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* 进度显示 */}
-            {creating && totalTasks > 0 && (
-              <div style={{
-                padding: '16px',
-                backgroundColor: '#f5f5f5',
-                borderRadius: '4px',
-                border: '1px solid #e8e8e8'
-              }}>
-                <div style={{ marginBottom: '12px' }}>
+            {/* 进度统计 */}
+            <div style={{
+              padding: '16px',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '4px',
+              border: '1px solid #e8e8e8'
+            }}>
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                  fontWeight: 'bold',
+                  fontSize: '14px'
+                }}>
+                  <span>创建进度</span>
+                  <span style={{ color: '#1890ff' }}>{completedTasks} / {totalTasks}</span>
+                </div>
+                <div style={{
+                  width: '100%',
+                  height: '28px',
+                  backgroundColor: '#e8e8e8',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
                   <div style={{
+                    width: `${(completedTasks / totalTasks) * 100}%`,
+                    height: '100%',
+                    backgroundColor: completedTasks === totalTasks ? '#52c41a' : '#1890ff',
+                    transition: 'width 0.3s ease',
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '8px',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '13px',
                     fontWeight: 'bold'
                   }}>
-                    <span>创建进度</span>
-                    <span>{completedTasks} / {totalTasks}</span>
-                  </div>
-                  <div style={{
-                    width: '100%',
-                    height: '24px',
-                    backgroundColor: '#e8e8e8',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${(completedTasks / totalTasks) * 100}%`,
-                      height: '100%',
-                      backgroundColor: completedTasks === totalTasks ? '#52c41a' : '#1890ff',
-                      transition: 'width 0.3s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '12px',
-                      fontWeight: 'bold'
-                    }}>
-                      {totalTasks > 0 ? `${Math.round((completedTasks / totalTasks) * 100)}%` : '0%'}
-                    </div>
+                    {totalTasks > 0 ? `${Math.round((completedTasks / totalTasks) * 100)}%` : '0%'}
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* 创建日志 */}
-                <div style={{
-                  maxHeight: '300px',
-                  overflowY: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #e8e8e8',
-                  borderRadius: '4px',
-                  padding: '8px'
-                }}>
-                  {progressLogs.length === 0 ? (
-                    <div style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
-                      准备开始创建...
-                    </div>
-                  ) : (
-                    progressLogs.map((log, index) => (
+            {/* 创建日志列表 */}
+            <div>
+              <div style={{
+                fontWeight: 'bold',
+                marginBottom: '12px',
+                fontSize: '14px'
+              }}>
+                创建日志
+              </div>
+              <div style={{
+                height: '400px',
+                overflowY: 'auto',
+                backgroundColor: '#fafafa',
+                border: '1px solid #e8e8e8',
+                borderRadius: '4px',
+                padding: '12px'
+              }}>
+                {progressLogs.length === 0 ? (
+                  <div style={{ color: '#999', textAlign: 'center', padding: '40px 20px' }}>
+                    准备开始创建...
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {progressLogs.map((log, index) => (
                       <div key={index} style={{
-                        padding: '6px 8px',
-                        borderBottom: index < progressLogs.length - 1 ? '1px solid #f0f0f0' : 'none',
+                        padding: '10px 12px',
+                        backgroundColor: 'white',
+                        border: '1px solid #f0f0f0',
+                        borderRadius: '3px',
                         fontSize: '12px',
                         display: 'flex',
                         gap: '12px',
-                        alignItems: 'flex-start'
+                        alignItems: 'center'
                       }}>
-                        <span style={{ color: '#999', minWidth: '70px' }}>{log.time}</span>
+                        <span style={{ color: '#999', minWidth: '75px', fontFamily: 'monospace' }}>
+                          {log.time}
+                        </span>
                         <span style={{
-                          minWidth: '60px',
-                          padding: '2px 8px',
-                          borderRadius: '2px',
+                          minWidth: '65px',
+                          padding: '4px 10px',
+                          borderRadius: '3px',
                           backgroundColor: log.dataCenter === '香港' ? '#bae7ff' : 
                                           log.dataCenter === 'CHL' ? '#d3f8d3' : '#ffd89b',
                           fontSize: '11px',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          color: log.dataCenter === '香港' ? '#0050b3' :
+                                 log.dataCenter === 'CHL' ? '#274a13' : '#873800'
                         }}>
                           {log.dataCenter}
                         </span>
-                        <span style={{ flex: 1, wordBreak: 'break-all' }}>
+                        <span style={{ 
+                          flex: 1, 
+                          wordBreak: 'break-all',
+                          color: '#262626'
+                        }}>
                           {log.voiceName}
                         </span>
                         <span style={{
-                          minWidth: '60px',
-                          padding: '2px 8px',
-                          borderRadius: '2px',
+                          minWidth: '70px',
+                          padding: '4px 10px',
+                          borderRadius: '3px',
                           backgroundColor: log.status === 'success' ? '#f6ffed' : 
                                           log.status === 'error' ? '#fff1f0' : '#fafafa',
                           color: log.status === 'success' ? '#52c41a' : 
-                                 log.status === 'error' ? '#ff4d4f' : '#999',
+                                 log.status === 'error' ? '#ff4d4f' : '#8c8c8c',
                           fontWeight: 'bold',
                           textAlign: 'center',
-                          fontSize: '11px'
+                          fontSize: '11px',
+                          border: log.status === 'pending' ? '1px solid #d9d9d9' : 'none'
                         }}>
                           {log.status === 'success' ? '✓ 成功' : 
-                           log.status === 'error' ? '✗ 失败' : '... 中'}
+                           log.status === 'error' ? '✗ 失败' : '⋯ 进行中'}
                         </span>
-                        <span style={{ flex: 1, color: log.status === 'error' ? '#ff4d4f' : '#666', fontSize: '11px' }}>
+                        <span style={{ 
+                          flex: 1, 
+                          color: log.status === 'error' ? '#ff4d4f' : '#595959',
+                          fontSize: '11px',
+                          wordBreak: 'break-all'
+                        }}>
                           {log.message}
                         </span>
                       </div>
-                    ))
-                  )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 进度统计摘要 */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '12px'
+            }}>
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#f6ffed',
+                border: '1px solid #b7eb8f',
+                borderRadius: '4px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#52c41a' }}>
+                  {progressLogs.filter(l => l.status === 'success').length}
+                </div>
+                <div style={{ fontSize: '12px', color: '#595959', marginTop: '4px' }}>
+                  成功
                 </div>
               </div>
-            )}
-
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#fff1f0',
+                border: '1px solid #ffccc7',
+                borderRadius: '4px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#ff4d4f' }}>
+                  {progressLogs.filter(l => l.status === 'error').length}
+                </div>
+                <div style={{ fontSize: '12px', color: '#595959', marginTop: '4px' }}>
+                  失败
+                </div>
+              </div>
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#e6f7ff',
+                border: '1px solid #91d5ff',
+                borderRadius: '4px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1890ff' }}>
+                  {progressLogs.filter(l => l.status === 'pending').length}
+                </div>
+                <div style={{ fontSize: '12px', color: '#595959', marginTop: '4px' }}>
+                  进行中
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* 未创建时显示配置界面 */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 数据中心选择 */}
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
@@ -784,7 +865,7 @@ const ElevenLabsParamsConverter: React.FC = () => {
               />
             </div>
           </div>
-        </Spin>
+        )}
       </Modal>
     </div>
   );

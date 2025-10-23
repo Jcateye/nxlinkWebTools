@@ -129,6 +129,7 @@ const VendorAppManagementPage: React.FC = () => {
   const [hasValidToken, setHasValidToken] = useState(false);
   const [highlightDuplicates, setHighlightDuplicates] = useState(false);
   const [localSearchText, setLocalSearchText] = useState<string>('');
+  const [updateTimeRange, setUpdateTimeRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
 
   const handleSelectByIds = () => {
     const idsToSelect = idInput
@@ -852,17 +853,39 @@ const VendorAppManagementPage: React.FC = () => {
 };
 
   // 本地模糊搜索过滤
-  const filteredSceneVendorApps = localSearchText.trim() === ''
-    ? sceneVendorApps
-    : sceneVendorApps.filter(item => {
-        const searchLower = localSearchText.toLowerCase();
-        
-        // 搜索字段：只搜索 vendor_params 厂商参数字段
-        const vendorParams = item.vendor_params ? item.vendor_params.toLowerCase() : '';
-        
-        // 检查是否在厂商参数中匹配搜索文本
-        return vendorParams.includes(searchLower);
-      });
+  const filteredSceneVendorApps = sceneVendorApps.filter(item => {
+    // 厂商参数搜索过滤
+    if (localSearchText.trim() !== '') {
+      const searchLower = localSearchText.toLowerCase();
+      const vendorParams = item.vendor_params ? item.vendor_params.toLowerCase() : '';
+      if (!vendorParams.includes(searchLower)) {
+        return false;
+      }
+    }
+    
+    // 时间范围过滤
+    if (updateTimeRange && (updateTimeRange[0] || updateTimeRange[1])) {
+      const updateTime = item.update_ts ? parseInt(String(item.update_ts)) * 1000 : 0; // 转换为毫秒
+      
+      // 如果有开始时间，检查是否在开始时间之后
+      if (updateTimeRange[0]) {
+        const startTime = updateTimeRange[0].valueOf();
+        if (updateTime < startTime) {
+          return false;
+        }
+      }
+      
+      // 如果有结束时间，检查是否在结束时间之前（包括当天的23:59:59）
+      if (updateTimeRange[1]) {
+        const endOfDay = updateTimeRange[1].endOf('day').valueOf();
+        if (updateTime > endOfDay) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  });
 
   // 搜索组件
   const renderSearchForm = () => {
@@ -981,6 +1004,29 @@ const VendorAppManagementPage: React.FC = () => {
           </Col>
         </Row>
         
+        {/* 时间范围筛选行 */}
+        <Row gutter={16} style={{ marginTop: 16 }}>
+          <Col span={12}>
+            <DatePicker.RangePicker
+              value={updateTimeRange}
+              onChange={(dates) => setUpdateTimeRange(dates as any)}
+              placeholder={['更新时间开始', '更新时间结束']}
+              showTime={{ format: 'HH:mm:ss' }}
+              format="YYYY-MM-DD HH:mm:ss"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col span={12}>
+            {updateTimeRange && (updateTimeRange[0] || updateTimeRange[1]) && (
+              <div style={{ color: '#666', fontSize: '12px', lineHeight: '32px' }}>
+                按更新时间筛选: <span style={{ fontWeight: 'bold', color: '#1890ff' }}>
+                  {updateTimeRange[0]?.format('YYYY-MM-DD HH:mm:ss') || '开始'} ~ {updateTimeRange[1]?.format('YYYY-MM-DD HH:mm:ss') || '结束'}
+                </span> （{filteredSceneVendorApps.length}条记录）
+              </div>
+            )}
+          </Col>
+        </Row>
+        
         {/* TTS和ASR专用搜索行 */}
         {(activeTab === 'TTS' || activeTab === 'ASR') && (
           <Row gutter={16} style={{ marginTop: 16 }}>
@@ -1075,6 +1121,7 @@ const VendorAppManagementPage: React.FC = () => {
                 onClick={() => {
                   setSearchParams({ _t: Date.now() }); // 重置搜索参数并刷新
                   setLocalSearchText(''); // 清空本地搜索文本
+                  setUpdateTimeRange(null); // 清空时间范围
                 }}
               >
                 重置

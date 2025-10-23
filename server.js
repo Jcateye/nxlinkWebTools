@@ -429,6 +429,343 @@ app.delete('/batch-test-logs', (req, res) => {
   }
 });
 
+// =========================
+// DG消费追踪（prod-DG消费.xlsx）本地JSON持久化API
+// =========================
+const DG_DATA_DIR = path.join(__dirname, 'server', 'data');
+const DG_FILE = path.join(DG_DATA_DIR, 'dg-consumption.json');
+
+function ensureDgDir() {
+  if (!fs.existsSync(DG_DATA_DIR)) fs.mkdirSync(DG_DATA_DIR, { recursive: true });
+}
+
+function readDgStore() {
+  try {
+    ensureDgDir();
+    if (!fs.existsSync(DG_FILE)) {
+      const initStore = { nextId: 1, updatedAt: new Date().toISOString(), records: [] };
+      fs.writeFileSync(DG_FILE, JSON.stringify(initStore, null, 2), 'utf8');
+      return initStore;
+    }
+    const raw = fs.readFileSync(DG_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.records)) parsed.records = [];
+    if (typeof parsed.nextId !== 'number') parsed.nextId = 1;
+    return parsed;
+  } catch (e) {
+    console.error('读取DG消费存储失败:', e.message);
+    return { nextId: 1, updatedAt: new Date().toISOString(), records: [] };
+  }
+}
+
+function writeDgStore(store) {
+  try {
+    ensureDgDir();
+    store.updatedAt = new Date().toISOString();
+    fs.writeFileSync(DG_FILE, JSON.stringify(store, null, 2), 'utf8');
+    const backup = path.join(DG_DATA_DIR, 'dg-consumption.backup.json');
+    fs.writeFileSync(backup, JSON.stringify(store, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('写入DG消费存储失败:', e.message);
+    return false;
+  }
+}
+
+app.get('/local/dg-consumption/health', (req, res) => {
+  res.json({ ok: true, file: DG_FILE });
+});
+
+app.get('/local/dg-consumption/data', (req, res) => {
+  try {
+    const store = readDgStore();
+    res.json({ success: true, updatedAt: store.updatedAt, total: store.records.length, records: store.records });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.post('/local/dg-consumption/import', (req, res) => {
+  try {
+    const { records = [], strategy = 'merge' } = req.body || {};
+    if (!Array.isArray(records)) return res.status(400).json({ success: false, message: 'records 必须是数组' });
+    const store = readDgStore();
+    const makeKey = (r) => String(r && r.time ? r.time : '');
+    const map = new Map();
+    store.records.forEach((r) => map.set(makeKey(r), r));
+    if (strategy === 'replace') {
+      map.clear();
+      store.nextId = 1;
+    }
+    let inserted = 0, updated = 0;
+    records.forEach((r) => {
+      const key = makeKey(r);
+      if (!key) return;
+      if (map.has(key)) {
+        const prev = map.get(key);
+        const id = prev.id || store.nextId++;
+        map.set(key, { ...prev, ...r, id });
+        updated++;
+      } else {
+        const id = store.nextId++;
+        map.set(key, { ...r, id });
+        inserted++;
+      }
+    });
+    store.records = Array.from(map.values());
+    store.records.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+    writeDgStore(store);
+    res.json({ success: true, inserted, updated, total: store.records.length, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.post('/local/dg-consumption/add', (req, res) => {
+  try {
+    const store = readDgStore();
+    const record = req.body || {};
+    const id = store.nextId++;
+    store.records.push({ ...record, id });
+    writeDgStore(store);
+    res.json({ success: true, id, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.put('/local/dg-consumption/update/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const store = readDgStore();
+    const idx = store.records.findIndex(r => r.id === id);
+    if (idx === -1) return res.status(404).json({ success: false, message: '记录不存在' });
+    store.records[idx] = { ...store.records[idx], ...req.body, id };
+    writeDgStore(store);
+    res.json({ success: true, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.delete('/local/dg-consumption/delete', (req, res) => {
+  try {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: 'ids 必须是数组' });
+    const store = readDgStore();
+    const set = new Set(ids.map((x) => parseInt(x)));
+    const before = store.records.length;
+    store.records = store.records.filter(r => !set.has(r.id));
+    const removed = before - store.records.length;
+    writeDgStore(store);
+    res.json({ success: true, removed, total: store.records.length, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.post('/local/dg-consumption/clear', (req, res) => {
+  try {
+    const store = readDgStore();
+    store.records = [];
+    writeDgStore(store);
+    res.json({ success: true, total: 0, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// =========================
+// 账单追踪 - 本地JSON持久化API（无外部数据库）
+// =========================
+
+// 数据文件位置: server/data/bill-tracking.json
+const DATA_DIR = path.join(__dirname, 'server', 'data');
+const BILL_TRACKING_FILE = path.join(DATA_DIR, 'bill-tracking.json');
+
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
+function readBillStore() {
+  try {
+    ensureDataDir();
+    if (!fs.existsSync(BILL_TRACKING_FILE)) {
+      const initStore = { nextId: 1, updatedAt: new Date().toISOString(), records: [] };
+      fs.writeFileSync(BILL_TRACKING_FILE, JSON.stringify(initStore, null, 2), 'utf8');
+      return initStore;
+    }
+    const raw = fs.readFileSync(BILL_TRACKING_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') throw new Error('Invalid store content');
+    if (!Array.isArray(parsed.records)) parsed.records = [];
+    if (typeof parsed.nextId !== 'number') parsed.nextId = 1;
+    return parsed;
+  } catch (e) {
+    console.error('读取账单追踪存储失败:', e.message);
+    return { nextId: 1, updatedAt: new Date().toISOString(), records: [] };
+  }
+}
+
+function writeBillStore(store) {
+  try {
+    ensureDataDir();
+    store.updatedAt = new Date().toISOString();
+    fs.writeFileSync(BILL_TRACKING_FILE, JSON.stringify(store, null, 2), 'utf8');
+    // 生成一个简单备份
+    const backupFile = path.join(DATA_DIR, `bill-tracking.backup.json`);
+    fs.writeFileSync(backupFile, JSON.stringify(store, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('写入账单追踪存储失败:', e.message);
+    return false;
+  }
+}
+
+// 健康检查
+app.get('/local/bill-tracking/health', (req, res) => {
+  res.json({ ok: true, file: BILL_TRACKING_FILE });
+});
+
+// 加载数据
+app.get('/local/bill-tracking/data', (req, res) => {
+  try {
+    const store = readBillStore();
+    const { offset = 0, limit = 0 } = req.query;
+    let records = store.records || [];
+    const total = records.length;
+    const o = parseInt(offset) || 0;
+    const l = parseInt(limit) || 0;
+    if (o > 0 || l > 0) {
+      records = records.slice(o, l > 0 ? o + l : undefined);
+    }
+    res.json({ success: true, updatedAt: store.updatedAt, total, records });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// 合并导入数据（从前端已解析的CSV/Excel记录）
+app.post('/local/bill-tracking/import', (req, res) => {
+  try {
+    const { records = [], strategy = 'merge' } = req.body || {};
+    if (!Array.isArray(records)) {
+      return res.status(400).json({ success: false, message: 'records 必须是数组' });
+    }
+
+    const store = readBillStore();
+    const existing = store.records || [];
+
+    // 去重键: 优先 callId，其次 feeTime+caller+callee
+    const makeKey = (r) => {
+      if (r && r.callId) return `id:${String(r.callId)}`;
+      const t = r && r.feeTime ? String(r.feeTime) : '';
+      const a = r && r.caller ? String(r.caller) : '';
+      const b = r && r.callee ? String(r.callee) : '';
+      return `t:${t}|a:${a}|b:${b}`;
+    };
+
+    const map = new Map();
+    existing.forEach((r) => map.set(makeKey(r), r));
+
+    if (strategy === 'replace') {
+      store.records = [];
+      map.clear();
+    }
+
+    let inserted = 0;
+    let updated = 0;
+
+    records.forEach((r) => {
+      const clone = { ...r };
+      const key = makeKey(clone);
+      if (map.has(key)) {
+        // 更新现有（保留原 id）
+        const prev = map.get(key);
+        const id = prev.id || clone.id || store.nextId++;
+        const merged = { ...prev, ...clone, id };
+        map.set(key, merged);
+        updated += 1;
+      } else {
+        const id = clone.id && typeof clone.id === 'number' ? clone.id : store.nextId++;
+        map.set(key, { ...clone, id });
+        inserted += 1;
+      }
+    });
+
+    store.records = Array.from(map.values());
+    writeBillStore(store);
+    res.json({ success: true, total: store.records.length, inserted, updated, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// 新增单条记录
+app.post('/local/bill-tracking/add', (req, res) => {
+  try {
+    const record = req.body || {};
+    const store = readBillStore();
+    const id = typeof record.id === 'number' ? record.id : store.nextId++;
+    const newRecord = { ...record, id };
+    store.records.push(newRecord);
+    writeBillStore(store);
+    res.json({ success: true, id, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// 更新单条记录
+app.put('/local/bill-tracking/update/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (!id) return res.status(400).json({ success: false, message: '无效的ID' });
+    const partial = req.body || {};
+    const store = readBillStore();
+    const idx = store.records.findIndex((r) => r && r.id === id);
+    if (idx === -1) return res.status(404).json({ success: false, message: '记录不存在' });
+    store.records[idx] = { ...store.records[idx], ...partial, id };
+    writeBillStore(store);
+    res.json({ success: true, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// 批量删除
+app.delete('/local/bill-tracking/delete', (req, res) => {
+  try {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'ids 必须是非空数组' });
+    }
+    const store = readBillStore();
+    const before = store.records.length;
+    const idSet = new Set(ids.map((x) => parseInt(x)));
+    store.records = store.records.filter((r) => !idSet.has(r && r.id));
+    const removed = before - store.records.length;
+    writeBillStore(store);
+    res.json({ success: true, removed, total: store.records.length, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// 清空
+app.post('/local/bill-tracking/clear', (req, res) => {
+  try {
+    const store = readBillStore();
+    store.records = [];
+    writeBillStore(store);
+    res.json({ success: true, total: 0, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // 静态文件目录
 app.use('/audio', express.static(path.join(__dirname, 'server/public/audio')));
 

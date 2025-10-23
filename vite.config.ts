@@ -115,6 +115,10 @@ export default defineConfig({
         target: 'http://localhost:8400',
         changeOrigin: true,
       },
+      '/local': {
+        target: 'http://localhost:8350',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'https://nxlink.nxcloud.com',
         changeOrigin: true,

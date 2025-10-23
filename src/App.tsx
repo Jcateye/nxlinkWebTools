@@ -14,6 +14,7 @@ import VoiceMigration from './components/VoiceMigration';
 import ScriptTestSystem from './components/ScriptTestSystem';
 import BillManagementPage from './pages/BillManagementPage';
 import BillAnalysisPage from './pages/BillAnalysisPage';
+import BillTrackingPage from './pages/BillTrackingPage';
 import MemberManagementPage from './pages/MemberManagementPage';
 import PromptValidationPage from './pages/PromptValidationPage';
 import VendorAppManagementPage from './pages/VendorAppManagementPage';
@@ -121,6 +122,7 @@ const AppContent = () => {
       'tag': '标签迁移工具',
       'bill': '账单管理',
       'bill-analysis': '账单数据分析',
+      'bill-tracking': 'DG消费追踪',
       'faq': 'FAQ管理',
       'voice': '声音管理',
       'script': '话术测试系统',
@@ -152,6 +154,8 @@ const AppContent = () => {
         return <BillManagementPage />;
       case 'bill-analysis':
         return <BillAnalysisPage />;
+      case 'bill-tracking':
+        return <BillTrackingPage />;
       case 'faq':
         return (
           <Row gutter={24} style={{ width: '100%' }}>
@@ -311,6 +315,9 @@ const AppContent = () => {
             </Menu.Item>
             <Menu.Item key="bill-analysis" icon={<PieChartOutlined />}>
               账单数据分析
+            </Menu.Item>
+            <Menu.Item key="bill-tracking" icon={<PieChartOutlined />}>
+              DG消费追踪
             </Menu.Item>
             <Menu.Item key="vendor-app" icon={<ApiOutlined />}>
               供应商应用管理

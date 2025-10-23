@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { ApiResponse } from '../types';
 import {
-  VendorApp,
-  SceneVendorApp,
   VendorAppListResponse,
   SceneVendorAppListResponse,
   VendorAppQueryParams,
@@ -231,6 +229,53 @@ export const deleteVendorApp = async (id: number): Promise<boolean> => {
     return true;
   } catch (error: any) {
     console.error('删除供应商应用失败', error);
+    throw error;
+  }
+};
+
+/**
+ * 为指定的数据中心创建场景供应商应用（多环境同步创建时使用）
+ * @param data 创建数据
+ * @param baseURL 目标数据中心的baseURL
+ */
+export const createSceneVendorAppForDataCenter = async (data: SceneVendorAppFormData, baseURL: string): Promise<any> => {
+  try {
+    console.log(`[createSceneVendorAppForDataCenter] 为数据中心 ${baseURL} 创建场景供应商应用`, data);
+    
+    // 从localStorage获取tenantId
+    const sessionId = localStorage.getItem('sessionId');
+    let tenantId = '255'; // 默认值
+    if (sessionId) {
+      const storageKey = `tagUserParams_${sessionId}`;
+      const userParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (userParams.tenantId) {
+        tenantId = userParams.tenantId;
+      }
+    }
+    
+    // 构建创建数据
+    const createData = {
+      ...data,
+      vendor_app_id: parseInt(data.vendor_app_id), // 确保是数字类型
+      tenantId: tenantId
+    };
+    
+    console.log(`[createSceneVendorAppForDataCenter] 发送的数据到 ${baseURL}:`, createData);
+    
+    // 创建特定数据中心的API实例，而不影响全局状态
+    const dataCenterApi = createApiInstance(baseURL);
+    const response = await dataCenterApi.post<ApiResponse<any>>(
+      '/admin/nx_flow_manager/mgrPlatform/sceneInfo',
+      createData
+    );
+    
+    if (response.data.code !== 0) {
+      throw new Error(`创建场景供应商应用失败: ${response.data.message}`);
+    }
+    
+    return response.data.data;
+  } catch (error: any) {
+    console.error(`[createSceneVendorAppForDataCenter] 创建失败 (${baseURL}):`, error);
     throw error;
   }
 };

@@ -1,0 +1,18 @@
+{
+    "id": "",
+    "labels": {
+      "accent": "",
+      "age": "",
+      "category": "",
+      "descriptive": "",
+      "description": "",
+      "gender": "",
+      "languages": [],
+      "use_case": ""
+    },
+    "name": "",
+    "similarityBoost": "",
+    "stability": "",
+    "speed": "",
+    "model_list": []
+  }

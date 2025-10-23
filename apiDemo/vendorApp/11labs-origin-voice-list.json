@@ -1,0 +1,292 @@
+{
+    "voices": [
+        {
+            "voice_id": "ajOR9IDAaubDK5qtLUqQ",
+            "name": "Daniela - Friendly Host",
+            "samples": null,
+            "category": "professional",
+            "fine_tuning": {
+                "is_allowed_to_fine_tune": true,
+                "state": {
+                    "eleven_multilingual_v2": "fine_tuned",
+                    "eleven_turbo_v2_5": "fine_tuned",
+                    "eleven_multilingual_sts_v2": "fine_tuned",
+                    "eleven_flash_v2_5": "fine_tuned",
+                    "eleven_v2_5_flash": "fine_tuned"
+                },
+                "verification_failures": [],
+                "verification_attempts_count": 0,
+                "manual_verification_requested": false,
+                "language": "es",
+                "progress": {},
+                "message": {
+                    "eleven_multilingual_v2": "",
+                    "eleven_turbo_v2_5": "",
+                    "eleven_multilingual_sts_v2": "",
+                    "eleven_flash_v2_5": "",
+                    "eleven_v2_5_flash": ""
+                },
+                "dataset_duration_seconds": null,
+                "verification_attempts": null,
+                "slice_ids": null,
+                "manual_verification": null,
+                "max_verification_attempts": 0,
+                "next_max_verification_attempts_reset_unix_ms": 0
+            },
+            "labels": {
+                "accent": "latin american",
+                "descriptive": "upbeat",
+                "age": "young",
+                "gender": "female",
+                "language": "es",
+                "use_case": "social_media"
+            },
+            "description": "Energetic and engaging young female Spanish speaker with a warm, clear, and expressive tone. Perfect for podcasts, customer service, and interactive content, delivering messages with authenticity and charm.\r\n",
+            "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/TUnu15o9th6rXqdRHZfw.mp3",
+            "available_for_tiers": [],
+            "settings": null,
+            "sharing": {
+                "status": "copied",
+                "history_item_sample_id": null,
+                "date_unix": 1761207875,
+                "whitelisted_emails": [],
+                "public_owner_id": "5936c7495ba60119254818c2c1d4468cd5daaec31c57bdef4f9fa77f7b11b134",
+                "original_voice_id": "ajOR9IDAaubDK5qtLUqQ",
+                "financial_rewards_enabled": false,
+                "free_users_allowed": true,
+                "live_moderation_enabled": false,
+                "rate": 1.0,
+                "fiat_rate": null,
+                "notice_period": 730,
+                "disable_at_unix": null,
+                "voice_mixing_allowed": false,
+                "featured": false,
+                "category": "high_quality",
+                "reader_app_enabled": null,
+                "image_url": "",
+                "ban_reason": null,
+                "liked_by_count": 0,
+                "cloned_by_count": 0,
+                "name": "Daniela - Friendly Host",
+                "description": "Energetic and engaging young female Spanish speaker with a warm, clear, and expressive tone. Perfect for podcasts, customer service, and interactive content, delivering messages with authenticity and charm.\r\n",
+                "labels": {
+                    "language": "es",
+                    "descriptive": "upbeat",
+                    "age": "young",
+                    "gender": "female",
+                    "accent": "latin american",
+                    "use_case": "social_media",
+                    "locale": "es-AR"
+                },
+                "review_status": "not_requested",
+                "review_message": null,
+                "enabled_in_library": false,
+                "instagram_username": null,
+                "twitter_username": null,
+                "youtube_username": null,
+                "tiktok_username": null,
+                "moderation_check": null,
+                "reader_restricted_on": null
+            },
+            "high_quality_base_model_ids": [
+                "eleven_multilingual_v2",
+                "eleven_turbo_v2_5",
+                "eleven_v2_5_flash",
+                "eleven_flash_v2_5",
+                "eleven_multilingual_sts_v2"
+            ],
+            "verified_languages": [
+                {
+                    "language": "ko",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "standard",
+                    "locale": "ko-KR",
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/e9cf6f8d-19bb-4e10-ab23-f540cd294e6b.mp3"
+                },
+                {
+                    "language": "ro",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "standard",
+                    "locale": "ro-RO",
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/d6a4754c-98b5-41f9-bfcc-8bb0d493b556.mp3"
+                },
+                {
+                    "language": "hr",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "standard",
+                    "locale": "hr-HR",
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/24e389c2-a6a9-4d39-928a-42ce33b21564.mp3"
+                },
+                {
+                    "language": "nl",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "southern",
+                    "locale": null,
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/11d89ebe-3412-4486-a8e0-04938d39db4c.mp3"
+                },
+                {
+                    "language": "id",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "standard",
+                    "locale": "id-ID",
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/a8de7d7b-96fa-4b69-bc87-6f56788f74af.mp3"
+                },
+                {
+                    "language": "pt",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "standard",
+                    "locale": null,
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/84462cc4-2052-4149-a017-41f5851aba70.mp3"
+                },
+                {
+                    "language": "ta",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "standard",
+                    "locale": "ta-IN",
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/2086e8c9-ea58-4bb1-9102-05c42b4eeb7e.mp3"
+                },
+                {
+                    "language": "it",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "standard",
+                    "locale": "it-IT",
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/1d691750-0eef-434b-a2ef-2331efe2b729.mp3"
+                },
+                {
+                    "language": "es",
+                    "model_id": "eleven_turbo_v2_5",
+                    "accent": "central",
+                    "locale": null,
+                    "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/T90Udpqx9jb0vfLESHZelKuHE5C3/voices/ajOR9IDAaubDK5qtLUqQ/809d757d-980e-4d54-921e-719586b9a181.mp3"
+                }
+            ],
+            "safety_control": null,
+            "voice_verification": {
+                "requires_verification": false,
+                "is_verified": false,
+                "verification_failures": [],
+                "verification_attempts_count": 0,
+                "language": null,
+                "verification_attempts": null
+            },
+            "permission_on_resource": "admin",
+            "is_owner": false,
+            "is_legacy": false,
+            "is_mixed": false,
+            "favorited_at_unix": null,
+            "created_at_unix": 1761207875
+        },
+        {
+            "voice_id": "Wl3O9lmFSMgGFTTwuS6f",
+            "name": "Martin Alvarez",
+            "samples": null,
+            "category": "professional",
+            "fine_tuning": {
+                "is_allowed_to_fine_tune": true,
+                "state": {
+                    "eleven_multilingual_v2": "fine_tuned",
+                    "eleven_turbo_v2_5": "fine_tuned",
+                    "eleven_multilingual_sts_v2": "fine_tuned",
+                    "eleven_flash_v2_5": "fine_tuned",
+                    "eleven_v2_5_flash": "fine_tuned"
+                },
+                "verification_failures": [],
+                "verification_attempts_count": 0,
+                "manual_verification_requested": false,
+                "language": "es",
+                "progress": {},
+                "message": {
+                    "eleven_multilingual_v2": "",
+                    "eleven_turbo_v2_5": "",
+                    "eleven_multilingual_sts_v2": "",
+                    "eleven_flash_v2_5": "",
+                    "eleven_v2_5_flash": ""
+                },
+                "dataset_duration_seconds": null,
+                "verification_attempts": null,
+                "slice_ids": null,
+                "manual_verification": null,
+                "max_verification_attempts": 0,
+                "next_max_verification_attempts_reset_unix_ms": 0
+            },
+            "labels": {
+                "accent": "latin american",
+                "descriptive": "confident",
+                "age": "middle_aged",
+                "gender": "male",
+                "language": "es",
+                "use_case": "narrative_story"
+            },
+            "description": "Casual and conversational adult male tone in Spanish with a Latin American accent.",
+            "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/TB7nyXJjoJbM3mTbNzcVBlNlUdp1/voices/Wl3O9lmFSMgGFTTwuS6f/bQErK3o43pyZHMFkRebR.mp3",
+            "available_for_tiers": [],
+            "settings": null,
+            "sharing": {
+                "status": "copied",
+                "history_item_sample_id": null,
+                "date_unix": 1761207896,
+                "whitelisted_emails": [],
+                "public_owner_id": "615d2b8bda021af8e423fe2ac2467be802ba8efda45b0afe6d49c32e299ee9c3",
+                "original_voice_id": "Wl3O9lmFSMgGFTTwuS6f",
+                "financial_rewards_enabled": false,
+                "free_users_allowed": true,
+                "live_moderation_enabled": false,
+                "rate": 1.0,
+                "fiat_rate": null,
+                "notice_period": 730,
+                "disable_at_unix": null,
+                "voice_mixing_allowed": false,
+                "featured": false,
+                "category": "professional",
+                "reader_app_enabled": null,
+                "image_url": "",
+                "ban_reason": null,
+                "liked_by_count": 0,
+                "cloned_by_count": 0,
+                "name": "Martin Alvarez",
+                "description": "Casual and conversational adult male tone in Spanish with a Latin American accent.",
+                "labels": {
+                    "language": "es",
+                    "descriptive": "confident",
+                    "age": "middle_aged",
+                    "gender": "male",
+                    "accent": "latin american",
+                    "use_case": "narrative_story",
+                    "locale": "es-AR"
+                },
+                "review_status": "not_requested",
+                "review_message": null,
+                "enabled_in_library": false,
+                "instagram_username": null,
+                "twitter_username": null,
+                "youtube_username": null,
+                "tiktok_username": null,
+                "moderation_check": null,
+                "reader_restricted_on": null
+            },
+            "high_quality_base_model_ids": [
+                "eleven_turbo_v2_5",
+                "eleven_multilingual_sts_v2",
+                "eleven_multilingual_v2",
+                "eleven_v2_5_flash",
+                "eleven_flash_v2_5"
+            ],
+            "verified_languages": [],
+            "safety_control": null,
+            "voice_verification": {
+                "requires_verification": false,
+                "is_verified": false,
+                "verification_failures": [],
+                "verification_attempts_count": 0,
+                "language": null,
+                "verification_attempts": null
+            },
+            "permission_on_resource": "admin",
+            "is_owner": false,
+            "is_legacy": false,
+            "is_mixed": false,
+            "favorited_at_unix": null,
+            "created_at_unix": 1761207896
+        }
+    ]
+}

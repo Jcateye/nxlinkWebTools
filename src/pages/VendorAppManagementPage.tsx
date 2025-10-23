@@ -73,6 +73,7 @@ import {
 import { getUniqueLanguages, ttsConfig, getLanguageDescByLocale } from '../config/ttsConfig';
 import TokenManager from '../components/bill/TokenManager';
 import DataCenterSelector from '../components/DataCenterSelector';
+import ElevenLabsParamsConverter from '../components/ElevenLabsParamsConverter';
 
 // 供应商应用类型常量
 const VENDOR_APP_TYPES = {
@@ -901,6 +902,9 @@ const VendorAppManagementPage: React.FC = () => {
                 setSearchParams(newParams);
               }}
             >
+              <Option key="*" value="*">
+                * (支持所有国家/地区)
+              </Option>
               {languageOptions.map(option => (
                 <Option key={option.locale} value={option.locale}>
                   {option.language_desc}
@@ -1202,6 +1206,10 @@ const VendorAppManagementPage: React.FC = () => {
               size="small"
             />
           </TabPane>
+
+          <TabPane tab="11Labs参数转换" key="11labs-converter">
+            <ElevenLabsParamsConverter />
+          </TabPane>
         </Tabs>
       </Card>
 
@@ -1309,6 +1317,9 @@ const VendorAppManagementPage: React.FC = () => {
                            value.toLowerCase().includes(input.toLowerCase());
                   }}
                 >
+                  <Option key="*" value="*">
+                    * (支持所有国家/地区)
+                  </Option>
                   {languageOptions.map(option => (
                     <Option key={option.locale} value={option.locale}>
                       {option.language_desc}
@@ -1458,6 +1469,9 @@ const VendorAppManagementPage: React.FC = () => {
                            value.toLowerCase().includes(input.toLowerCase());
                   }}
                 >
+                  <Option key="*" value="*">
+                    * (支持所有国家/地区)
+                  </Option>
                   {languageOptions.map(option => (
                     <Option key={option.locale} value={option.locale}>
                       {option.language_desc}

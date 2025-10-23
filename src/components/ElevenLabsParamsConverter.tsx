@@ -48,6 +48,15 @@ const ElevenLabsParamsConverter: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [selectedDataCenters, setSelectedDataCenters] = useState<string[]>([]);
   const [creating, setCreating] = useState<boolean>(false);
+  const [progressLogs, setProgressLogs] = useState<Array<{
+    time: string;
+    dataCenter: string;
+    voiceName: string;
+    status: 'pending' | 'success' | 'error';
+    message: string;
+  }>>([]);
+  const [totalTasks, setTotalTasks] = useState<number>(0);
+  const [completedTasks, setCompletedTasks] = useState<number>(0);
 
   // 处理转换
   const handleConvert = async () => {
@@ -277,9 +286,28 @@ const ElevenLabsParamsConverter: React.FC = () => {
     }
 
     setCreating(true);
+    setProgressLogs([]); // 清空日志
+    const logs: typeof progressLogs = [];
     let successCount = 0;
     let failCount = 0;
     const errors: string[] = [];
+    
+    // 计算总任务数：选中行数 × 数据中心数
+    const totalTasks = selectedRows.size * selectedDataCenters.length;
+    setTotalTasks(totalTasks);
+    setCompletedTasks(0);
+    
+    const addLog = (dataCenter: string, voiceName: string, status: 'pending' | 'success' | 'error', message: string) => {
+      const log = {
+        time: new Date().toLocaleTimeString('zh-CN'),
+        dataCenter,
+        voiceName,
+        status,
+        message
+      };
+      logs.push(log);
+      setProgressLogs([...logs]);
+    };
     
     try {
       // 遍历选中的行
@@ -295,6 +323,9 @@ const ElevenLabsParamsConverter: React.FC = () => {
             if (!targetDataCenter) {
               throw new Error(`找不到数据中心: ${dataCenterId}`);
             }
+            
+            // 记录开始日志
+            addLog(targetDataCenter.name, param.name, 'pending', '创建中...');
             
             // 构建创建请求数据
             // 评级和vendor_app_id根据是否multilingual模型而不同
@@ -317,13 +348,23 @@ const ElevenLabsParamsConverter: React.FC = () => {
             const result = await createSceneVendorAppForDataCenter(createData as any, targetDataCenter.baseURL);
             
             successCount++;
+            setCompletedTasks(prev => prev + 1);
+            
+            // 记录成功日志
+            addLog(targetDataCenter.name, param.name, 'success', `成功 (ID: ${result?.id})`);
             console.log(`[${targetDataCenter.name}] 成功创建: ${param.name}`, result);
           } catch (error: any) {
             failCount++;
+            setCompletedTasks(prev => prev + 1);
+            
             const dataCenterName = DATA_CENTERS.find(dc => dc.id === dataCenterId)?.name || dataCenterId;
-            const errorMsg = `[${dataCenterName}] 创建 "${param.name}" 失败: ${error.message || error}`;
-            errors.push(errorMsg);
-            console.error(errorMsg);
+            const errorMsg = error.message || error;
+            
+            // 记录失败日志
+            addLog(dataCenterName, param.name, 'error', `失败: ${errorMsg}`);
+            
+            errors.push(`[${dataCenterName}] 创建 "${param.name}" 失败: ${errorMsg}`);
+            console.error(`[${dataCenterName}] 创建失败:`, error);
           }
         }
       }
@@ -516,7 +557,7 @@ const ElevenLabsParamsConverter: React.FC = () => {
             setSelectedDataCenters([]);
           }
         }}
-        width={900}
+        width={1000}
         okText="确认创建"
         cancelText="取消"
         onOk={handleBatchCreate}
@@ -525,6 +566,111 @@ const ElevenLabsParamsConverter: React.FC = () => {
       >
         <Spin spinning={creating}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* 进度显示 */}
+            {creating && totalTasks > 0 && (
+              <div style={{
+                padding: '16px',
+                backgroundColor: '#f5f5f5',
+                borderRadius: '4px',
+                border: '1px solid #e8e8e8'
+              }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px',
+                    fontWeight: 'bold'
+                  }}>
+                    <span>创建进度</span>
+                    <span>{completedTasks} / {totalTasks}</span>
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '24px',
+                    backgroundColor: '#e8e8e8',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${(completedTasks / totalTasks) * 100}%`,
+                      height: '100%',
+                      backgroundColor: completedTasks === totalTasks ? '#52c41a' : '#1890ff',
+                      transition: 'width 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }}>
+                      {totalTasks > 0 ? `${Math.round((completedTasks / totalTasks) * 100)}%` : '0%'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 创建日志 */}
+                <div style={{
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  backgroundColor: 'white',
+                  border: '1px solid #e8e8e8',
+                  borderRadius: '4px',
+                  padding: '8px'
+                }}>
+                  {progressLogs.length === 0 ? (
+                    <div style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
+                      准备开始创建...
+                    </div>
+                  ) : (
+                    progressLogs.map((log, index) => (
+                      <div key={index} style={{
+                        padding: '6px 8px',
+                        borderBottom: index < progressLogs.length - 1 ? '1px solid #f0f0f0' : 'none',
+                        fontSize: '12px',
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start'
+                      }}>
+                        <span style={{ color: '#999', minWidth: '70px' }}>{log.time}</span>
+                        <span style={{
+                          minWidth: '60px',
+                          padding: '2px 8px',
+                          borderRadius: '2px',
+                          backgroundColor: log.dataCenter === '香港' ? '#bae7ff' : 
+                                          log.dataCenter === 'CHL' ? '#d3f8d3' : '#ffd89b',
+                          fontSize: '11px',
+                          fontWeight: 'bold'
+                        }}>
+                          {log.dataCenter}
+                        </span>
+                        <span style={{ flex: 1, wordBreak: 'break-all' }}>
+                          {log.voiceName}
+                        </span>
+                        <span style={{
+                          minWidth: '60px',
+                          padding: '2px 8px',
+                          borderRadius: '2px',
+                          backgroundColor: log.status === 'success' ? '#f6ffed' : 
+                                          log.status === 'error' ? '#fff1f0' : '#fafafa',
+                          color: log.status === 'success' ? '#52c41a' : 
+                                 log.status === 'error' ? '#ff4d4f' : '#999',
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          fontSize: '11px'
+                        }}>
+                          {log.status === 'success' ? '✓ 成功' : 
+                           log.status === 'error' ? '✗ 失败' : '... 中'}
+                        </span>
+                        <span style={{ flex: 1, color: log.status === 'error' ? '#ff4d4f' : '#666', fontSize: '11px' }}>
+                          {log.message}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* 数据中心选择 */}
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
@@ -534,6 +680,7 @@ const ElevenLabsParamsConverter: React.FC = () => {
                 value={selectedDataCenters}
                 onChange={setSelectedDataCenters}
                 style={{ display: 'flex', gap: '20px' }}
+                disabled={creating}
               >
                 <Checkbox value="hk">香港</Checkbox>
                 <Checkbox value="chl">CHL</Checkbox>

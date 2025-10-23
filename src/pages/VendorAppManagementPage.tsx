@@ -857,22 +857,11 @@ const VendorAppManagementPage: React.FC = () => {
     : sceneVendorApps.filter(item => {
         const searchLower = localSearchText.toLowerCase();
         
-        // 搜索字段：名称、ID、代号、模型、供应商、代码、音色、语言等
-        const matchFields = [
-          item.code?.toLowerCase(),
-          item.vendor?.toLowerCase(),
-          item.timbre?.toLowerCase(),
-          item.model?.toLowerCase(),
-          item.language?.toLowerCase(),
-          item.rating?.toLowerCase(),
-          item.remark?.toLowerCase(),
-          String(item.id),
-          String(item.vendor_app_id),
-          item.id?.toString().toLowerCase(),
-        ].filter(Boolean);
+        // 搜索字段：只搜索 vendor_params 厂商参数字段
+        const vendorParams = item.vendor_params ? item.vendor_params.toLowerCase() : '';
         
-        // 检查是否有任何字段匹配搜索文本
-        return matchFields.some(field => field?.includes(searchLower));
+        // 检查是否在厂商参数中匹配搜索文本
+        return vendorParams.includes(searchLower);
       });
 
   // 搜索组件
@@ -974,7 +963,7 @@ const VendorAppManagementPage: React.FC = () => {
         <Row gutter={16} style={{ marginTop: 16 }}>
           <Col span={24}>
             <Input
-              placeholder="模糊过滤表格 (搜索代号、厂商、音色、模型、语言、评级、ID等)"
+              placeholder="模糊过滤表格 (搜索厂商参数)"
               prefix={<SearchOutlined />}
               value={localSearchText}
               onChange={(e) => setLocalSearchText(e.target.value)}

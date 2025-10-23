@@ -107,7 +107,7 @@ const VendorAppManagementPage: React.FC = () => {
   const [form] = Form.useForm();
 
   // 批量编辑相关状态
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [selectedRows, setSelectedRows] = useState<SceneVendorApp[]>([]);
   const [batchEditModalVisible, setBatchEditModalVisible] = useState(false);
       const [batchForm] = Form.useForm();
@@ -128,6 +128,7 @@ const VendorAppManagementPage: React.FC = () => {
   const [exportData, setExportData] = useState('');
   const [hasValidToken, setHasValidToken] = useState(false);
   const [highlightDuplicates, setHighlightDuplicates] = useState(false);
+  const [localSearchText, setLocalSearchText] = useState<string>('');
 
   const handleSelectByIds = () => {
     const idsToSelect = idInput
@@ -630,7 +631,7 @@ const VendorAppManagementPage: React.FC = () => {
     const rowSelection = {
     selectedRowKeys,
     onChange: (selectedRowKeys: React.Key[], selectedRows: SceneVendorApp[]) => {
-      setSelectedRowKeys(selectedRowKeys);
+      setSelectedRowKeys(selectedRowKeys.map(id => parseInt(id.toString(), 10)));
       setSelectedRows(selectedRows);
     },
     getCheckboxProps: (record: SceneVendorApp) => ({
@@ -850,6 +851,30 @@ const VendorAppManagementPage: React.FC = () => {
   return baseColumns;
 };
 
+  // 本地模糊搜索过滤
+  const filteredSceneVendorApps = localSearchText.trim() === ''
+    ? sceneVendorApps
+    : sceneVendorApps.filter(item => {
+        const searchLower = localSearchText.toLowerCase();
+        
+        // 搜索字段：名称、ID、代号、模型、供应商、代码、音色、语言等
+        const matchFields = [
+          item.code?.toLowerCase(),
+          item.vendor?.toLowerCase(),
+          item.timbre?.toLowerCase(),
+          item.model?.toLowerCase(),
+          item.language?.toLowerCase(),
+          item.rating?.toLowerCase(),
+          item.remark?.toLowerCase(),
+          String(item.id),
+          String(item.vendor_app_id),
+          item.id?.toString().toLowerCase(),
+        ].filter(Boolean);
+        
+        // 检查是否有任何字段匹配搜索文本
+        return matchFields.some(field => field?.includes(searchLower));
+      });
+
   // 搜索组件
   const renderSearchForm = () => {
     const currentVendorConfig = getCurrentVendorConfig(activeTab);
@@ -942,6 +967,28 @@ const VendorAppManagementPage: React.FC = () => {
                 <Option key={option} value={option}>{option}</Option>
               ))}
             </Select>
+          </Col>
+        </Row>
+        
+        {/* 模糊搜索行 */}
+        <Row gutter={16} style={{ marginTop: 16 }}>
+          <Col span={24}>
+            <Input
+              placeholder="模糊过滤表格 (搜索代号、厂商、音色、模型、语言、评级、ID等)"
+              prefix={<SearchOutlined />}
+              value={localSearchText}
+              onChange={(e) => setLocalSearchText(e.target.value)}
+              allowClear
+              style={{ width: '100%' }}
+            />
+            {localSearchText && (
+              <div style={{ marginTop: 8, color: '#666', fontSize: '12px' }}>
+                搜索结果: <span style={{ fontWeight: 'bold', color: '#1890ff' }}>{filteredSceneVendorApps.length}</span> 条 
+                {filteredSceneVendorApps.length > 0 && sceneVendorApps.length > 0 && (
+                  <span>（共 {sceneVendorApps.length} 条，匹配率 {Math.round((filteredSceneVendorApps.length / sceneVendorApps.length) * 100)}%）</span>
+                )}
+              </div>
+            )}
           </Col>
         </Row>
         
@@ -1038,6 +1085,7 @@ const VendorAppManagementPage: React.FC = () => {
                 icon={<ReloadOutlined />}
                 onClick={() => {
                   setSearchParams({ _t: Date.now() }); // 重置搜索参数并刷新
+                  setLocalSearchText(''); // 清空本地搜索文本
                 }}
               >
                 重置
@@ -1119,7 +1167,7 @@ const VendorAppManagementPage: React.FC = () => {
             {renderSearchForm()}
             <Table
               columns={getSceneVendorAppColumns()}
-              dataSource={sceneVendorApps}
+              dataSource={filteredSceneVendorApps}
               rowKey="id"
               loading={loading}
               rowSelection={rowSelection}
@@ -1152,7 +1200,7 @@ const VendorAppManagementPage: React.FC = () => {
             {renderSearchForm()}
             <Table
               columns={getSceneVendorAppColumns()}
-              dataSource={sceneVendorApps}
+              dataSource={filteredSceneVendorApps}
               rowKey="id"
               loading={loading}
               rowSelection={rowSelection}
@@ -1185,7 +1233,7 @@ const VendorAppManagementPage: React.FC = () => {
             {renderSearchForm()}
             <Table
               columns={getSceneVendorAppColumns()}
-              dataSource={sceneVendorApps}
+              dataSource={filteredSceneVendorApps}
               rowKey="id"
               loading={loading}
               rowSelection={rowSelection}

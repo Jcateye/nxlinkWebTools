@@ -59,6 +59,17 @@ const ElevenLabsParamsConverter: React.FC = () => {
   const [completedTasks, setCompletedTasks] = useState<number>(0);
   const [searchText, setSearchText] = useState<string>('');
 
+  // 模型配置状态
+  const [modelConfig, setModelConfig] = useState<{
+    useCustom: boolean;
+    multilingualModel: string;
+    standardModel: string;
+  }>({
+    useCustom: false,
+    multilingualModel: 'eleven_multilingual_v2',
+    standardModel: 'eleven_turbo_v2_5',
+  });
+
   // 模糊搜索过滤
   const filteredParams = searchText.trim() === '' 
     ? convertedParams 
@@ -275,6 +286,9 @@ const ElevenLabsParamsConverter: React.FC = () => {
 
   // 获取模型代号
   const getModelCode = (name: string): string => {
+    if (modelConfig.useCustom) {
+      return isMultilingualModel(name) ? modelConfig.multilingualModel : modelConfig.standardModel;
+    }
     return isMultilingualModel(name) ? 'eleven_multilingual_v2' : 'eleven_turbo_v2_5';
   };
 
@@ -407,6 +421,11 @@ const ElevenLabsParamsConverter: React.FC = () => {
       setShowBatchCreateModal(false);
       setSelectedRows(new Set());
       setSelectedDataCenters([]);
+      setModelConfig({
+        useCustom: false,
+        multilingualModel: 'eleven_multilingual_v2',
+        standardModel: 'eleven_turbo_v2_5',
+      });
     } catch (error: any) {
       message.error(`批量创建失败: ${error.message}`);
     } finally {
@@ -597,6 +616,11 @@ const ElevenLabsParamsConverter: React.FC = () => {
             setShowBatchCreateModal(false);
             setSelectedRows(new Set());
             setSelectedDataCenters([]);
+            setModelConfig({
+              useCustom: false,
+              multilingualModel: 'eleven_multilingual_v2',
+              standardModel: 'eleven_turbo_v2_5',
+            });
           }
         }}
         width={1000}
@@ -812,6 +836,52 @@ const ElevenLabsParamsConverter: React.FC = () => {
               </Checkbox.Group>
             </div>
 
+            {/* 模型配置 */}
+            <div style={{ padding: '12px', backgroundColor: '#f9f9f9', borderRadius: '4px', border: '1px solid #e8e8e8' }}>
+              <label style={{ display: 'block', marginBottom: '12px', fontWeight: 'bold' }}>
+                模型配置:
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                <Checkbox
+                  checked={modelConfig.useCustom}
+                  onChange={(e) => setModelConfig({ ...modelConfig, useCustom: e.target.checked })}
+                  disabled={creating}
+                >
+                  自定义模型
+                </Checkbox>
+                <span style={{ marginLeft: '12px', fontSize: '12px', color: '#666' }}>
+                  {modelConfig.useCustom ? '已启用自定义模型配置' : '使用默认模型配置'}
+                </span>
+              </div>
+              
+              {modelConfig.useCustom && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                      Multilingual 模型:
+                    </label>
+                    <Input
+                      placeholder="如: eleven_multilingual_v2"
+                      value={modelConfig.multilingualModel}
+                      onChange={(e) => setModelConfig({ ...modelConfig, multilingualModel: e.target.value })}
+                      disabled={creating}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                      普通模型:
+                    </label>
+                    <Input
+                      placeholder="如: eleven_turbo_v2_5"
+                      value={modelConfig.standardModel}
+                      onChange={(e) => setModelConfig({ ...modelConfig, standardModel: e.target.value })}
+                      disabled={creating}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* 参数预览 */}
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
@@ -825,8 +895,8 @@ const ElevenLabsParamsConverter: React.FC = () => {
                 • 代号: Tau
                 • 国家/地区: * (所有国家)
                 • 模型: 根据是否multilingual自动选择
-                  - Multilingual: eleven_multilingual_v2
-                  - 普通: eleven_turbo_v2_5
+                  - Multilingual: ${modelConfig.multilingualModel}
+                  - 普通: ${modelConfig.standardModel}
                 • 评级: 根据模型自动选择
                   - Multilingual: Pro
                   - 普通: Standard

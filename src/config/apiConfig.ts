@@ -122,6 +122,12 @@ export const DATA_CENTERS: DataCenter[] = [
     name: 'IDN',
     baseURL: '/api/public_idn',
     description: '印尼数据中心'
+  },
+  {
+    id: 'sit',
+    name: 'SIT测试',
+    baseURL: '/api/sit',
+    description: 'SIT测试环境'
   }
 ];
 

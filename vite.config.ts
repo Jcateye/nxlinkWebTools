@@ -107,6 +107,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/public_idn/, ''),
       },
+      '/api/sit': {
+        target: 'https://sit2025.nxlink.ai',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/sit/, ''),
+      },
       '/api/openapi': {
         target: 'http://localhost:8400',
         changeOrigin: true,

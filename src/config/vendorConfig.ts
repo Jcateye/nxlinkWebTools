@@ -14,6 +14,7 @@ export const aiSupplierManufacturerConfig: Record<number, VendorConfig[]> = {
     { value: '8', name: 'NX', codeName:'NX' },
     { value: '9', name: '阿里', codeName:'Eta' },
     { value: '10', name: "Deepgram", codeName: "Gamma" },
+    { value: '13', name: '11labs', codeName:'Tau' },
     { value: '15', name: "火山 / Kappa", codeName: "Kappa" },
     { value: '16', name: "My Vocal / Omega", codeName: "Omega" },
     { value: '18', name: "Cloudsway / Xi", codeName: "Xi" },

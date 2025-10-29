@@ -78,6 +78,13 @@ const environments = {
       cwd: path.join(process.cwd(), 'server'),
       port: 8400,
       color: 'green'
+    },
+    server: {
+      command: 'node',
+      args: ['server.js'],
+      cwd: process.cwd(),
+      port: 8350,
+      color: 'yellow'
     }
   },
   prod: {
@@ -151,33 +158,33 @@ ${colors.yellow}用法:${colors.reset}
   node start.js [选项] [环境] [服务...]
 
 ${colors.yellow}选项:${colors.reset}
-  --clean, -c    启动前清理所有相关端口 (3010, 8400, 8300)
+  --clean, -c    启动前清理所有相关端口 (3010, 8350, 8400)
   --help, -h     显示帮助信息
 
 ${colors.yellow}环境:${colors.reset}
-  dev     开发环境 (默认)
-  prod    生产环境
+  dev     开发环境 (默认) - 启动: 前端(3010) + 后端API(8400) + 主服务器(8350)
+  prod    生产环境 - 启动: 前端构建 + 生产服务器(8450)
   test    测试环境
 
 ${colors.yellow}服务 (可选):${colors.reset}
-  frontend    前端服务
-  backend     后端服务
-  server      生产服务器 (仅生产环境)
+  frontend    前端服务 (Vite, 端口 3010)
+  backend     后端服务 (API, 端口 8400)
+  server      主服务器 (数据持久化, 端口 8350)
   
   如果不指定服务，将启动该环境的所有服务
 
 ${colors.yellow}示例:${colors.reset}
-  node start.js                        # 启动开发环境所有服务
-  node start.js --clean dev            # 清理端口后启动开发环境
-  node start.js prod                   # 启动生产环境所有服务
-  node start.js dev frontend           # 只启动开发环境前端服务
-  node start.js -c prod backend server # 清理端口后启动生产环境后端和服务器
+  node start.js              # 默认启动 dev 环境的所有服务
+  node start.js dev          # 启动 dev 环境的所有服务
+  node start.js dev frontend # 只启动前端
+  node start.js --clean dev  # 清理端口后启动 dev 环境
+  node start.js prod         # 启动 prod 环境
 
-${colors.yellow}端口分配:${colors.reset}
-  前端开发服务器: 3010
-  后端API服务器:  8400 (开发) / 8450 (生产)
-  生产网关服务器: 8350
-`);
+${colors.yellow}服务信息:${colors.reset}
+  前端 (Vite):        http://localhost:3010
+  后端 API:          http://localhost:8400
+  主服务器:          http://localhost:8350
+  `);
 }
 
 // 检查端口是否被占用
@@ -358,7 +365,7 @@ async function startService(name, config, env) {
 
 // 清理所有相关端口
 async function cleanAllPorts() {
-  const allPorts = [3010, 8400, 8300]; // 前端、后端、生产服务器端口
+  const allPorts = [3010, 8350, 8400]; // 前端(3010)、主服务器(8350)、后端API(8400)
   
   colorLog('yellow', 'CLEANUP', '正在清理可能冲突的端口...');
   

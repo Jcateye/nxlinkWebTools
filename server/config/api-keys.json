@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-08-29T06:28:32.518Z",
+  "lastUpdated": "2025-10-27T09:42:16.074Z",
   "keys": [
     {
       "apiKey": "riKJb6WOXF2kgQgYxTEG9JBA55aq9Y26",
@@ -33,6 +33,17 @@
         "accessSecret": "0de4a159402a4e3494f76669ac92d6e6",
         "bizType": "8",
         "baseUrl": "https://api-westus.nxlink.ai"
+      }
+    },
+    {
+      "apiKey": "4btxdt2ns3WxM033KkG2HDm8q5AVxt6O",
+      "alias": "SIT环境-一滴水",
+      "description": "",
+      "openapi": {
+        "accessKey": "AK-6906932237966721662-0443",
+        "accessSecret": "90a168abf26a424a8838ad10118b0ea6",
+        "bizType": "8",
+        "baseUrl": "https://sit-api.nxlink.ai"
       }
     }
   ]

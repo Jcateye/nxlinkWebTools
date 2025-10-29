@@ -1,6 +1,6 @@
 {
-  "nextId": 55,
-  "updatedAt": "2025-10-23T03:17:16.968Z",
+  "nextId": 60,
+  "updatedAt": "2025-10-29T02:09:11.301Z",
   "records": [
     {
       "time": "2025-09-20",
@@ -179,7 +179,7 @@
       "id": 52
     },
     {
-      "time": "2025-10-22",
+      "time": "2025-10-21",
       "tokenConsumptionM": 7.42,
       "consumedMinutes": 4263,
       "tokensPerMinuteK": 1.74055829228243,
@@ -190,7 +190,7 @@
       "id": 53
     },
     {
-      "time": "2025-10-23",
+      "time": "2025-10-22",
       "tokenConsumptionM": 8.07,
       "consumedMinutes": 4629,
       "tokensPerMinuteK": 1.74335709656513,
@@ -199,6 +199,72 @@
       "avgTalkSeconds": 27,
       "profitMarginPercent": 21.52,
       "id": 54
+    },
+    {
+      "time": "2025-10-23",
+      "tokenConsumptionM": 9.116,
+      "consumedMinutes": 5235,
+      "tokensPerMinuteK": 1.74135625596944,
+      "callCountWan": 5.48,
+      "totalTalkHours": 402,
+      "avgTalkSeconds": 26,
+      "profitMarginPercent": 25.01,
+      "id": "dg_1761284919312_7ji2jdmqh"
+    },
+    {
+      "time": "2025-10-24",
+      "tokenConsumptionM": 6.029,
+      "consumedMinutes": 3512,
+      "tokensPerMinuteK": 1.71668564920273,
+      "callCountWan": 3.97,
+      "totalTalkHours": 296.5,
+      "avgTalkSeconds": 27,
+      "profitMarginPercent": 31.54,
+      "id": 55
+    },
+    {
+      "time": "2025-10-25",
+      "tokenConsumptionM": 5.726,
+      "consumedMinutes": 3292,
+      "tokensPerMinuteK": 1.73936816524909,
+      "callCountWan": 3.75,
+      "totalTalkHours": 284.6,
+      "avgTalkSeconds": 27,
+      "profitMarginPercent": 31.51,
+      "id": 56
+    },
+    {
+      "time": "2025-10-26",
+      "tokenConsumptionM": 6.129,
+      "consumedMinutes": 3506,
+      "tokensPerMinuteK": 1.74814603536794,
+      "callCountWan": 4.33,
+      "totalTalkHours": 299,
+      "avgTalkSeconds": 25,
+      "profitMarginPercent": 35.25,
+      "id": 57
+    },
+    {
+      "time": "2025-10-27",
+      "tokenConsumptionM": 7.14,
+      "consumedMinutes": 4116,
+      "tokensPerMinuteK": 1.735,
+      "callCountWan": 4.13,
+      "totalTalkHours": 327.7,
+      "avgTalkSeconds": 29,
+      "profitMarginPercent": 22.94,
+      "id": 58
+    },
+    {
+      "time": "2025-10-28",
+      "tokenConsumptionM": 8.24,
+      "consumedMinutes": 4755,
+      "tokensPerMinuteK": 1.734,
+      "callCountWan": 4.12,
+      "totalTalkHours": 335,
+      "avgTalkSeconds": 29,
+      "profitMarginPercent": 10.05,
+      "id": 59
     }
   ]
 }

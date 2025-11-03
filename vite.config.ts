@@ -124,6 +124,8 @@ export default defineConfig({
       '/local': {
         target: 'http://localhost:8350',
         changeOrigin: true,
+        rewrite: (path) => path, // 不重写路径
+        ws: true,
       },
       '/api': {
         target: 'https://nxlink.nxcloud.com',

@@ -154,8 +154,8 @@ export async function parseDGConsumptionExcel(file: File): Promise<Omit<DGConsum
               rec[key] = toNumber(val);
             }
           });
-          
-          // 只要有时间字段就认为是有效记录
+
+          // 只要有时间和流程名称字段就认为是有效记录
           if (rec.time) {
             results.push(rec);
           }
@@ -177,7 +177,9 @@ export function mergeDGConsumptionData(dataList: Omit<DGConsumptionRecord, 'id'>
     const prev = map.get(key);
     map.set(key, { ...(prev || {} as any), ...r });
   });
-  return Array.from(map.values()).sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  return Array.from(map.values()).sort((a, b) => {
+    return String(a.time).localeCompare(String(b.time));
+  });
 }
 
 

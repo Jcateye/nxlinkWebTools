@@ -87,13 +87,19 @@ router.post('/import', (req, res) => {
       store.records = records;
       inserted = records.length;
     } else {
-      // merge strategy
+      // merge strategy - 基于时间和流程名称的组合
       for (const record of records) {
-        const existingIndex = store.records.findIndex((r: any) => r.id === record.id);
+        const existingIndex = store.records.findIndex((r: any) =>
+          r.time === record.time && r.flowName === record.flowName
+        );
         if (existingIndex >= 0) {
           store.records[existingIndex] = { ...store.records[existingIndex], ...record };
           updated++;
         } else {
+          // 生成ID（如果没有提供）
+          if (!record.id) {
+            record.id = `dg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          }
           store.records.push(record);
           inserted++;
         }

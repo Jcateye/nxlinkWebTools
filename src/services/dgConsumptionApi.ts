@@ -45,5 +45,15 @@ export async function dgClear(): Promise<{ success: boolean; total: number; upda
   return res.data;
 }
 
+export async function dgArchive(ids: number[]): Promise<{ success: boolean; archived: number; total: number; updatedAt: string }>{
+  const res = await axios.post(`${BASE}/archive`, { ids });
+  return res.data;
+}
+
+export async function dgRestore(ids: number[]): Promise<{ success: boolean; restored: number; total: number; updatedAt: string }>{
+  const res = await axios.post(`${BASE}/restore`, { ids });
+  return res.data;
+}
+
 
 

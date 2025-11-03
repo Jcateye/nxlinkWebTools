@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Layout, Card, Space, Button, message, Typography, Row, Col, Table, Modal, Form, Input, InputNumber, DatePicker, Upload, Popconfirm } from 'antd';
-import { ReloadOutlined, PlusOutlined, DeleteOutlined, UploadOutlined, EditOutlined, InboxOutlined, ClearOutlined } from '@ant-design/icons';
+import { Layout, Card, Space, Button, message, Typography, Row, Col, Table, Modal, Form, Input, InputNumber, DatePicker, Upload, Popconfirm, Collapse } from 'antd';
+import { ReloadOutlined, PlusOutlined, DeleteOutlined, UploadOutlined, EditOutlined, InboxOutlined, ClearOutlined, DeleteRowOutlined, UndoOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { parseDGConsumptionExcel, mergeDGConsumptionData } from '../services/dgConsumptionService';
-import { dgHealth, dgList, dgImport, dgAdd, dgUpdate, dgDelete, dgClear } from '../services/dgConsumptionApi';
+import { dgHealth, dgList, dgImport, dgAdd, dgUpdate, dgDelete, dgClear, dgArchive, dgRestore } from '../services/dgConsumptionApi';
 import { DGConsumptionRecord } from '../types/dgConsumption';
 import DGConsumptionCharts from '../components/dg/DGConsumptionCharts';
 
@@ -14,10 +14,12 @@ const { Dragger } = Upload;
 const BillTrackingPage: React.FC = () => {
   // DG消费数据状态
   const [dgRecords, setDgRecords] = useState<DGConsumptionRecord[]>([]);
+  const [allRecords, setAllRecords] = useState<DGConsumptionRecord[]>([]); // 包含归档数据的完整列表
   
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [archivedSelectedKeys, setArchivedSelectedKeys] = useState<React.Key[]>([]);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Partial<DGConsumptionRecord> | null>(null);
   const [form] = Form.useForm();
@@ -27,7 +29,10 @@ const BillTrackingPage: React.FC = () => {
     try {
       await dgHealth().catch(() => null);
       const dgRes = await dgList();
-      setDgRecords(dgRes.records || []);
+      const records = dgRes.records || [];
+      setAllRecords(records);
+      // 只显示未删除且未归档的数据给图表和用户
+      setDgRecords(records.filter(r => !r.archived));
     } catch (e: any) {
       message.error(`加载数据失败: ${e.message || e}`);
     } finally {
@@ -65,7 +70,7 @@ const BillTrackingPage: React.FC = () => {
   };
 
   const openCreate = () => {
-    setEditingRecord({ 
+    setEditingRecord({
       time: dayjs().format('YYYY-MM-DD'),
       tokenConsumptionM: 0,
       consumedMinutes: 0,
@@ -147,9 +152,47 @@ const BillTrackingPage: React.FC = () => {
       message.warning('请先选择要删除的记录');
       return;
     }
-    await dgDelete(selectedRowKeys as number[]);
-    message.success('删除成功');
+    Modal.confirm({
+      title: '选择操作',
+      content: '请选择是删除还是归档这些记录？',
+      okText: '删除',
+      cancelText: '归档',
+      okType: 'danger',
+      onOk: async () => {
+        // 真正删除
+        await dgDelete(selectedRowKeys as number[]);
+        message.success('删除成功');
+        setSelectedRowKeys([]);
+        await loadData();
+      },
+      onCancel: async () => {
+        // 归档
+        await dgArchive(selectedRowKeys as number[]);
+        message.success('归档成功');
+        setSelectedRowKeys([]);
+        await loadData();
+      }
+    });
+  };
+
+  const handleArchive = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要归档的记录');
+      return;
+    }
+    await dgArchive(selectedRowKeys as number[]);
+    message.success('归档成功');
     setSelectedRowKeys([]);
+    await loadData();
+  };
+
+  const handleRestore = async (ids: number[]) => {
+    if (ids.length === 0) {
+      message.warning('请先选择要恢复的记录');
+      return;
+    }
+    await dgRestore(ids);
+    message.success('恢复成功');
     await loadData();
   };
 
@@ -184,10 +227,10 @@ const BillTrackingPage: React.FC = () => {
 
   // 表格列定义
   const columns = [
-    { 
-      title: '时间', 
-      dataIndex: 'time', 
-      key: 'time', 
+    {
+      title: '时间',
+      dataIndex: 'time',
+      key: 'time',
       width: 110,
       sorter: (a: DGConsumptionRecord, b: DGConsumptionRecord) => {
         const dateA = new Date(a.time);
@@ -262,12 +305,43 @@ const BillTrackingPage: React.FC = () => {
       title: '操作', 
       key: 'action', 
       fixed: 'right' as const, 
-      width: 120, 
+      width: 180, 
       render: (_: any, rec: DGConsumptionRecord) => (
         <Space>
           <Button size="small" type="link" icon={<EditOutlined />} onClick={() => openEdit(rec)}>
             编辑
           </Button>
+          <Popconfirm 
+            title="确认归档?" 
+            description="归档后数据将从统计报表中隐藏，但可在归档区查看和恢复"
+            onConfirm={async () => {
+              await dgArchive([rec.id]);
+              message.success('已归档');
+              await loadData();
+            }}
+            okText="确认"
+            cancelText="取消"
+          >
+            <Button size="small" type="link" icon={<DeleteRowOutlined />}>
+              归档
+            </Button>
+          </Popconfirm>
+          <Popconfirm 
+            title="确认删除?" 
+            description="删除后数据将无法恢复"
+            onConfirm={async () => {
+              await dgDelete([rec.id]);
+              message.success('已删除');
+              await loadData();
+            }}
+            okText="确认"
+            cancelText="取消"
+            okType="danger"
+          >
+            <Button size="small" type="link" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       )
     },
@@ -336,6 +410,79 @@ const BillTrackingPage: React.FC = () => {
                   }}
                 />
               </Card>
+
+              {/* 归档数据区 */}
+              {allRecords.filter(r => r.archived).length > 0 && (
+                <Card title="📦 归档数据" style={{ marginBottom: 24, backgroundColor: '#fafafa' }}>
+                  <Collapse 
+                    items={[
+                      {
+                        key: '1',
+                        label: `已归档记录 (${allRecords.filter(r => r.archived).length} 条)`,
+                        children: (
+                          <Table
+                            rowKey="id"
+                            dataSource={allRecords.filter(r => r.archived)}
+                            columns={[
+                              ...columns.slice(0, -1), // 移除最后的操作列
+                              {
+                                title: '操作',
+                                key: 'action',
+                                fixed: 'right' as const,
+                                width: 150,
+                                render: (_: any, rec: DGConsumptionRecord) => (
+                                  <Space>
+                                    <Popconfirm
+                                      title="确认恢复?"
+                                      description="恢复后数据将重新显示在统计报表中"
+                                      onConfirm={async () => {
+                                        await dgRestore([rec.id]);
+                                        message.success('已恢复');
+                                        await loadData();
+                                      }}
+                                      okText="确认"
+                                      cancelText="取消"
+                                    >
+                                      <Button size="small" type="link" icon={<UndoOutlined />}>
+                                        恢复
+                                      </Button>
+                                    </Popconfirm>
+                                    <Popconfirm
+                                      title="确认删除?"
+                                      description="删除后数据将无法恢复"
+                                      onConfirm={async () => {
+                                        await dgDelete([rec.id]);
+                                        message.success('已删除');
+                                        await loadData();
+                                      }}
+                                      okText="确认"
+                                      cancelText="取消"
+                                      okType="danger"
+                                    >
+                                      <Button size="small" type="link" danger icon={<DeleteOutlined />}>
+                                        删除
+                                      </Button>
+                                    </Popconfirm>
+                                  </Space>
+                                )
+                              }
+                            ]}
+                            size="small"
+                            scroll={{ x: 1400 }}
+                            pagination={{ 
+                              pageSize: 10,
+                              showSizeChanger: true,
+                              showQuickJumper: true,
+                              showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
+                              pageSizeOptions: ['10', '20', '50']
+                            }}
+                          />
+                        )
+                      }
+                    ]}
+                  />
+                </Card>
+              )}
 
               {/* 趋势分析图表 */}
               <DGConsumptionCharts records={dgRecords} loading={loading} />

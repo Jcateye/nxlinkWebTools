@@ -575,6 +575,46 @@ app.post('/local/dg-consumption/clear', (req, res) => {
   }
 });
 
+app.post('/local/dg-consumption/archive', (req, res) => {
+  try {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: 'ids 必须是数组' });
+    const store = readDgStore();
+    const set = new Set(ids.map((x) => parseInt(x)));
+    let archived = 0;
+    store.records.forEach(r => {
+      if (set.has(r.id) && !r.archived) {
+        r.archived = true;
+        archived++;
+      }
+    });
+    writeDgStore(store);
+    res.json({ success: true, archived, total: store.records.length, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.post('/local/dg-consumption/restore', (req, res) => {
+  try {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: 'ids 必须是数组' });
+    const store = readDgStore();
+    const set = new Set(ids.map((x) => parseInt(x)));
+    let restored = 0;
+    store.records.forEach(r => {
+      if (set.has(r.id) && r.archived) {
+        r.archived = false;
+        restored++;
+      }
+    });
+    writeDgStore(store);
+    res.json({ success: true, restored, total: store.records.length, updatedAt: store.updatedAt });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // =========================
 // 账单追踪 - 本地JSON持久化API（无外部数据库）
 // =========================

@@ -495,6 +495,7 @@ const VendorAppManagementPage: React.FC = () => {
         if (values.timbre !== undefined && activeTab === 'TTS') updateData.timbre = values.timbre;
         if (values.model !== undefined) updateData.model = values.model;
         if (values.vendor_app_id !== undefined) updateData.vendor_app_id = values.vendor_app_id;
+        if (values.vendor_params !== undefined && (activeTab === 'ASR' || activeTab === 'LLM')) updateData.vendor_params = values.vendor_params;
         
         await updateSceneVendorApp(record.id, updateData, record);
         results.success++;
@@ -1603,6 +1604,23 @@ const VendorAppManagementPage: React.FC = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          {/* 厂商参数只在ASR和LLM中显示，TTS不显示（厂商参数各不相同，防止误操作） */}
+          {(activeTab === 'ASR' || activeTab === 'LLM') && (
+            <Row gutter={16}>
+              <Col span={24}>
+                <Form.Item
+                  label="厂商参数"
+                  name="vendor_params"
+                >
+                  <Input.TextArea
+                    placeholder="输入厂商参数（JSON格式，不填写则不修改）"
+                    rows={4}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
         </Form>
       </Modal>
 

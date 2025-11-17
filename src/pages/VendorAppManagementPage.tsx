@@ -533,7 +533,7 @@ const VendorAppManagementPage: React.FC = () => {
         if (values.vendor_app_id !== undefined) updateData.vendor_app_id = values.vendor_app_id;
 
         // 处理厂商参数更新
-        if (activeTab === 'ASR' || activeTab === 'LLM') {
+        if (activeTab === 'ASR' || activeTab === 'LLM' || activeTab === 'TTS') {
           if (batchVendorParamsEditMode === 'full' && values.vendor_params !== undefined) {
             updateData.vendor_params = values.vendor_params;
           } else if (batchVendorParamsEditMode === 'partial' && Object.keys(batchVendorParamsPartialUpdates).length > 0) {
@@ -1752,8 +1752,8 @@ const VendorAppManagementPage: React.FC = () => {
             </Col>
           </Row>
 
-          {/* 厂商参数只在ASR和LLM中显示，TTS不显示（厂商参数各不相同，防止误操作） */}
-          {(activeTab === 'ASR' || activeTab === 'LLM') && (
+          {/* 厂商参数在所有服务类型中都支持编辑（ASR、LLM、TTS） */}
+          {(activeTab === 'ASR' || activeTab === 'LLM' || activeTab === 'TTS') && (
             <>
               <Row gutter={16}>
                 <Col span={24}>

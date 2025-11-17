@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Layout, 
-  Typography, 
-  Tabs, 
-  Card, 
-  Table, 
-  Button, 
-  Space, 
-  Input, 
-  Select, 
-  Switch, 
-  Popconfirm, 
-  message, 
-  Modal, 
-  Form, 
-  Row, 
-      Col, 
+import {
+  Layout,
+  Typography,
+  Tabs,
+  Card,
+  Table,
+  Button,
+  Space,
+  Input,
+  Select,
+  Switch,
+  Popconfirm,
+  message,
+  Modal,
+  Form,
+  Row,
+      Col,
     Spin,
     Tag,
     Tooltip,
     DatePicker,
     Alert,
-    Progress
+    Progress,
+    Radio
   } from 'antd';
 import { 
   PlusOutlined, 
@@ -74,6 +75,7 @@ import { getUniqueLanguages, ttsConfig, getLanguageDescByLocale } from '../confi
 import TokenManager from '../components/bill/TokenManager';
 import DataCenterSelector from '../components/DataCenterSelector';
 import ElevenLabsParamsConverter from '../components/ElevenLabsParamsConverter';
+import { updateJsonByKeys, safeJsonParse, extractJsonKeys } from '../utils/jsonHelper';
 
 // 供应商应用类型常量
 const VENDOR_APP_TYPES = {
@@ -106,6 +108,11 @@ const VendorAppManagementPage: React.FC = () => {
   const [languageOptions, setLanguageOptions] = useState<Array<{locale: string, language_desc: string}>>([]);
   const [form] = Form.useForm();
 
+  // 厂商参数编辑模式相关状态
+  const [vendorParamsEditMode, setVendorParamsEditMode] = useState<'full' | 'partial'>('full');
+  const [vendorParamsPartialUpdates, setVendorParamsPartialUpdates] = useState<Record<string, any>>({});
+  const [availableJsonKeys, setAvailableJsonKeys] = useState<string[]>([]);
+
   // 批量编辑相关状态
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [selectedRows, setSelectedRows] = useState<SceneVendorApp[]>([]);
@@ -114,6 +121,10 @@ const VendorAppManagementPage: React.FC = () => {
     const [batchEditLoading, setBatchEditLoading] = useState(false);
     const [batchEnableLoading, setBatchEnableLoading] = useState(false);
     const [batchDisableLoading, setBatchDisableLoading] = useState(false);
+
+    // 批量编辑厂商参数相关状态
+    const [batchVendorParamsEditMode, setBatchVendorParamsEditMode] = useState<'full' | 'partial'>('full');
+    const [batchVendorParamsPartialUpdates, setBatchVendorParamsPartialUpdates] = useState<Record<string, any>>({});
 
     // 批量操作进度
     const [progressVisible, setProgressVisible] = useState(false);
@@ -370,21 +381,36 @@ const VendorAppManagementPage: React.FC = () => {
   const handleCreate = () => {
     setEditingRecord(null);
     form.resetFields();
+    // 重置厂商参数编辑状态
+    setVendorParamsEditMode('full');
+    setVendorParamsPartialUpdates({});
+    setAvailableJsonKeys([]);
     setEditModalVisible(true);
   };
 
   // 处理编辑
   const handleEdit = (record: any) => {
     setEditingRecord(record);
-    
+
     // 设置表单值，需要将vendor的value转换为显示用的codeName
     const currentConfig = getCurrentVendorConfig(activeTab);
     const vendor = currentConfig.find(v => v.value === record.vendor);
-    
+
     form.setFieldsValue({
       ...record,
       vendorDisplay: vendor ? vendor.codeName : record.vendor // 用于显示的字段
     });
+
+    // 初始化厂商参数编辑状态
+    setVendorParamsEditMode('full');
+    setVendorParamsPartialUpdates({});
+    if (record.vendor_params) {
+      const keys = extractJsonKeys(record.vendor_params);
+      setAvailableJsonKeys(keys);
+    } else {
+      setAvailableJsonKeys([]);
+    }
+
     setEditModalVisible(true);
   };
 
@@ -418,7 +444,14 @@ const VendorAppManagementPage: React.FC = () => {
       // 提交时确保使用正确的vendor值，移除显示用的字段
       const submitData = { ...values };
       delete submitData.vendorDisplay; // 删除显示用的字段
-      
+
+      // 处理厂商参数的部分更新
+      if (vendorParamsEditMode === 'partial' && editingRecord && Object.keys(vendorParamsPartialUpdates).length > 0) {
+        const originalVendorParams = editingRecord.vendor_params || '{}';
+        const updatedVendorParams = updateJsonByKeys(originalVendorParams, vendorParamsPartialUpdates);
+        submitData.vendor_params = updatedVendorParams;
+      }
+
       if (editingRecord) {
         await updateSceneVendorApp(editingRecord.id, submitData, editingRecord);
         message.success('更新成功');
@@ -476,6 +509,9 @@ const VendorAppManagementPage: React.FC = () => {
     }
     setBatchEditModalVisible(true);
     batchForm.resetFields();
+    // 重置批量编辑厂商参数状态
+    setBatchVendorParamsEditMode('full');
+    setBatchVendorParamsPartialUpdates({});
   };
 
     const handleBatchSubmit = async (values: any) => {
@@ -495,7 +531,17 @@ const VendorAppManagementPage: React.FC = () => {
         if (values.timbre !== undefined && activeTab === 'TTS') updateData.timbre = values.timbre;
         if (values.model !== undefined) updateData.model = values.model;
         if (values.vendor_app_id !== undefined) updateData.vendor_app_id = values.vendor_app_id;
-        if (values.vendor_params !== undefined && (activeTab === 'ASR' || activeTab === 'LLM')) updateData.vendor_params = values.vendor_params;
+
+        // 处理厂商参数更新
+        if (activeTab === 'ASR' || activeTab === 'LLM') {
+          if (batchVendorParamsEditMode === 'full' && values.vendor_params !== undefined) {
+            updateData.vendor_params = values.vendor_params;
+          } else if (batchVendorParamsEditMode === 'partial' && Object.keys(batchVendorParamsPartialUpdates).length > 0) {
+            const originalVendorParams = record.vendor_params || '{}';
+            const updatedVendorParams = updateJsonByKeys(originalVendorParams, batchVendorParamsPartialUpdates);
+            updateData.vendor_params = updatedVendorParams;
+          }
+        }
         
         await updateSceneVendorApp(record.id, updateData, record);
         results.success++;
@@ -1466,15 +1512,116 @@ const VendorAppManagementPage: React.FC = () => {
             </Col>
           </Row>
 
-          <Form.Item
-            label="厂商参数"
-            name="vendor_params"
-          >
-            <Input.TextArea 
-              placeholder="请输入厂商参数（JSON格式）"
-              rows={4}
-            />
+          <Form.Item label="厂商参数编辑模式">
+            <Radio.Group
+              value={vendorParamsEditMode}
+              onChange={(e) => setVendorParamsEditMode(e.target.value)}
+            >
+              <Radio value="full">完整替换</Radio>
+              <Radio value="partial">部分更新</Radio>
+            </Radio.Group>
           </Form.Item>
+
+          {vendorParamsEditMode === 'full' ? (
+            <Form.Item
+              label="厂商参数"
+              name="vendor_params"
+            >
+              <Input.TextArea
+                placeholder="请输入厂商参数（JSON格式）"
+                rows={4}
+              />
+            </Form.Item>
+          ) : (
+            <div>
+              <Form.Item label="要更新的JSON字段">
+                <div style={{ marginBottom: 8 }}>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => setVendorParamsPartialUpdates({})}
+                  >
+                    清空所有
+                  </Button>
+                  {availableJsonKeys.length > 0 && (
+                    <span style={{ marginLeft: 8, fontSize: '12px', color: '#666' }}>
+                      可用的字段: {availableJsonKeys.join(', ')}
+                    </span>
+                  )}
+                </div>
+                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #d9d9d9', borderRadius: 6, padding: 8 }}>
+                  {Object.entries(vendorParamsPartialUpdates).map(([key, value]) => (
+                    <Row key={key} gutter={8} style={{ marginBottom: 8, alignItems: 'center' }}>
+                      <Col span={8}>
+                        <Input
+                          placeholder="字段名"
+                          value={key}
+                          onChange={(e) => {
+                            const newKey = e.target.value;
+                            const newUpdates = { ...vendorParamsPartialUpdates };
+                            delete newUpdates[key];
+                            if (newKey) {
+                              newUpdates[newKey] = value;
+                            }
+                            setVendorParamsPartialUpdates(newUpdates);
+                          }}
+                        />
+                      </Col>
+                      <Col span={13}>
+                        <Input
+                          placeholder="新值"
+                          value={value}
+                          onChange={(e) => {
+                            const newUpdates = { ...vendorParamsPartialUpdates };
+                            newUpdates[key] = e.target.value;
+                            setVendorParamsPartialUpdates(newUpdates);
+                          }}
+                        />
+                      </Col>
+                      <Col span={3}>
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => {
+                            const newUpdates = { ...vendorParamsPartialUpdates };
+                            delete newUpdates[key];
+                            setVendorParamsPartialUpdates(newUpdates);
+                          }}
+                        />
+                      </Col>
+                    </Row>
+                  ))}
+                  <Button
+                    type="dashed"
+                    size="small"
+                    block
+                    onClick={() => {
+                      const newUpdates = { ...vendorParamsPartialUpdates };
+                      const newKey = `key${Object.keys(newUpdates).length + 1}`;
+                      newUpdates[newKey] = '';
+                      setVendorParamsPartialUpdates(newUpdates);
+                    }}
+                  >
+                    + 添加字段
+                  </Button>
+                </div>
+                {Object.keys(vendorParamsPartialUpdates).length > 0 && (
+                  <div style={{ marginTop: 8, padding: 8, backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 4 }}>
+                    <div style={{ fontSize: '12px', color: '#52c41a', marginBottom: 4 }}>
+                      将要更新的字段:
+                    </div>
+                    {Object.entries(vendorParamsPartialUpdates).map(([key, value]) => (
+                      <div key={key} style={{ fontSize: '12px', color: '#666' }}>
+                        <strong>{key}</strong>: {value}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Form.Item>
+            </div>
+          )}
 
           <Form.Item
             label="描述"
@@ -1607,19 +1754,119 @@ const VendorAppManagementPage: React.FC = () => {
 
           {/* 厂商参数只在ASR和LLM中显示，TTS不显示（厂商参数各不相同，防止误操作） */}
           {(activeTab === 'ASR' || activeTab === 'LLM') && (
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item
-                  label="厂商参数"
-                  name="vendor_params"
-                >
-                  <Input.TextArea
-                    placeholder="输入厂商参数（JSON格式，不填写则不修改）"
-                    rows={4}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
+            <>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item label="厂商参数编辑模式">
+                    <Radio.Group
+                      value={batchVendorParamsEditMode}
+                      onChange={(e) => setBatchVendorParamsEditMode(e.target.value)}
+                    >
+                      <Radio value="full">完整替换</Radio>
+                      <Radio value="partial">部分更新</Radio>
+                    </Radio.Group>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={24}>
+                  {batchVendorParamsEditMode === 'full' ? (
+                    <Form.Item
+                      label="厂商参数"
+                      name="vendor_params"
+                    >
+                      <Input.TextArea
+                        placeholder="输入厂商参数（JSON格式，不填写则不修改）"
+                        rows={4}
+                      />
+                    </Form.Item>
+                  ) : (
+                    <Form.Item label="要更新的JSON字段">
+                      <div style={{ marginBottom: 8 }}>
+                        <Button
+                          type="link"
+                          size="small"
+                          onClick={() => setBatchVendorParamsPartialUpdates({})}
+                        >
+                          清空所有
+                        </Button>
+                      </div>
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #d9d9d9', borderRadius: 6, padding: 8 }}>
+                        {Object.entries(batchVendorParamsPartialUpdates).map(([key, value]) => (
+                          <Row key={key} gutter={8} style={{ marginBottom: 8, alignItems: 'center' }}>
+                            <Col span={8}>
+                              <Input
+                                placeholder="字段名"
+                                value={key}
+                                onChange={(e) => {
+                                  const newKey = e.target.value;
+                                  const newUpdates = { ...batchVendorParamsPartialUpdates };
+                                  delete newUpdates[key];
+                                  if (newKey) {
+                                    newUpdates[newKey] = value;
+                                  }
+                                  setBatchVendorParamsPartialUpdates(newUpdates);
+                                }}
+                              />
+                            </Col>
+                            <Col span={13}>
+                              <Input
+                                placeholder="新值"
+                                value={value}
+                                onChange={(e) => {
+                                  const newUpdates = { ...batchVendorParamsPartialUpdates };
+                                  newUpdates[key] = e.target.value;
+                                  setBatchVendorParamsPartialUpdates(newUpdates);
+                                }}
+                              />
+                            </Col>
+                            <Col span={3}>
+                              <Button
+                                type="text"
+                                danger
+                                size="small"
+                                icon={<DeleteOutlined />}
+                                onClick={() => {
+                                  const newUpdates = { ...batchVendorParamsPartialUpdates };
+                                  delete newUpdates[key];
+                                  setBatchVendorParamsPartialUpdates(newUpdates);
+                                }}
+                              />
+                            </Col>
+                          </Row>
+                        ))}
+                        <Button
+                          type="dashed"
+                          size="small"
+                          block
+                          onClick={() => {
+                            const newUpdates = { ...batchVendorParamsPartialUpdates };
+                            const newKey = `key${Object.keys(newUpdates).length + 1}`;
+                            newUpdates[newKey] = '';
+                            setBatchVendorParamsPartialUpdates(newUpdates);
+                          }}
+                        >
+                          + 添加字段
+                        </Button>
+                      </div>
+                      {Object.keys(batchVendorParamsPartialUpdates).length > 0 && (
+                        <div style={{ marginTop: 8, padding: 8, backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 4 }}>
+                          <div style={{ fontSize: '12px', color: '#52c41a', marginBottom: 4 }}>
+                            将要更新的字段:
+                          </div>
+                          {Object.entries(batchVendorParamsPartialUpdates).map(([key, value]) => (
+                            <div key={key} style={{ fontSize: '12px', color: '#666' }}>
+                              <strong>{key}</strong>: {value}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Form.Item>
+                  )}
+                </Col>
+              </Row>
+            </>
           )}
         </Form>
       </Modal>

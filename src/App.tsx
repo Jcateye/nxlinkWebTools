@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs } from 'antd';
 import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined, CloudServerOutlined, KeyOutlined, PieChartOutlined } from '@ant-design/icons';
+import type { MenuProps } from 'antd';
 import TagParamsForm from './components/TagParamsForm';
 import FaqParamsForm from './components/FaqParamsForm';
 import TagGroupMigration, { TagGroupMigrationHandle } from './components/TagGroupMigration';
@@ -16,18 +17,24 @@ import BillManagementPage from './pages/BillManagementPage';
 import BillAnalysisPage from './pages/BillAnalysisPage';
 import BillTrackingPage from './pages/BillTrackingPage';
 import MemberManagementPage from './pages/MemberManagementPage';
-import PromptValidationPage from './pages/PromptValidationPage';
 import VendorAppManagementPage from './pages/VendorAppManagementPage';
 import OpenApiActivityPage from './pages/OpenApiActivityPage';
 import ApiKeyManagementPage from './pages/ApiKeyManagementPage';
 import PhoneNumberValidator from './components/PhoneNumberValidator';
 import ConversationManagementPage from './pages/ConversationManagementPage';
 import NXLinkTokenManager from './components/NXLinkTokenManager';
+import ExternalAppFrame from './components/ExternalAppFrame';
 import './App.css';
 
 const { Header, Content, Sider } = Layout;
 const { TabPane } = Tabs;
 const { SubMenu } = Menu;
+
+const DEFAULT_PROMPT_LAB_BASE_URL = 'http://localhost:3000';
+const DEFAULT_PROMPT_LAB_PATH_PREFIX = '/prompt-lab';
+
+const normalizeBaseUrl = (url: string) => url.replace(/\/$/, '');
+const normalizePrefix = (prefix: string) => (prefix.startsWith('/') ? prefix : `/${prefix}`);
 
 // 创建内部AppContent组件，可以使用useUserContext
 const AppContent = () => {
@@ -41,22 +48,44 @@ const AppContent = () => {
     collaborationSessions, 
     joinCollaborationSession 
   } = useUserContext();
+  const promptLabBaseUrl = import.meta.env.VITE_PROMPT_LAB_BASE_URL || DEFAULT_PROMPT_LAB_BASE_URL;
+  const promptLabPathPrefix = import.meta.env.VITE_PROMPT_LAB_PATH_PREFIX || DEFAULT_PROMPT_LAB_PATH_PREFIX;
+  const promptLabUrl = `${normalizeBaseUrl(promptLabBaseUrl)}${normalizePrefix(promptLabPathPrefix)}`;
+  const redirectToPromptLab = () => {
+    window.location.href = promptLabUrl;
+  };
 
-  // 添加URL参数处理逻辑
+  const handleMenuSelect: MenuProps['onSelect'] = ({ key }) => {
+    if (key === 'prompt') {
+      redirectToPromptLab();
+      return;
+    }
+    setActiveMenu(key as string);
+  };
+
   useEffect(() => {
     // 监听来自页面内部的菜单导航事件
     const handler = (e: any) => {
       const key = e?.detail?.key;
-      if (key) setActiveMenu(key);
+      if (!key) return;
+      if (key === 'prompt') {
+        redirectToPromptLab();
+        return;
+      }
+      setActiveMenu(key);
     };
     window.addEventListener('navigate-menu', handler);
 
     // 支持通过 ?menu=xxx 直接导航
     const menuParam = new URLSearchParams(window.location.search).get('menu');
-    if (menuParam) setActiveMenu(menuParam);
+    if (menuParam === 'prompt') {
+      redirectToPromptLab();
+    } else if (menuParam) {
+      setActiveMenu(menuParam);
+    }
 
     return () => window.removeEventListener('navigate-menu', handler);
-  }, []);
+  }, [promptLabUrl]);
 
   // 处理 URL 中的协作会话参数
   useEffect(() => {
@@ -127,7 +156,7 @@ const AppContent = () => {
       'voice': '声音管理',
       'script': '话术测试系统',
       'member': '成员管理',
-      'prompt': '提示词验证',
+      'prompt': '提示词验证（独立应用）',
       'phone': '电话号码检测',
       'vendor-app': '供应商应用管理',
       'conversation': '会话管理',
@@ -236,7 +265,29 @@ const AppContent = () => {
       case 'member':
         return <MemberManagementPage />;
       case 'prompt':
-        return <PromptValidationPage />;
+        return (
+          <Card
+            title="提示词验证（独立应用）"
+            extra={
+              <Button type="link" href={promptLabUrl} target="_blank" rel="noreferrer">
+                新窗口打开
+              </Button>
+            }
+          >
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+              提示词验证功能已迁移到独立项目，统一使用路径前缀
+              <Typography.Text code style={{ margin: '0 4px' }}>
+                {promptLabPathPrefix}
+              </Typography.Text>
+              进行访问。
+            </Typography.Paragraph>
+            <ExternalAppFrame
+              src={promptLabUrl}
+              title="提示词验证独立应用"
+              minHeight={900}
+            />
+          </Card>
+        );
       case 'phone':
         return <PhoneNumberValidator />;
       case 'vendor-app':
@@ -297,7 +348,7 @@ const AppContent = () => {
           theme="dark"
           mode="inline"
           selectedKeys={[activeMenu]}
-          onSelect={({ key }) => setActiveMenu(key as string)}
+          onSelect={handleMenuSelect}
           defaultOpenKeys={['admin', 'client']}
           style={{ borderRight: 0 }}
         >

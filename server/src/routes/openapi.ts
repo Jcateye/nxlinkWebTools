@@ -47,6 +47,11 @@ function logDebug(
     body?: any;
     response?: any;
     error?: any;
+    requestUrl?: string;
+    status?: number;
+    responseData?: any;
+    errorMessage?: string;
+    errorCode?: string;
   }
 ) {
   try {
@@ -66,6 +71,11 @@ function logDebug(
       responseCode: payload.response?.code ?? payload.response?.status,
       responseMsg: payload.response?.message,
       errorMsg: payload.error?.message,
+      requestUrl: payload.requestUrl,
+      status: payload.status,
+      responseData: payload.responseData,
+      errorMessage: payload.errorMessage,
+      errorCode: payload.errorCode,
     };
     const time = new Date().toLocaleTimeString();
     console.log(`[${time}] [OpenAPI Debug] ${title}:`, JSON.stringify(logObj, null, 2));
@@ -358,30 +368,70 @@ router.post('/task-list', apiKeyAuth, async (req: AuthenticatedRequest, res): Pr
     });
 
     // 调用OpenAPI
-    const response = await axios.post(
-      `${openApiConfig.baseURL}/openapi/aiagent/task/list`,
-      params,
-      { headers }
-    );
+    try {
+      const response = await axios.post(
+        `${openApiConfig.baseURL}/openapi/aiagent/task/list`,
+        params,
+        { headers }
+      );
 
-    logDebug('Response task-list', {
-      apiKey: req.apiKey,
-      alias: req.apiKeyConfig?.alias,
-      baseURL: openApiConfig.baseURL,
-      action: 'pageCallTaskInfo',
-      response: response.data
-    });
+      logDebug('Response task-list', {
+        apiKey: req.apiKey,
+        alias: req.apiKeyConfig?.alias,
+        baseURL: openApiConfig.baseURL,
+        action: 'pageCallTaskInfo',
+        response: response.data
+      });
 
-    res.json({
-      code: 200,
-      message: '获取成功',
-      data: response.data?.data || response.data,
-      apiKey: req.apiKey
-    });
-    return;
+      res.json({
+        code: 200,
+        message: '获取成功',
+        data: response.data?.data || response.data,
+        apiKey: req.apiKey
+      });
+      return;
+    } catch (axiosError: any) {
+      console.error('OpenAPI task-list 详细错误信息:', {
+        apiKey: req.apiKey,
+        alias: req.apiKeyConfig?.alias,
+        baseURL: openApiConfig.baseURL,
+        action: 'pageCallTaskInfo',
+        requestUrl: `${openApiConfig.baseURL}/openapi/aiagent/task/list`,
+        requestHeaders: headers,
+        requestBody: params,
+        responseStatus: axiosError.response?.status,
+        responseHeaders: axiosError.response?.headers,
+        responseData: axiosError.response?.data,
+        errorMessage: axiosError.message,
+        errorCode: axiosError.code
+      });
+
+      logDebug('Error task-list detailed', {
+        apiKey: req.apiKey,
+        alias: req.apiKeyConfig?.alias,
+        baseURL: openApiConfig.baseURL,
+        action: 'pageCallTaskInfo',
+        requestUrl: `${openApiConfig.baseURL}/openapi/aiagent/task/list`,
+        status: axiosError.response?.status,
+        responseData: axiosError.response?.data,
+        error: axiosError.message
+      });
+
+      res.status(500).json({
+        code: 500,
+        message: 'Internal server error',
+        error: axiosError.message,
+        details: {
+          status: axiosError.response?.status,
+          responseData: axiosError.response?.data
+        }
+      });
+      return;
+    }
 
   } catch (error: any) {
-    logDebug('Error task-list', { apiKey: req.apiKey, alias: req.apiKeyConfig?.alias, error });
+    console.error('OpenAPI task-list 未知错误:', error);
+    logDebug('Error task-list unknown', { apiKey: req.apiKey, alias: req.apiKeyConfig?.alias, error });
     res.status(500).json({
       code: 500,
       message: 'Internal server error',

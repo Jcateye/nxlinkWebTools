@@ -9,6 +9,7 @@ export interface VendorConfig {
 export const aiSupplierManufacturerConfig: Record<number, VendorConfig[]> = {
   1: [ // ASR
     { value: '2', name: "腾讯", codeName: "Delta" },
+    { value: '3', name: "讯飞(Theta)", codeName: "Theta" },
     { value: '4', name: "微软", codeName: "Upsilon" },
     { value: '5', name: "谷歌", codeName: "Iota" },
     { value: '8', name: 'NX', codeName:'NX' },
@@ -21,8 +22,10 @@ export const aiSupplierManufacturerConfig: Record<number, VendorConfig[]> = {
     { value: '17', name: "Fano / Pi", codeName: "Pi" },
   ],
   2: [ // TTS
+    { value: '3', name: "讯飞(Theta)", codeName: "Theta" },
     { value: '4', name: '微软', codeName:'Upsilon' },
     { value: '5', name: '谷歌', codeName:'Iota' },
+    { value: '8', name: 'NX', codeName:'NX' },
     { value: '9', name: '阿里', codeName:'Eta' },
     { value: '12', name: 'Cartesia', codeName:'Zeta' },
     { value: '13', name: '11labs', codeName:'Tau' },

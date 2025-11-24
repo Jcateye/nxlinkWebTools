@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Spin, Alert, List, Card, Avatar, Button } from 'antd';
+import { Spin, Alert, List, Card, Avatar, Button, message } from 'antd';
 import { UserOutlined, DownloadOutlined } from '@ant-design/icons';
 import { getConversationDetail } from '../../services/api';
 import { Conversation, Message } from '../../types';
@@ -18,7 +18,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({ conversation })
       setLoading(true);
       setError(null);
       try {
-        const response = await getConversationDetail(conversation.relate_session_id);
+        const response = await getConversationDetail(conversation.id);
         if (response.code === 0) {
           setMessages(response.data);
         } else {
@@ -34,8 +34,8 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({ conversation })
     fetchDetails();
   }, [conversation]);
 
-  const handleExport = () => {
-    const chatHistory = messages
+  const buildChatHistoryText = () => {
+    return messages
       .filter(msg => msg.msgType === 24 || msg.msgType === 31 || msg.msgType === 34)
       .map(item => {
         const { text } = parseMsgInfo(item.msgInfo);
@@ -44,7 +44,10 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({ conversation })
         return `[${timestamp}] ${role}: ${text}`;
       })
       .join('\\n\\n');
+  };
 
+  const handleExport = () => {
+    const chatHistory = buildChatHistoryText();
     const blob = new Blob([chatHistory], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -54,6 +57,32 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({ conversation })
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleCopy = async () => {
+    const chatHistory = buildChatHistoryText();
+    if (!chatHistory) {
+      message.warning('没有可复制的聊天记录');
+      return;
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(chatHistory);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = chatHistory;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      message.success('聊天记录已复制到剪贴板');
+    } catch (err) {
+      console.error('复制聊天记录失败', err);
+      message.error('复制失败，请重试');
+    }
   };
 
   const parseMsgInfo = (msgInfo: string | null) => {
@@ -80,14 +109,18 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({ conversation })
 
   return (
     <>
-      <Button
-        icon={<DownloadOutlined />}
-        onClick={handleExport}
-        style={{ marginBottom: '16px' }}
-        disabled={messages.length === 0}
-      >
-        导出聊天记录
-      </Button>
+      <div style={{ marginBottom: '16px', display: 'flex', gap: 12 }}>
+        <Button
+          icon={<DownloadOutlined />}
+          onClick={handleExport}
+          disabled={messages.length === 0}
+        >
+          导出聊天记录
+        </Button>
+        <Button onClick={handleCopy} disabled={messages.length === 0}>
+          复制聊天记录
+        </Button>
+      </div>
       <div style={{ height: '55vh', overflowY: 'auto', padding: '16px', border: '1px solid #f0f0f0', borderRadius: '2px' }}>
         <List
           itemLayout="horizontal"

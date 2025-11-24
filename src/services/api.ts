@@ -1759,12 +1759,19 @@ export const getConversationList = async (
 };
 
 export const getConversationDetail = async (
-  conversationId: string
+  conversationId: number | string
 ): Promise<ConversationDetailResponse> => {
   return createRateLimitedRequest('getConversationDetail', async () => {
     try {
       const response = await conversationApi.get<ConversationDetailResponse>(
-        `/admin/nx_flow_manager/conversation/messages?conversationId=${conversationId}&pageSize=9999&pageNumber=1`
+        '/admin/nx_flow_manager/conversation/messages',
+        {
+          params: {
+            conversationId,
+            pageSize: 9999,
+            pageNumber: 1,
+          },
+        }
       );
       return response.data;
     } catch (error) {

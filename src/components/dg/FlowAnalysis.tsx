@@ -480,3 +480,12 @@ const FlowAnalysis: React.FC<FlowAnalysisProps> = ({ records, loading = false })
 
 export default FlowAnalysis;
 
+
+
+
+
+
+
+
+
+

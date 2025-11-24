@@ -476,12 +476,16 @@ const VendorAppManagementPage: React.FC = () => {
     }
   };
 
-  // 检测重复组合（代号+国家+音色+模型）
-  const getDuplicateCombinations = (data: SceneVendorApp[], type: string): Set<number> => {
+  // 检测重复组合并计算（带缓存和控制台输出）
+  const duplicateAnalysis = React.useMemo(() => {
+    const emptyResult = { ids: new Set<number>(), groups: [] };
+    // 只有在开启高亮且有数据时才计算
+    if (!highlightDuplicates || !sceneVendorApps.length) return emptyResult;
+
     const combinationCount: Record<string, number[]> = {};
     const duplicateIds = new Set<number>();
-
-    data.forEach(item => {
+    
+    sceneVendorApps.forEach(item => {
       // 统一使用四个字段的组合键：代号 + 国家 + 音色 + 模型
       const combinationKey = `${item.vendor || ''}|${item.language || ''}|${item.timbre || ''}|${item.model || ''}`;
 
@@ -491,15 +495,40 @@ const VendorAppManagementPage: React.FC = () => {
       combinationCount[combinationKey].push(item.id);
     });
 
-    // 找出出现次数大于1的组合
-    Object.values(combinationCount).forEach(ids => {
+    const groups: any[] = [];
+    Object.entries(combinationCount).forEach(([key, ids]) => {
       if (ids.length > 1) {
         ids.forEach(id => duplicateIds.add(id));
+        
+        const [vendor, language, timbre, model] = key.split('|');
+        groups.push({
+            '数量': ids.length,
+            'ID列表': ids.join(', '),
+            '厂商': vendor,
+            '语言': language,
+            '音色': timbre || '-',
+            '模型': model || '-',
+            // 辅助字段
+            _ids: ids 
+        });
       }
     });
 
-    return duplicateIds;
-  };
+    // 输出到控制台
+    if (groups.length > 0) {
+        console.group(`Found ${groups.length} duplicate groups`);
+        console.table(groups);
+        console.groupEnd();
+        // 保存到全局变量方便调试
+        (window as any).duplicateGroups = groups;
+        console.log('%c[提示] 重复项详情已保存至 window.duplicateGroups', 'color: #1890ff; font-weight: bold;');
+    } else {
+        (window as any).duplicateGroups = [];
+    }
+
+    return { ids: duplicateIds, groups };
+  }, [sceneVendorApps, highlightDuplicates]); // 仅在数据或开关变化时重新计算
+
 
   // 批量编辑相关函数
   const handleBatchEdit = () => {
@@ -1256,8 +1285,7 @@ const VendorAppManagementPage: React.FC = () => {
               rowSelection={rowSelection}
               rowClassName={(record) => {
                 if (highlightDuplicates) {
-                  const duplicateIds = getDuplicateCombinations(sceneVendorApps, 'TTS');
-                  return duplicateIds.has(record.id) ? 'duplicate-row-highlight' : '';
+                  return duplicateAnalysis.ids.has(record.id) ? 'duplicate-row-highlight' : '';
                 }
                 return '';
               }}
@@ -1289,8 +1317,7 @@ const VendorAppManagementPage: React.FC = () => {
               rowSelection={rowSelection}
               rowClassName={(record) => {
                 if (highlightDuplicates) {
-                  const duplicateIds = getDuplicateCombinations(sceneVendorApps, 'ASR');
-                  return duplicateIds.has(record.id) ? 'duplicate-row-highlight' : '';
+                  return duplicateAnalysis.ids.has(record.id) ? 'duplicate-row-highlight' : '';
                 }
                 return '';
               }}

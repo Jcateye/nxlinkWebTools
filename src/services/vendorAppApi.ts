@@ -163,6 +163,30 @@ export const getSceneVendorAppList = async (params: SceneVendorAppQueryParams): 
 };
 
 /**
+ * 获取指定数据中心的场景供应商应用列表
+ */
+export const getSceneVendorAppListForDataCenter = async (params: SceneVendorAppQueryParams, baseURL: string): Promise<SceneVendorAppListResponse> => {
+  try {
+    console.log(`[getSceneVendorAppListForDataCenter] 获取场景供应商应用列表 (${baseURL})`, params);
+    
+    const api = createApiInstance(baseURL);
+    const response = await api.get<ApiResponse<SceneVendorAppListResponse>>(
+      '/admin/nx_flow_manager/mgrPlatform/sceneInfo',
+      { params }
+    );
+    
+    if (response.data.code !== 0) {
+      throw new Error(`获取场景供应商应用列表失败: ${response.data.message}`);
+    }
+    
+    return response.data.data;
+  } catch (error: any) {
+    console.error(`获取场景供应商应用列表失败 (${baseURL})`, error);
+    throw error;
+  }
+};
+
+/**
  * 创建供应商应用
  */
 export const createVendorApp = async (data: VendorAppFormData): Promise<any> => {
@@ -382,6 +406,63 @@ export const updateSceneVendorApp = async (id: number, data: SceneVendorAppFormD
 };
 
 /**
+ * 为指定的数据中心更新场景供应商应用
+ */
+export const updateSceneVendorAppForDataCenter = async (id: number, data: SceneVendorAppFormData, baseURL: string, originalRecord?: any): Promise<any> => {
+  try {
+    console.log(`[updateSceneVendorAppForDataCenter] 更新场景供应商应用 (${baseURL})`, id, data, originalRecord);
+    
+    // 从localStorage获取tenantId
+    const sessionId = localStorage.getItem('sessionId');
+    let tenantId = '255'; // 默认值
+    if (sessionId) {
+      const storageKey = `tagUserParams_${sessionId}`;
+      const userParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (userParams.tenantId) {
+        tenantId = userParams.tenantId;
+      }
+    }
+    
+    // 构建完整的更新数据，包括原始记录的所有字段
+    const updateData = {
+      id: id,
+      type: data.type,
+      language: data.language,
+      vendor: data.vendor,
+      vendor_params: data.vendor_params,
+      code: data.code,
+      timbre: data.timbre,
+      model: data.model,
+      vendor_app_id: parseInt(data.vendor_app_id), // 确保是数字类型
+      status: data.status,
+      rating: data.rating,
+      remark: data.remark,
+      // 包含原始记录的时间戳和tenantId
+      create_ts: originalRecord?.create_ts,
+      update_ts: Math.floor(Date.now() / 1000), // 更新时间戳
+      tenantId: tenantId
+    };
+    
+    console.log(`[updateSceneVendorAppForDataCenter] 发送的完整数据 (${baseURL}):`, updateData);
+    
+    const api = createApiInstance(baseURL);
+    const response = await api.put<ApiResponse<any>>(
+      `/admin/nx_flow_manager/mgrPlatform/sceneInfo`,
+      updateData
+    );
+    
+    if (response.data.code !== 0) {
+      throw new Error(`更新场景供应商应用失败: ${response.data.message}`);
+    }
+    
+    return response.data.data;
+  } catch (error: any) {
+    console.error(`[updateSceneVendorAppForDataCenter] 更新失败 (${baseURL})`, error);
+    throw error;
+  }
+};
+
+/**
  * 删除场景供应商应用
  */
 export const deleteSceneVendorApp = async (id: number): Promise<boolean> => {
@@ -495,4 +576,4 @@ export const getVendorAppListForMapping = async (type: string): Promise<any[]> =
     console.error('获取供应商应用列表失败', error);
     return [];
   }
-}; 
+};

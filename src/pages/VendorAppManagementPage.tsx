@@ -32,9 +32,11 @@ import {
       ReloadOutlined,
     SettingOutlined,
     CheckOutlined,
-    StopOutlined
+    StopOutlined,
+    CloudSyncOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import VendorSyncModal from '../components/vendor/VendorSyncModal';
 import { 
   VendorApp, 
   SceneVendorApp, 
@@ -134,6 +136,10 @@ const VendorAppManagementPage: React.FC = () => {
       failed: 0,
       total: 0
     });
+
+    // 批量同步相关状态
+    const [syncModalVisible, setSyncModalVisible] = useState(false);
+
     const [idInput, setIdInput] = useState('');
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportData, setExportData] = useState('');
@@ -529,6 +535,16 @@ const VendorAppManagementPage: React.FC = () => {
     return { ids: duplicateIds, groups };
   }, [sceneVendorApps, highlightDuplicates]); // 仅在数据或开关变化时重新计算
 
+
+
+  // 批量同步
+  const handleBatchSync = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要同步的记录');
+      return;
+    }
+    setSyncModalVisible(true);
+  };
 
   // 批量编辑相关函数
   const handleBatchEdit = () => {
@@ -1221,6 +1237,15 @@ const VendorAppManagementPage: React.FC = () => {
               </Button>
               <Button 
                 type="default" 
+                icon={<CloudSyncOutlined />}
+                onClick={handleBatchSync}
+                disabled={selectedRowKeys.length === 0}
+                style={{ color: '#722ed1', borderColor: '#722ed1' }}
+              >
+                批量同步 ({selectedRowKeys.length})
+              </Button>
+              <Button 
+                type="default"  
                 icon={<CheckOutlined />}
                 onClick={handleBatchEnable}
                 disabled={selectedRowKeys.length === 0}
@@ -1262,7 +1287,7 @@ const VendorAppManagementPage: React.FC = () => {
           </div>
           <Alert
             message="功能已优化"
-            description="✅ 数据中心切换：支持在香港和CHL环境之间快速切换，自动更新API请求地址 ✅ 统一令牌管理：所有页面现在都可以方便地编辑API令牌 ✅ 批量操作功能：支持批量编辑、批量启用、批量禁用等操作 ✅ 批量编辑：支持批量修改评级、国家/地区、音色、模型、供应商应用等字段 ✅ 前端逐一提交更新 ✅ 完整的结果统计和错误提醒"
+            description="✅ 数据中心切换：支持在香港和CHL环境之间快速切换，自动更新API请求地址 ✅ 统一令牌管理：所有页面现在都可以方便地编辑API令牌 ✅ 批量操作功能：支持批量编辑、批量启用、批量禁用、批量同步等操作 ✅ 批量同步：支持跨环境同步数据，可自定义唯一标识组合"
             type="success"
             showIcon
             style={{ marginBottom: 16 }}
@@ -1916,6 +1941,15 @@ const VendorAppManagementPage: React.FC = () => {
           <p>请稍候，正在处理数据...</p>
         </div>
       </Modal>
+
+      {/* 批量同步模态框 */}
+      <VendorSyncModal
+        visible={syncModalVisible}
+        onCancel={() => setSyncModalVisible(false)}
+        selectedRows={selectedRows}
+        activeTab={activeTab}
+        serviceType={SERVICE_TYPE_MAP[activeTab as keyof typeof SERVICE_TYPE_MAP]}
+      />
 
       {/* 导出ID模态框 */}
       <Modal

@@ -35,7 +35,10 @@ export const aiSupplierManufacturerConfig: Record<number, VendorConfig[]> = {
     { value: '17', name: "Fano / Pi", codeName: "Pi" },
   ],
   3: [ // LLM
-    { value: '14', name: "Azure-openai", codeName: "Azure-openai" },
+    { value: '5', name: 'Google', codeName: 'Iota' },
+    { value: '14', name: 'Azure-openai', codeName: 'Azure-openai' },
+    { value: '15', name: '火山 / BytePlus', codeName: 'Kappa' },
+    { value: '18', name: 'OpenRouter', codeName: 'Omicron' },
   ]
 };
 

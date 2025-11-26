@@ -33,7 +33,9 @@ const { Header, Content, Sider } = Layout;
 const { TabPane } = Tabs;
 const { SubMenu } = Menu;
 
-const DEFAULT_PROMPT_LAB_BASE_URL = 'http://localhost:3000';
+// 提示词验证项目通过本站代理访问，不再直接访问 3000 端口
+// 这样可以在 Vite 代理层面做令牌校验
+const DEFAULT_PROMPT_LAB_BASE_URL = '';  // 空字符串表示使用当前站点
 const DEFAULT_PROMPT_LAB_PATH_PREFIX = '/prompt-lab';
 const ADMIN_MENU_KEYS = new Set(['tag', 'bill', 'bill-analysis', 'bill-tracking', 'vendor-app', 'prompt']);
 const ADMIN_TOKEN_STORAGE_KEYS = ['admin_api_token', 'plat_token'];

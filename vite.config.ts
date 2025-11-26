@@ -13,6 +13,71 @@ export default defineConfig({
     port: 3010,
     host: true,
     proxy: {
+      // 提示词验证项目代理 - 需要令牌才能访问
+      '/prompt-lab': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/prompt-lab/, ''),
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            // 检查是否有认证令牌
+            const authToken = req.headers['x-auth-token'] || 
+                              req.headers['authorization'] ||
+                              (req.url && new URL(req.url, 'http://localhost').searchParams.get('auth_token'));
+            
+            // 对于静态资源（js, css, 图片等），允许通过
+            const isStaticResource = /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)(\?.*)?$/i.test(req.url || '');
+            
+            // 对于 HTML 页面请求，检查 Referer 是否来自本站
+            const referer = req.headers['referer'] || '';
+            const isFromLocalhost = referer.includes('localhost:3010') || referer.includes('127.0.0.1:3010');
+            
+            // 如果是静态资源或者来自本站的请求，允许通过
+            if (isStaticResource || isFromLocalhost) {
+              console.log('[prompt-lab proxy] 允许请求:', req.url);
+              return;
+            }
+            
+            // 对于直接访问的 HTML 页面，检查令牌
+            if (!authToken) {
+              console.log('[prompt-lab proxy] 拒绝无令牌请求:', req.url);
+              // 不能在这里直接返回响应，需要在 bypass 中处理
+            }
+          });
+        },
+        bypass: (req, res, options) => {
+          // 检查是否有认证令牌
+          const url = req.url || '';
+          const urlObj = new URL(url, 'http://localhost');
+          const authToken = req.headers['x-auth-token'] || 
+                            req.headers['authorization'] ||
+                            urlObj.searchParams.get('auth_token');
+          
+          // 静态资源直接放行
+          const isStaticResource = /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)(\?.*)?$/i.test(url);
+          if (isStaticResource) {
+            return; // undefined 表示继续代理
+          }
+          
+          // 检查 Referer
+          const referer = req.headers['referer'] || '';
+          const isFromLocalhost = referer.includes('localhost:3010') || referer.includes('127.0.0.1:3010');
+          
+          // 如果有令牌或者来自本站，允许访问
+          if (authToken || isFromLocalhost) {
+            return; // 继续代理
+          }
+          
+          // 无令牌且不是来自本站，返回 401 页面
+          console.log('[prompt-lab proxy] 无令牌访问，重定向到主页');
+          res.writeHead(302, {
+            'Location': '/?error=unauthorized&redirect=prompt-lab',
+            'Content-Type': 'text/html'
+          });
+          res.end();
+          return false; // 阻止代理
+        }
+      },
       '/api/backend': {
         target: 'http://localhost:8400',
         changeOrigin: true,

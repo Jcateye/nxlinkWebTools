@@ -199,8 +199,18 @@ const AppContent = () => {
   }, [adminTokenValid, validateAdminToken]);
 
   const redirectToPromptLab = useCallback(() => {
-    window.location.href = promptLabUrl;
-  }, [promptLabUrl]);
+    // 获取当前有效的令牌
+    const token = getAdminToken();
+    if (token) {
+      // 将令牌作为 URL 参数传递给提示词验证项目
+      // 提示词验证项目可以从 URL 中读取并存储到 localStorage
+      const separator = promptLabUrl.includes('?') ? '&' : '?';
+      const urlWithToken = `${promptLabUrl}${separator}auth_token=${encodeURIComponent(token)}`;
+      window.location.href = urlWithToken;
+    } else {
+      window.location.href = promptLabUrl;
+    }
+  }, [promptLabUrl, getAdminToken]);
 
   const handleMenuSelect: MenuProps['onSelect'] = ({ key }) => {
     const menuKey = key as string;
@@ -532,6 +542,7 @@ const AppContent = () => {
               src={promptLabUrl}
               title="提示词验证独立应用"
               minHeight={900}
+              authToken={getAdminToken()}
             />
           </Card>
         );

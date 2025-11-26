@@ -14,35 +14,24 @@ export default defineConfig({
     host: true,
     proxy: {
       // ========== 提示词验证项目 (3000) 代理配置 ==========
-      // 所有 3000 项目的请求都需要通过令牌校验
+      // 3000 项目已配置 base: '/llmproxy'，所有路径都带此前缀
       // 
       // 访问方式：
-      //   - 主入口: http://localhost:3010/prompt-lab?auth_token=xxx
-      //   - 其他页面: http://localhost:3010/prompt-lab/capabilities.html
-      //   - API 请求: http://localhost:3010/prompt-lab/api/xxx
-      //
-      // 注意：3000 项目内部如果使用绝对路径（如 /capabilities.html），
-      // 需要在 3000 项目中配置 base 路径，或者使用相对路径。
-      // 如果无法修改 3000 项目，可以用 Nginx 在生产环境做路径重写。
+      //   - 主入口: http://localhost:3010/llmproxy?auth_token=xxx
+      //   - 其他页面: http://localhost:3010/llmproxy/charts.html
+      //   - API 请求: http://localhost:3010/llmproxy/api/xxx
       
-      '/prompt-lab': {
+      '/llmproxy': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        // 移除 /prompt-lab 前缀后转发到 3000
-        rewrite: (path) => path.replace(/^\/prompt-lab/, ''),
-        // WebSocket 支持（如果 3000 项目有热更新等功能）
+        // 不需要 rewrite，因为 3000 项目已经配置了 /llmproxy 前缀
         ws: true,
         configure: (proxy, options) => {
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('[prompt-lab proxy] 代理请求:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            // 如果是 HTML 响应，可以在这里注入脚本来修复绝对路径问题
-            // 但这比较复杂，建议在生产环境用 Nginx 处理
+            console.log('[llmproxy] 代理请求:', req.method, req.url);
           });
           proxy.on('error', (err, req, res) => {
-            console.error('[prompt-lab proxy] 代理错误:', err.message);
-            // 3000 服务未启动时返回友好提示
+            console.error('[llmproxy] 代理错误:', err.message);
             if (!res.headersSent) {
               res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8' });
               res.end(`
@@ -51,7 +40,6 @@ export default defineConfig({
                   <body style="font-family: sans-serif; padding: 40px; text-align: center;">
                     <h1>😔 提示词验证服务未启动</h1>
                     <p>请先启动提示词验证项目（端口 3000）</p>
-                    <p><code>cd prompt-lab && npm start</code></p>
                     <p><a href="/">返回主页</a></p>
                   </body>
                 </html>
@@ -70,42 +58,38 @@ export default defineConfig({
                         req.headers['authorization'] as string ||
                         urlObj.searchParams.get('auth_token') || '';
           } catch (e) {
-            // URL 解析失败，继续检查其他来源
             authToken = req.headers['x-auth-token'] as string || 
                         req.headers['authorization'] as string || '';
           }
           
-          // 静态资源直接放行（js, css, 图片, 字体等）
+          // 静态资源直接放行
           const isStaticResource = /\.(js|mjs|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json)(\?.*)?$/i.test(url);
           if (isStaticResource) {
-            return; // 继续代理
+            return;
           }
           
-          // 检查 Referer - 来自本站的请求放行
+          // 检查 Referer - 来自 /llmproxy 的内部请求放行
           const referer = req.headers['referer'] || '';
-          const isFromLocalhost = referer.includes('localhost:3010') || 
-                                  referer.includes('127.0.0.1:3010') ||
-                                  referer.includes('localhost:3000'); // 3000 内部跳转也放行
+          const isFromLlmproxy = referer.includes('/llmproxy');
           
           // 检查 Cookie 中是否有令牌
           const cookies = req.headers['cookie'] || '';
-          const hasCookieToken = cookies.includes('nxlink_auth_token=') || 
-                                 cookies.includes('plat_token=') ||
+          const hasCookieToken = cookies.includes('plat_token=') ||
                                  cookies.includes('admin_api_token=');
           
-          // 有令牌、来自本站、或有 Cookie 令牌，允许访问
-          if (authToken || isFromLocalhost || hasCookieToken) {
-            return; // 继续代理
+          // 有令牌、来自 llmproxy、或有 Cookie 令牌，允许访问
+          if (authToken || isFromLlmproxy || hasCookieToken) {
+            return;
           }
           
-          // 无令牌且不是来自本站，返回 401 并重定向
-          console.log('[prompt-lab proxy] 无令牌访问被拦截:', url);
+          // 无令牌，重定向到主页
+          console.log('[llmproxy] 无令牌访问被拦截:', url);
           res.writeHead(302, {
-            'Location': '/?error=unauthorized&message=' + encodeURIComponent('请先配置运营后台令牌') + '&redirect=prompt-lab',
+            'Location': '/?error=unauthorized&message=' + encodeURIComponent('请先配置运营后台令牌') + '&redirect=llmproxy',
             'Content-Type': 'text/html'
           });
           res.end();
-          return false; // 阻止代理
+          return false;
         }
       },
       '/api/backend': {

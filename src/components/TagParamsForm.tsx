@@ -3,6 +3,7 @@ import { Form, Input, Button, Card, message, Typography } from 'antd';
 import { useUserContext } from '../context/UserContext';
 import { TagUserParams } from '../types';
 import axios from 'axios';
+import { getCurrentDataCenter } from '../config/apiConfig';
 
 const { Text } = Typography;
 
@@ -37,15 +38,24 @@ const TagParamsForm: React.FC = () => {
 
   const handleSubmit = (values: TagUserParams) => {
     try {
+      // 更新上下文 & 会话内的标签参数
       setTagUserParams(values);
       console.log('💾 用户保存了标签参数：', values);
-      // 保存到本地存储
+      // 保存到本地存储（会话级）
       if (sessionId) {
         localStorage.setItem(`tagUserParams_${sessionId}`, JSON.stringify(values));
       }
+      // 同步到全局运营后台API令牌（与顶部「运营后台令牌」共用）
+      try {
+        localStorage.setItem('admin_api_token', values.authorization);
+        localStorage.setItem('plat_token', values.authorization);
+      } catch (e) {
+        console.warn('同步API令牌到全局admin_api_token/plat_token失败（可忽略）:', e);
+      }
       
-      // 保存身份信息后调用 is_login 获取公司和团队信息
-      axios.put('/api/admin/saas_plat/user/is_login', null, {
+      // 保存身份信息后调用 is_login 获取公司和团队信息（仅用于提示）
+      const baseURL = getCurrentDataCenter().baseURL;
+      axios.put(`${baseURL}/admin/saas_plat/user/is_login`, null, {
         headers: {
           authorization: values.authorization,
           system_id: '5',

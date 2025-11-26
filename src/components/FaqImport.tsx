@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import axios from 'axios';
 import { batchImportFaqs, getFaqLanguageList, addFaqLanguage, getFaqGroupList, addFaq } from '../services/api';
+import { getCurrentDataCenter } from '../config/apiConfig';
 import { useUserContext } from '../context/UserContext';
 import { ApiResponse } from '../types';
 
@@ -98,7 +99,8 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
       console.log(`🔑 [FaqImport] 使用Token: ${auth.substring(0, 20)}...`);
       
       // 直接使用axios调用API获取所有可用语言
-      const availableResponse = await axios.get<ApiResponse<FaqLanguage[]>>('/api/home/api/language', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const availableResponse = await axios.get<ApiResponse<FaqLanguage[]>>(`${baseURL}/home/api/language`, {
         headers: {
           authorization: auth,
           system_id: '5'
@@ -114,7 +116,7 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
       const languages = availableResponse.data.data || [];
       
       // 再获取租户已经拥有的语言
-      const tenantResponse = await axios.get<ApiResponse<TenantFaqLanguage[]>>('/api/home/api/faqTenantLanguage', {
+      const tenantResponse = await axios.get<ApiResponse<TenantFaqLanguage[]>>(`${baseURL}/home/api/faqTenantLanguage`, {
         headers: {
           authorization: auth,
           system_id: '5'
@@ -178,7 +180,8 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
       console.log(`🔑 [FaqImport] 使用Token: ${auth.substring(0, 20)}...`);
       
       // 直接使用axios调用API，而不是使用getFaqGroupList函数
-      const response = await axios.get('/api/home/api/faqGroup', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.get(`${baseURL}/home/api/faqGroup`, {
         params: { language_id: languageId },
         headers: {
           authorization: auth,
@@ -244,7 +247,8 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
         console.log(`🔍 [FaqImport] 检查语言 "${languageName}" 是否已添加到${formType === 'source' ? '源' : '目标'}租户`);
         
         // 获取租户已有语言
-        const tenantResponse = await axios.get<ApiResponse<TenantFaqLanguage[]>>('/api/home/api/faqTenantLanguage', {
+        const baseURL = getCurrentDataCenter().baseURL;
+        const tenantResponse = await axios.get<ApiResponse<TenantFaqLanguage[]>>(`${baseURL}/home/api/faqTenantLanguage`, {
           headers: {
             authorization: auth,
             system_id: '5'
@@ -265,7 +269,8 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
           console.log(`🔄 [FaqImport] 语言 "${languageName}" 存在但未添加到租户，现在添加它`);
           
           // 使用正确的URL路径添加语言到租户
-          const addResponse = await axios.post('/api/home/api/faqTenantLanguage', 
+          const baseURL = getCurrentDataCenter().baseURL;
+          const addResponse = await axios.post(`${baseURL}/home/api/faqTenantLanguage`, 
             { language_id: langId },
             { 
               headers: { 
@@ -310,7 +315,8 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
         }
         
         // 使用正确的URL路径添加语言到租户
-        const response = await axios.post('/api/home/api/faqTenantLanguage',
+        const baseURL = getCurrentDataCenter().baseURL;
+        const response = await axios.post(`${baseURL}/home/api/faqTenantLanguage`,
           { language_id: foundLang.id },
           { 
             headers: { 
@@ -375,7 +381,8 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
       }
       
       // 使用axios直接调用API创建分组
-      const resp = await axios.post('/api/home/api/faqGroup', 
+      const baseURL = getCurrentDataCenter().baseURL;
+      const resp = await axios.post(`${baseURL}/home/api/faqGroup`, 
         { group_name: groupName, language_id: languageId, type: 4 },
         { headers: { authorization: auth, system_id: '5' } }
       );
@@ -605,7 +612,8 @@ const FaqImport: React.FC<FaqImportProps> = ({ onImportComplete, formType }) => 
           };
           
           // 发起请求
-          const resp = await axios.post('/api/home/api/faq', 
+          const baseURL = getCurrentDataCenter().baseURL;
+          const resp = await axios.post(`${baseURL}/home/api/faq`, 
             faqData,
             { 
               headers: { 

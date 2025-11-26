@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { TTSProvider } from '../types/scriptTest';
+import { getCurrentDataCenter } from '../config/apiConfig';
 
 // TTS服务配置接口
 interface TTSConfig {
@@ -41,7 +42,8 @@ export function getTTSConfig(): TTSConfig {
 export async function generateVolcanoTTS(text: string): Promise<string> {
   try {
     // 调用火山引擎TTS API
-    const response = await axios.post('/api/tts/volcano', {
+    const baseURL = getCurrentDataCenter().baseURL;
+    const response = await axios.post(`${baseURL}/tts/volcano`, {
       text,
       apiKey: config.volcanoApiKey,
       apiSecret: config.volcanoApiSecret,
@@ -63,7 +65,8 @@ export async function generateVolcanoTTS(text: string): Promise<string> {
 export async function generateElevenLabsTTS(text: string): Promise<string> {
   try {
     // 调用11labs API
-    const response = await axios.post('/api/tts/elevenlabs', {
+    const baseURL = getCurrentDataCenter().baseURL;
+    const response = await axios.post(`${baseURL}/tts/elevenlabs`, {
       text,
       apiKey: config.elevenLabsApiKey
     });

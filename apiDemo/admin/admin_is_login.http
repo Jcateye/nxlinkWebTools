@@ -1,0 +1,68 @@
+curl 'https://nxlink.nxcloud.com/admin/saas_plat/user/is_login' \
+-X 'PUT' \
+-H 'Pragma: no-cache' \
+-H 'Accept: application/json, text/plain, */*' \
+-H 'Authorization: eyJhbGciOiJIUzI1NiJ9.eyJ1SWQiOjgxNywidXVJZCI6IjY5MjNmNmQ3ZTRiMDVkMmE3NDM4ZGJhOSJ9.XMPr8UB-ogY5VGv3XNdXUwy5G8NWsfSqwhSGHpQq43M' \
+-H 'Sec-Fetch-Site: same-origin' \
+-H 'Host: nxlink.nxcloud.com' \
+-H 'Accept-Language: zh-CN,zh-Hans;q=0.9' \
+-H 'Cache-Control: no-cache' \
+-H 'Sec-Fetch-Mode: cors' \
+-H 'Accept-Encoding: gzip, deflate, br' \
+-H 'Origin: https://nxlink.nxcloud.com' \
+-H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15' \
+-H 'Referer: https://nxlink.nxcloud.com/admin/manager/' \
+-H 'Content-Length: 0' \
+-H 'Connection: keep-alive' \
+-H 'Sec-Fetch-Dest: empty' \
+-H 'system_id: 4' \
+-H 'lang: zh_CN'
+
+
+# response
+
+{
+    "code": 0,
+    "message": "",
+    "data": {
+        "state": 1,
+        "userInfo": {
+            "id": 817,
+            "phone": "ding-8617770033771",
+            "email": null,
+            "nickname": "Degen 徐勋健",
+            "company": "牛信",
+            "defaultTenantId": 255,
+            "customerId": null,
+            "customerCode": null,
+            "customerType": null,
+            "roleName": null,
+            "tenantName": "SaaS运营端内部租户",
+            "tenantNickName": "Degen 徐勋健",
+            "systemRoles": [
+                {
+                    "system_id": 4,
+                    "role_id": 15482,
+                    "role_name": " 产品-NXLINK",
+                    "tenant_id": null,
+                    "role_unique_key": null,
+                    "is_default": 1
+                }
+            ],
+            "source": 3,
+            "shaPwd": null,
+            "uuid": "6923f6d7e4b05d2a7438dba9",
+            "isAgentMode": 0
+        },
+        "isLoginUser": null,
+        "isTenantOwner": false,
+        "textSeat": false,
+        "voiceSeat": false,
+        "bundleExpire": false,
+        "currency": null,
+        "companyDomain": null,
+        "loginType": null,
+        "tokenRemainSec": 17999
+    },
+    "traceId": "c8b32a1d8de94da4b3b6dde2caeb50c4"
+}

@@ -20,6 +20,7 @@ import { EyeOutlined, SearchOutlined, ReloadOutlined, DownloadOutlined, UploadOu
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import axios from 'axios';
+import { getCurrentDataCenter } from '../config/apiConfig';
 import { useUserContext } from '../context/UserContext';
 import Loading from './Loading';
 import MigrationResult from './MigrationResult';
@@ -120,7 +121,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
       return;
     }
     try {
-      const response = await axios.get<any>('/api/home/api/language', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.get<any>(`${baseURL}/home/api/language`, {
         headers: {
           authorization: faqUserParams.targetAuthorization,
           system_id: '5'
@@ -143,7 +145,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
       return;
     }
     try {
-      const response = await axios.get<any>('/api/home/api/faqTenantLanguage', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.get<any>(`${baseURL}/home/api/faqTenantLanguage`, {
         headers: {
           authorization: faqUserParams.targetAuthorization,
           system_id: '5'
@@ -166,7 +169,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
     if (!faqUserParams?.targetAuthorization || !selectedLanguageId) return;
     setLoading(true);
     try {
-      const response = await axios.get<any>('/api/home/api/faqGroup', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.get<any>(`${baseURL}/home/api/faqGroup`, {
         headers: {
           authorization: faqUserParams.targetAuthorization,
           system_id: '5'
@@ -222,7 +226,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
     setAddingLanguage(true);
     try {
       // 注意：这里直接使用axios和目标租户的授权信息，而不是使用addFaqLanguage函数
-      const response = await axios.post('/api/home/api/faqTenantLanguage', 
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.post(`${baseURL}/home/api/faqTenantLanguage`, 
         { language_id: selectedNewLanguageId },
         { 
           headers: {
@@ -336,7 +341,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
           console.log(`🔍 [TargetFaqGroupMigration] 使用目标租户Token获取分组 "${group.group_name}" 的FAQ列表`);
           
           // 直接使用 axios 绕过拦截器，确保使用目标租户 token
-          const axiosResp = await axios.get<any>('/api/home/api/faq', {
+          const baseURL = getCurrentDataCenter().baseURL;
+          const axiosResp = await axios.get<any>(`${baseURL}/home/api/faq`, {
             headers,
             params: {
               group_id: group.id,
@@ -419,7 +425,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
               console.log(`📝 [TargetFaqGroupMigration] 添加FAQ "${question}" 到源租户, 使用源租户Token`);
               
               // 使用源租户token(userParams.targetAuthorization)直接调用API
-              const response = await axios.post('/api/home/api/faq', requestParams, {
+              const baseURL = getCurrentDataCenter().baseURL;
+              const response = await axios.post(`${baseURL}/home/api/faq`, requestParams, {
                 headers: {
                   authorization: userParams.targetAuthorization,
                   system_id: '5'
@@ -565,7 +572,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
     }
     setLoadingGroupFaqs(true);
     try {
-      const response = await axios.get<any>('/api/home/api/faq', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.get<any>(`${baseURL}/home/api/faq`, {
         headers: {
           authorization: faqUserParams.targetAuthorization,
           system_id: '5'
@@ -630,7 +638,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
         console.log(`🔍 [TargetFaqGroupMigration] 导出 - 使用目标租户Token获取分组 "${group.group_name}" 的FAQ列表`);
         
         // 直接使用 axios 绕过拦截器，确保使用目标租户 token
-        const axiosResp = await axios.get<any>('/api/home/api/faq', {
+        const baseURL = getCurrentDataCenter().baseURL;
+        const axiosResp = await axios.get<any>(`${baseURL}/home/api/faq`, {
           headers,
           params: {
             group_id: group.id,
@@ -717,7 +726,8 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
         system_id: '5'
       };
       
-      const response = await axios.get('/api/home/api/faqGroup', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.get(`${baseURL}/home/api/faqGroup`, {
         params: { language_id: languageId },
         headers: sourceHeaders
       });
@@ -740,7 +750,7 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
 
       // 2. 不存在则创建
       console.log(`ℹ️ [TargetFaqGroupMigration] 源租户中不存在分组 "${groupName}"，尝试创建...`);
-      const resp = await axios.post('/api/home/api/faqGroup',
+      const resp = await axios.post(`${baseURL}/home/api/faqGroup`,
         { group_name: groupName, language_id: languageId, type: 4 },
         { headers: sourceHeaders }
       );
@@ -750,7 +760,7 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
         console.log(`✅ [TargetFaqGroupMigration] 在源租户创建分组 "${groupName}" 成功`);
         
         // 重新获取分组列表以获取新创建的分组ID
-        const refreshResp = await axios.get('/api/home/api/faqGroup', {
+        const refreshResp = await axios.get(`${baseURL}/home/api/faqGroup`, {
           params: { language_id: languageId },
           headers: sourceHeaders
         });
@@ -772,7 +782,7 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
         
         // 如果未能立即获取到，等待一下后重试
         await new Promise(resolve => setTimeout(resolve, 1000));
-        const retryResp = await axios.get('/api/home/api/faqGroup', {
+        const retryResp = await axios.get(`${baseURL}/home/api/faqGroup`, {
           params: { language_id: languageId },
           headers: sourceHeaders
         });
@@ -794,7 +804,7 @@ const TargetFaqGroupMigration = forwardRef<TargetFaqGroupMigrationHandle, Target
       } else if (respData.code === 11058) {
         // 如果是重复分组错误，则重新获取
         console.warn(`⚠️ [TargetFaqGroupMigration] 分组 "${groupName}" 在源租户重复，重新拉取列表`);
-        const dupResp = await axios.get('/api/home/api/faqGroup', {
+        const dupResp = await axios.get(`${baseURL}/home/api/faqGroup`, {
           params: { language_id: languageId },
           headers: sourceHeaders
         });

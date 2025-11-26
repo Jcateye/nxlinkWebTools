@@ -21,7 +21,7 @@ import {
   ConversationDetailResponse,
 } from '../types';
 import requestLimiter from '../utils/requestLimiter';
-import { API_LIMIT_CONFIG, API_CONFIG } from '../config/apiConfig';
+import { API_LIMIT_CONFIG, API_CONFIG, getCurrentDataCenter } from '../config/apiConfig';
 import { withErrorMonitoring } from '../utils/errorMonitor';
 
 // 应用API限流配置
@@ -96,9 +96,17 @@ const logRequestError = (error: AxiosError, source: string) => {
   return error;
 };
 
-// Tag API请求拦截器
+    // Tag API请求拦截器
 tagApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // 动态设置baseURL
+    config.baseURL = getCurrentDataCenter().baseURL;
+
+    // 如果已经有授权头，则不进行自动注入
+    if (config.headers.authorization) {
+      return config;
+    }
+
     // 使用会话ID获取对应的tag用户参数
     const sessionId = localStorage.getItem('sessionId');
     if (sessionId) {
@@ -146,8 +154,11 @@ tagApi.interceptors.request.use(
 // NXLink客户端通用请求拦截器
 nxlinkClientApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // 动态设置baseURL
+    config.baseURL = getCurrentDataCenter().baseURL;
+
     const token = localStorage.getItem('nxlink_client_token');
-    if (token) {
+    if (token && !config.headers.authorization) {
       config.headers.authorization = token;
     }
     return config;
@@ -162,6 +173,14 @@ nxlinkClientApi.interceptors.request.use(
 // FAQ API请求拦截器
 faqApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // 动态设置baseURL
+    config.baseURL = getCurrentDataCenter().baseURL;
+
+    // 如果已经有授权头，则不进行自动注入
+    if (config.headers.authorization) {
+      return config;
+    }
+
     // 优先从会话中获取FAQ专用的授权token
     const sessionId = localStorage.getItem('sessionId');
     let faqToken = '';
@@ -217,6 +236,14 @@ faqApi.interceptors.request.use(
 // Voice API请求拦截器
 voiceApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // 动态设置baseURL
+    config.baseURL = getCurrentDataCenter().baseURL;
+
+    // 如果已经有授权头，则不进行自动注入
+    if (config.headers.authorization) {
+      return config;
+    }
+
     // 优先从会话中获取FAQ专用的授权token（与FAQ API使用相同的token优先级）
     const sessionId = localStorage.getItem('sessionId');
     let voiceToken = '';
@@ -302,6 +329,14 @@ voiceApi.interceptors.response.use(
 
 conversationApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // 动态设置baseURL
+    config.baseURL = getCurrentDataCenter().baseURL;
+
+    // 如果已经有授权头，则不进行自动注入
+    if (config.headers.authorization) {
+      return config;
+    }
+
     // 优先从会话中获取FAQ专用的授权token（与FAQ API使用相同的token优先级）
     const sessionId = localStorage.getItem('sessionId');
     let conversationToken = '';
@@ -1046,9 +1081,9 @@ export const addFaq = async (params: {
     // 使用faqApi发送请求，并确保headers正确传递
     console.log(`[addFaq] 正在发送POST请求到 '/home/api/faq'，请稍候...`);
     
-    // 使用直接的axios请求确保headers正确传递
-    const response = await axios.post('/api/home/api/faq', params, { 
-      headers: fullHeaders 
+    // 使用faqApi替代直接的axios请求
+    const response = await faqApi.post('/home/api/faq', params, { 
+      headers: headers || {} 
     });
     
     // 检查响应
@@ -1229,7 +1264,7 @@ export const batchImportFaqs = async (
       for (const groupName of uniqueGroupNames) {
         try {
           // 查询是否已存在该分组
-          const groupResponse = await axios.get('/api/home/api/faqGroup', {
+          const groupResponse = await faqApi.get('/home/api/faqGroup', {
             params: { 
               language_id: faqs[0].language_id || 1 // 使用第一个FAQ的语言ID，如果没有则默认为1
             }
@@ -1251,7 +1286,7 @@ export const batchImportFaqs = async (
           
           // 如果分组不存在，创建新分组
           if (!groupId) {
-            const createResp = await axios.post('/api/home/api/faqGroup', {
+            const createResp = await faqApi.post('/home/api/faqGroup', {
               group_name: groupName,
               language_id: faqs[0].language_id || 1,
               type: 4
@@ -1259,7 +1294,7 @@ export const batchImportFaqs = async (
             
             if (createResp.data && createResp.data.code === 0) {
               // 创建成功，重新获取分组列表查找新ID
-              const updatedGroupsResp = await axios.get('/api/home/api/faqGroup', {
+              const updatedGroupsResp = await faqApi.get('/home/api/faqGroup', {
                 params: { 
                   language_id: faqs[0].language_id || 1
                 }
@@ -1313,8 +1348,8 @@ export const batchImportFaqs = async (
           };
           
           // 调用添加FAQ API
-          const response = await axios.post<ApiResponse<null>>(
-            '/api/home/api/faq',
+          const response = await faqApi.post<ApiResponse<null>>(
+            '/home/api/faq',
             faqData
           );
           
@@ -1787,9 +1822,9 @@ export const getTenantList = async (token: string): Promise<any[]> => {
     try {
       console.log(`[getTenantList] 获取租户列表`);
       
-      const response = await axios({
+      const response = await nxlinkClientApi({
         method: 'get',
-        url: '/api/admin/saas_plat/tenant/tenantsInSwitch',
+        url: '/admin/saas_plat/tenant/tenantsInSwitch',
         headers: {
           'authorization': token,
           'system_id': '5',
@@ -1822,9 +1857,9 @@ export const switchTenant = async (token: string, tenantId: number): Promise<boo
     try {
       console.log(`[switchTenant] 切换租户，tenantId=${tenantId}`);
       
-      const response = await axios({
+      const response = await nxlinkClientApi({
         method: 'put',
-        url: '/api/admin/saas_plat/user/switch_tenant',
+        url: '/admin/saas_plat/user/switch_tenant',
         headers: {
           'authorization': token,
           'system_id': '5',

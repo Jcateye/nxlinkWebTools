@@ -52,6 +52,7 @@ import {
   checkGroupId,
   checkFaqMigrate
 } from '../services/api';
+import { getCurrentDataCenter } from '../config/apiConfig';
 
 const { Text } = Typography;
 const { Search } = Input;
@@ -555,7 +556,8 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
       if (!faqUserParams?.targetAuthorization) {
         return [];
       }
-      const response = await axios.get('/api/home/api/faqGroup', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.get(`${baseURL}/home/api/faqGroup`, {
         params: { language_id: languageId },
         headers: {
           authorization: faqUserParams.targetAuthorization,
@@ -604,7 +606,8 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
     // 2. 不存在则创建
     console.log(`ℹ️ [FaqGroupMigration] 目标系统中不存在分组 "${newGroupName}"，尝试创建...`);
     try {
-      const resp = await axios.post('/api/home/api/faqGroup',
+      const baseURL = getCurrentDataCenter().baseURL;
+      const resp = await axios.post(`${baseURL}/home/api/faqGroup`,
         { group_name: newGroupName, language_id: languageId, type: 4 },
         { headers: { authorization: faqUserParams?.targetAuthorization || '', system_id: '5' } }
       );
@@ -833,7 +836,8 @@ const FaqGroupMigration = forwardRef<FaqGroupMigrationHandle, FaqGroupMigrationP
       };
       
       // 直接使用axios调用API
-      const response = await axios.get<any>('/api/home/api/faq', {
+      const baseURL = getCurrentDataCenter().baseURL;
+      const response = await axios.get<any>(`${baseURL}/home/api/faq`, {
         headers,
         params: {
           group_id: groupId,

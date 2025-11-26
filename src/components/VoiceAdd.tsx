@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Form, Input, Button, Select, Radio, message, Upload, Typography, Space } from 'antd';
 import { UploadOutlined, SaveOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { getCurrentDataCenter } from '../config/apiConfig';
 import { useUserContext } from '../context/UserContext';
 
 const { Title } = Typography;
@@ -73,8 +74,9 @@ const VoiceAdd: React.FC<VoiceAddProps> = ({ formType, onSuccess }) => {
     setLoading(true);
     try {
       // 这里假设有上传文件的API，实际使用时需要替换为真实的上传API
+      const baseURL = getCurrentDataCenter().baseURL;
       const response = await axios.post(
-        '/api/admin/nx_flow/upload', 
+        `${baseURL}/admin/nx_flow/upload`, 
         formData, 
         {
           headers: {
@@ -148,8 +150,9 @@ const VoiceAdd: React.FC<VoiceAddProps> = ({ formType, onSuccess }) => {
       };
 
       // 发送请求
+      const baseURL = getCurrentDataCenter().baseURL;
       const response = await axios.post(
-        '/api/admin/nx_flow/voiceConfig', 
+        `${baseURL}/admin/nx_flow/voiceConfig`, 
         payload, 
         {
           headers: {

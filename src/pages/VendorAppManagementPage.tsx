@@ -404,7 +404,8 @@ const VendorAppManagementPage: React.FC = () => {
 
     form.setFieldsValue({
       ...record,
-      vendorDisplay: vendor ? vendor.codeName : record.vendor // 用于显示的字段
+      vendorDisplay: vendor ? vendor.codeName : record.vendor, // 用于显示的字段
+      is_clone: !!record.clone_url // 根据 clone_url 判断是否克隆
     });
 
     // 初始化厂商参数编辑状态
@@ -454,7 +455,30 @@ const VendorAppManagementPage: React.FC = () => {
       // 处理厂商参数的部分更新
       if (vendorParamsEditMode === 'partial' && editingRecord && Object.keys(vendorParamsPartialUpdates).length > 0) {
         const originalVendorParams = editingRecord.vendor_params || '{}';
-        const updatedVendorParams = updateJsonByKeys(originalVendorParams, vendorParamsPartialUpdates);
+        
+        // 将用户输入的字符串值解析为实际的 JSON 类型（数组、对象等）
+        const parsedUpdates: Record<string, any> = {};
+        for (const [key, value] of Object.entries(vendorParamsPartialUpdates)) {
+          // 如果值是字符串，尝试解析为 JSON
+          if (typeof value === 'string' && value.trim()) {
+            try {
+              // 检查是否是 JSON 格式（以 [ 或 { 开头）
+              const trimmedValue = value.trim();
+              if (trimmedValue.startsWith('[') || trimmedValue.startsWith('{')) {
+                parsedUpdates[key] = JSON.parse(trimmedValue);
+              } else {
+                parsedUpdates[key] = value;
+              }
+            } catch (e) {
+              // 解析失败，当做普通字符串
+              parsedUpdates[key] = value;
+            }
+          } else {
+            parsedUpdates[key] = value;
+          }
+        }
+        
+        const updatedVendorParams = updateJsonByKeys(originalVendorParams, parsedUpdates);
         submitData.vendor_params = updatedVendorParams;
       }
 
@@ -583,7 +607,30 @@ const VendorAppManagementPage: React.FC = () => {
             updateData.vendor_params = values.vendor_params;
           } else if (batchVendorParamsEditMode === 'partial' && Object.keys(batchVendorParamsPartialUpdates).length > 0) {
             const originalVendorParams = record.vendor_params || '{}';
-            const updatedVendorParams = updateJsonByKeys(originalVendorParams, batchVendorParamsPartialUpdates);
+            
+            // 将用户输入的字符串值解析为实际的 JSON 类型（数组、对象等）
+            const parsedUpdates: Record<string, any> = {};
+            for (const [key, value] of Object.entries(batchVendorParamsPartialUpdates)) {
+              // 如果值是字符串，尝试解析为 JSON
+              if (typeof value === 'string' && value.trim()) {
+                try {
+                  // 检查是否是 JSON 格式（以 [ 或 { 开头）
+                  const trimmedValue = value.trim();
+                  if (trimmedValue.startsWith('[') || trimmedValue.startsWith('{')) {
+                    parsedUpdates[key] = JSON.parse(trimmedValue);
+                  } else {
+                    parsedUpdates[key] = value;
+                  }
+                } catch (e) {
+                  // 解析失败，当做普通字符串
+                  parsedUpdates[key] = value;
+                }
+              } else {
+                parsedUpdates[key] = value;
+              }
+            }
+            
+            const updatedVendorParams = updateJsonByKeys(originalVendorParams, parsedUpdates);
             updateData.vendor_params = updatedVendorParams;
           }
         }
@@ -829,6 +876,30 @@ const VendorAppManagementPage: React.FC = () => {
       render: (model: string) => model || '-'
     },
     {
+      title: '公开',
+      dataIndex: 'shared',
+      key: 'shared',
+      width: 80,
+      render: (shared: boolean) => (
+        <Tag color={shared ? 'cyan' : 'default'}>
+          {shared ? '是' : '否'}
+        </Tag>
+      )
+    },
+    {
+      title: '克隆',
+      key: 'is_clone',
+      width: 80,
+      render: (_: any, record: SceneVendorApp) => {
+        const isClone = !!record.clone_url;
+        return (
+          <Tag color={isClone ? 'purple' : 'default'}>
+            {isClone ? '是' : '否'}
+          </Tag>
+        );
+      }
+    },
+    {
       title: '启用',
       dataIndex: 'status',
       key: 'status',
@@ -938,7 +1009,7 @@ const VendorAppManagementPage: React.FC = () => {
 
   // 根据activeTab过滤列 - 音色字段只在TTS显示
   if (activeTab !== 'TTS') {
-    return baseColumns.filter(col => col.key !== 'timbre');
+    return baseColumns.filter(col => !['timbre', 'shared', 'is_clone'].includes(col.key || ''));
   }
   
   return baseColumns;
@@ -1124,24 +1195,56 @@ const VendorAppManagementPage: React.FC = () => {
           <Row gutter={16} style={{ marginTop: 16 }}>
             {/* TTS音色搜索 */}
             {activeTab === 'TTS' && (
-              <Col span={6}>
-                <Input
-                  placeholder="搜索音色 (如：AmberNeural、小晓、Aria等)"
-                  allowClear
-                  prefix={<SearchOutlined />}
-                  value={searchParams.timbre}
-                  onChange={(e) => {
-                    const newParams = { ...searchParams, timbre: e.target.value };
-                    setSearchParams(newParams);
-                  }}
-                />
-              </Col>
+              <>
+                <Col span={5}>
+                  <Input
+                    placeholder="搜索音色"
+                    allowClear
+                    prefix={<SearchOutlined />}
+                    value={searchParams.timbre}
+                    onChange={(e) => {
+                      const newParams = { ...searchParams, timbre: e.target.value };
+                      setSearchParams(newParams);
+                    }}
+                  />
+                </Col>
+                <Col span={3}>
+                  <Select
+                    placeholder="是否公开"
+                    allowClear
+                    style={{ width: '100%' }}
+                    value={searchParams.shared}
+                    onChange={(value) => {
+                      const newParams = { ...searchParams, shared: value };
+                      setSearchParams(newParams);
+                    }}
+                  >
+                    <Option value={true}>公开(是)</Option>
+                    <Option value={false}>公开(否)</Option>
+                  </Select>
+                </Col>
+                <Col span={3}>
+                  <Select
+                    placeholder="是否克隆"
+                    allowClear
+                    style={{ width: '100%' }}
+                    value={searchParams.is_clone}
+                    onChange={(value) => {
+                      const newParams = { ...searchParams, is_clone: value };
+                      setSearchParams(newParams);
+                    }}
+                  >
+                    <Option value={true}>克隆(是)</Option>
+                    <Option value={false}>克隆(否)</Option>
+                  </Select>
+                </Col>
+              </>
             )}
             
             {/* 模型搜索 (ASR和TTS都支持) */}
-            <Col span={6}>
+            <Col span={activeTab === 'TTS' ? 5 : 6}>
               <Input
-                placeholder={`搜索${activeTab}模型 (如：whisper、gpt、neural等)`}
+                placeholder={`搜索${activeTab}模型`}
                 allowClear
                 prefix={<SearchOutlined />}
                 value={searchParams.model}
@@ -1152,12 +1255,12 @@ const VendorAppManagementPage: React.FC = () => {
               />
             </Col>
             
-            <Col span={activeTab === 'TTS' ? 12 : 18}>
-              <div style={{ color: '#666', fontSize: '12px', lineHeight: '32px' }}>
+            <Col span={activeTab === 'TTS' ? 8 : 18}>
+              <div style={{ color: '#666', fontSize: '12px', lineHeight: '32px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 💡 {activeTab === 'TTS' 
-                  ? '音色搜索支持：英文名称（如 AmberNeural）、中文名称（如 小晓）、性别（男/女）等关键词。' 
-                  : ''
-                }模型搜索支持模型名称关键词（前端过滤，每页独立显示结果）。请手动逐页确认，以免遗漏数据
+                  ? '支持音色、公开、克隆及模型搜索。' 
+                  : '模型搜索支持模型名称关键词。'
+                }
               </div>
             </Col>
           </Row>
@@ -1512,6 +1615,37 @@ const VendorAppManagementPage: React.FC = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          {activeTab === 'TTS' && (
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="是否克隆"
+                  name="is_clone"
+                  rules={[{ required: true, message: '请选择是否克隆' }]}
+                  initialValue={false}
+                >
+                  <Select placeholder="请选择">
+                    <Option value={false}>否</Option>
+                    <Option value={true}>是</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="是否公开"
+                  name="shared"
+                  rules={[{ required: true, message: '请选择是否公开' }]}
+                  initialValue={true}
+                >
+                  <Select placeholder="请选择">
+                    <Option value={true}>是</Option>
+                    <Option value={false}>否</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
 
           <Row gutter={16}>
             {activeTab === 'TTS' && (

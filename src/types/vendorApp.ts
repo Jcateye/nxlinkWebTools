@@ -37,6 +37,9 @@ export interface SceneVendorApp {
   remark: string | null;
   create_ts: number;
   update_ts: number;
+  shared?: boolean;
+  clone_url?: string | null;
+  clone_msg?: string | null;
 }
 
 // 供应商应用列表响应
@@ -83,6 +86,8 @@ export interface SceneVendorAppQueryParams {
   status?: number;
   timbre?: string; // TTS音色搜索字段（前端过滤用）
   model?: string; // 模型搜索字段（前端过滤用）
+  shared?: boolean; // 是否公开
+  is_clone?: boolean; // 是否克隆 (前端过滤/参数)
 }
 
 // 供应商应用编辑表单数据
@@ -116,4 +121,6 @@ export interface SceneVendorAppFormData {
   status: number;
   rating: string;
   remark?: string;
+  shared?: boolean;
+  is_clone?: boolean;
 } 

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Layout, Typography, Menu, Row, Col, Button, Card, Divider, Tabs, Space, Modal, Input } from 'antd';
 import { message } from 'antd';
-import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined, CloudServerOutlined, KeyOutlined, PieChartOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, ArrowLeftOutlined, TeamOutlined, QuestionOutlined, SoundOutlined, CommentOutlined, DollarOutlined, SettingOutlined, AppstoreOutlined, ExperimentOutlined, PhoneOutlined, ApiOutlined, CloudServerOutlined, KeyOutlined, PieChartOutlined, CalculatorOutlined, ToolOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import type { MenuProps } from 'antd';
 import TagParamsForm from './components/TagParamsForm';
@@ -23,6 +23,7 @@ import MemberManagementPage from './pages/MemberManagementPage';
 import VendorAppManagementPage from './pages/VendorAppManagementPage';
 import OpenApiActivityPage from './pages/OpenApiActivityPage';
 import ApiKeyManagementPage from './pages/ApiKeyManagementPage';
+import AICostSimulatorPage from './pages/AICostSimulatorPage';
 import PhoneNumberValidator from './components/PhoneNumberValidator';
 import ConversationManagementPage from './pages/ConversationManagementPage';
 import NXLinkTokenManager from './components/NXLinkTokenManager';
@@ -399,6 +400,7 @@ const AppContent = () => {
       'settings': '通用设置',
       'openapi-activity': 'OpenAPI 活动管理',
       'apikey-management': 'API Key 管理',
+      'ai-cost-simulator': 'AI Agent 成本模拟',
     };
     return titles[activeMenu] || 'NxLink 管理工具';
   };
@@ -560,6 +562,8 @@ const AppContent = () => {
         return <ApiKeyManagementPage />;
       case 'settings':
         return <NXLinkTokenManager />;
+      case 'ai-cost-simulator':
+        return <AICostSimulatorPage />;
       default:
         return (
           <Card>
@@ -682,13 +686,18 @@ const AppContent = () => {
             </Menu.Item>
           </SubMenu>
           
-          <Menu.Item 
-            key="phone" 
-            icon={<PhoneOutlined />}
-            style={{ marginTop: 8 }}
+          <SubMenu
+            key="tools"
+            icon={<ToolOutlined />}
+            title="工具"
           >
-            电话号码检测
-          </Menu.Item>
+            <Menu.Item key="phone" icon={<PhoneOutlined />}>
+              电话号码检测
+            </Menu.Item>
+            <Menu.Item key="ai-cost-simulator" icon={<CalculatorOutlined />}>
+              AI Agent 成本模拟
+            </Menu.Item>
+          </SubMenu>
         </Menu>
       </Sider>
 

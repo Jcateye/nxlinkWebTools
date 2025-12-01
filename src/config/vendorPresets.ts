@@ -7,6 +7,9 @@
 
 import { VendorConfig, ScenarioPreset } from '../utils/costCalculator';
 
+// 重新导出 ScenarioPreset 供其他模块使用
+export type { ScenarioPreset };
+
 // ============ 单独供应商定价参数 ============
 
 /** ASR 供应商定价 - 基于实际报价 */
@@ -1118,7 +1121,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     r_b: 0.7,
     r_u: 0.06,
     q: 0,
-    ttsCacheHitRate: 0.7,   // 营销话术高度标准化，缓存命中率高
+    ttsCacheHitRate: 0.66,  // 营销话术高度标准化，缓存命中率高
     vadAccuracy: 0.9,       // 短通话VAD可能漏检部分用户响应
     weight: 10,
   },
@@ -1402,4 +1405,300 @@ export const getBundleById = (id: string): VendorConfig | undefined => {
  */
 export const isCustomBundle = (id: string): boolean => {
   return !VENDOR_BUNDLES.find(b => b.id === id);
+};
+
+// ============ 供应商组合覆盖存储 ============
+
+const BUNDLE_OVERRIDES_STORAGE_KEY = 'ai_cost_simulator_bundle_overrides';
+
+export interface BundleOverrides {
+  // 存储对内置组合的修改（名称等）
+  overrides: Record<string, Partial<VendorConfig>>;
+  // 存储被删除的内置组合ID
+  deleted: string[];
+}
+
+/**
+ * 加载供应商组合覆盖配置
+ */
+export const loadBundleOverrides = (): BundleOverrides => {
+  try {
+    const stored = localStorage.getItem(BUNDLE_OVERRIDES_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load bundle overrides:', e);
+  }
+  return { overrides: {}, deleted: [] };
+};
+
+/**
+ * 保存供应商组合覆盖配置
+ */
+export const saveBundleOverrides = (data: BundleOverrides): void => {
+  try {
+    localStorage.setItem(BUNDLE_OVERRIDES_STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error('Failed to save bundle overrides:', e);
+  }
+};
+
+/**
+ * 获取合并后的供应商组合列表（内置覆盖 + 自定义）
+ */
+export const getMergedBundles = (): VendorConfig[] => {
+  const overrides = loadBundleOverrides();
+  const customs = loadCustomBundles();
+  
+  // 过滤掉被删除的内置组合，并应用覆盖
+  const builtInBundles = VENDOR_BUNDLES
+    .filter(b => !overrides.deleted.includes(b.id))
+    .map(b => ({
+      ...b,
+      ...overrides.overrides[b.id],
+    }));
+  
+  // 合并自定义组合
+  return [...builtInBundles, ...Object.values(customs.bundles)];
+};
+
+/**
+ * 更新供应商组合（修改名称等）
+ */
+export const updateBundlePreset = (id: string, updates: Partial<VendorConfig>): void => {
+  // 检查是否是自定义组合
+  if (isCustomBundle(id)) {
+    // 更新自定义组合
+    const customs = loadCustomBundles();
+    if (customs.bundles[id]) {
+      customs.bundles[id] = { ...customs.bundles[id], ...updates };
+      saveCustomBundles(customs);
+    }
+  } else {
+    // 更新内置组合的覆盖
+    const overrides = loadBundleOverrides();
+    overrides.overrides[id] = { ...overrides.overrides[id], ...updates };
+    saveBundleOverrides(overrides);
+  }
+};
+
+/**
+ * 删除供应商组合预设
+ */
+export const deleteBundlePreset = (id: string): void => {
+  if (isCustomBundle(id)) {
+    // 删除自定义组合
+    removeCustomBundle(id);
+  } else {
+    // 标记内置组合为已删除
+    const overrides = loadBundleOverrides();
+    if (!overrides.deleted.includes(id)) {
+      overrides.deleted.push(id);
+    }
+    // 同时删除覆盖
+    delete overrides.overrides[id];
+    saveBundleOverrides(overrides);
+  }
+};
+
+/**
+ * 重置所有供应商组合预设到默认状态
+ */
+export const resetBundlePresets = (): void => {
+  localStorage.removeItem(BUNDLE_OVERRIDES_STORAGE_KEY);
+  localStorage.removeItem(CUSTOM_BUNDLES_STORAGE_KEY);
+};
+
+/**
+ * 检查组合是否有覆盖（被修改过）
+ */
+export const hasBundleOverride = (id: string): boolean => {
+  const overrides = loadBundleOverrides();
+  return !!overrides.overrides[id];
+};
+
+/**
+ * 导出当前供应商组合配置为代码格式
+ */
+export const exportBundlesAsCode = (): string => {
+  const bundles = getMergedBundles();
+  const code = bundles.map(b => `  {
+    id: '${b.id}',
+    name: '${b.name}',
+    description: '${b.description}',
+    telPricePerMin: ${b.telPricePerMin},
+    telBillingStep: ${b.telBillingStep},
+    asrPricePerMin: ${b.asrPricePerMin},
+    asrBillingStep: ${b.asrBillingStep},
+    asrVendor: '${b.asrVendor}',
+    ttsPricePer1kChar: ${b.ttsPricePer1kChar},
+    ttsVendorCharRatio: ${b.ttsVendorCharRatio},
+    ttsCharPerSec: ${b.ttsCharPerSec},
+    ttsBillingStep: ${b.ttsBillingStep},
+    ttsVendor: '${b.ttsVendor}',
+    llmInputPricePer1k: ${b.llmInputPricePer1k},
+    llmOutputPricePer1k: ${b.llmOutputPricePer1k},
+    llmReasonPricePer1k: ${b.llmReasonPricePer1k},
+    llmSysPromptTokens: ${b.llmSysPromptTokens},
+    llmContextTokens: ${b.llmContextTokens},
+    llmToolTokens: ${b.llmToolTokens},
+    llmCharsPerToken: ${b.llmCharsPerToken},
+    llmModel: '${b.llmModel}',
+    fixedCostPerCall: ${b.fixedCostPerCall},
+  }`).join(',\n');
+  
+  return `export const VENDOR_BUNDLES: VendorConfig[] = [\n${code},\n];`;
+};
+
+// ============ 场景预设自定义存储 ============
+
+const CUSTOM_SCENARIOS_STORAGE_KEY = 'ai_cost_simulator_custom_scenarios';
+
+export interface ScenarioOverrides {
+  // 存储对内置场景的修改（权重、名称等）
+  overrides: Record<string, Partial<ScenarioPreset>>;
+  // 存储被删除的内置场景ID
+  deleted: string[];
+  // 存储新增的自定义场景
+  custom: ScenarioPreset[];
+}
+
+/**
+ * 加载场景预设自定义配置
+ */
+export const loadScenarioOverrides = (): ScenarioOverrides => {
+  try {
+    const stored = localStorage.getItem(CUSTOM_SCENARIOS_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load scenario overrides:', e);
+  }
+  return { overrides: {}, deleted: [], custom: [] };
+};
+
+/**
+ * 保存场景预设自定义配置
+ */
+export const saveScenarioOverrides = (data: ScenarioOverrides): void => {
+  try {
+    localStorage.setItem(CUSTOM_SCENARIOS_STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error('Failed to save scenario overrides:', e);
+  }
+};
+
+/**
+ * 获取合并后的场景预设列表（内置 + 覆盖 + 自定义）
+ */
+export const getMergedScenarioPresets = (): ScenarioPreset[] => {
+  const overrides = loadScenarioOverrides();
+  
+  // 过滤掉被删除的内置场景，并应用覆盖
+  const builtInScenarios = SCENARIO_PRESETS
+    .filter(s => !overrides.deleted.includes(s.id))
+    .map(s => ({
+      ...s,
+      ...overrides.overrides[s.id],
+    }));
+  
+  // 合并自定义场景
+  return [...builtInScenarios, ...overrides.custom];
+};
+
+/**
+ * 更新场景预设（修改权重、名称等）
+ */
+export const updateScenarioPreset = (id: string, updates: Partial<ScenarioPreset>): void => {
+  const overrides = loadScenarioOverrides();
+  
+  // 检查是否是自定义场景
+  const customIndex = overrides.custom.findIndex(s => s.id === id);
+  if (customIndex >= 0) {
+    // 更新自定义场景
+    overrides.custom[customIndex] = { ...overrides.custom[customIndex], ...updates };
+  } else {
+    // 更新内置场景的覆盖
+    overrides.overrides[id] = { ...overrides.overrides[id], ...updates };
+  }
+  
+  saveScenarioOverrides(overrides);
+};
+
+/**
+ * 删除场景预设
+ */
+export const deleteScenarioPreset = (id: string): void => {
+  const overrides = loadScenarioOverrides();
+  
+  // 检查是否是自定义场景
+  const customIndex = overrides.custom.findIndex(s => s.id === id);
+  if (customIndex >= 0) {
+    // 删除自定义场景
+    overrides.custom.splice(customIndex, 1);
+  } else {
+    // 标记内置场景为已删除
+    if (!overrides.deleted.includes(id)) {
+      overrides.deleted.push(id);
+    }
+    // 同时删除覆盖
+    delete overrides.overrides[id];
+  }
+  
+  saveScenarioOverrides(overrides);
+};
+
+/**
+ * 添加自定义场景预设
+ */
+export const addCustomScenario = (scenario: ScenarioPreset): void => {
+  const overrides = loadScenarioOverrides();
+  overrides.custom.push(scenario);
+  saveScenarioOverrides(overrides);
+};
+
+/**
+ * 重置所有场景预设到默认状态
+ */
+export const resetScenarioPresets = (): void => {
+  localStorage.removeItem(CUSTOM_SCENARIOS_STORAGE_KEY);
+};
+
+/**
+ * 检查场景是否为自定义场景
+ */
+export const isCustomScenario = (id: string): boolean => {
+  const overrides = loadScenarioOverrides();
+  return overrides.custom.some(s => s.id === id);
+};
+
+/**
+ * 检查场景是否有覆盖（被修改过）
+ */
+export const hasScenarioOverride = (id: string): boolean => {
+  const overrides = loadScenarioOverrides();
+  return !!overrides.overrides[id];
+};
+
+/**
+ * 导出当前场景配置为代码格式（用于手动更新源码）
+ */
+export const exportScenariosAsCode = (): string => {
+  const scenarios = getMergedScenarioPresets();
+  const code = scenarios.map(s => `  {
+    id: '${s.id}',
+    name: '${s.name}',
+    description: '${s.description}',
+    T: ${s.T},
+    r_b: ${s.r_b},
+    r_u: ${s.r_u},
+    q: ${s.q},
+    ttsCacheHitRate: ${s.ttsCacheHitRate},
+    vadAccuracy: ${s.vadAccuracy},
+    weight: ${s.weight},
+  }`).join(',\n');
+  
+  return `export const SCENARIO_PRESETS: ScenarioPreset[] = [\n${code},\n];`;
 };

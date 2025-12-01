@@ -50,6 +50,8 @@ import {
   InfoCircleOutlined,
   EditOutlined,
   DatabaseOutlined,
+  ExportOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import {
   BarChart,
@@ -68,6 +70,8 @@ import {
   Area,
   AreaChart,
   ComposedChart,
+  LabelList,
+  ReferenceDot,
 } from 'recharts';
 import {
   computeCost,
@@ -100,6 +104,20 @@ import {
   TTSVendorConfig,
   LLMModelConfig,
   TelecomRateConfig,
+  getMergedScenarioPresets,
+  updateScenarioPreset,
+  deleteScenarioPreset,
+  addCustomScenario,
+  resetScenarioPresets,
+  isCustomScenario,
+  exportScenariosAsCode,
+  ScenarioPreset,
+  getMergedBundles,
+  updateBundlePreset,
+  deleteBundlePreset,
+  resetBundlePresets,
+  hasBundleOverride,
+  exportBundlesAsCode,
 } from '../config/vendorPresets';
 
 const { Content } = Layout;
@@ -126,42 +144,59 @@ interface KpiCardProps {
   icon: React.ReactNode;
   color: string;
   percent?: string;
+  tooltip?: React.ReactNode;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ title, value, subtitle, icon, color, percent }) => (
-  <Card 
-    size="small" 
-    style={{ 
-      background: `linear-gradient(135deg, ${color}08 0%, ${color}15 100%)`,
-      borderColor: `${color}30`,
-      borderRadius: 12,
-    }}
-  >
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ 
-        width: 48, 
-        height: 48, 
-        borderRadius: 12, 
-        background: `${color}20`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: color,
-        fontSize: 20,
-      }}>
-        {icon}
-      </div>
-      <div style={{ flex: 1 }}>
-        <Text type="secondary" style={{ fontSize: 12 }}>{title}</Text>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <Text strong style={{ fontSize: 20, color }}>{value}</Text>
-          {percent && <Tag color={color} style={{ margin: 0 }}>{percent}</Tag>}
+const KpiCard: React.FC<KpiCardProps> = ({ title, value, subtitle, icon, color, percent, tooltip }) => {
+  const cardContent = (
+    <Card 
+      size="small" 
+      style={{ 
+        background: `linear-gradient(135deg, ${color}08 0%, ${color}15 100%)`,
+        borderColor: `${color}30`,
+        borderRadius: 12,
+        cursor: tooltip ? 'help' : 'default',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ 
+          width: 48, 
+          height: 48, 
+          borderRadius: 12, 
+          background: `${color}20`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: color,
+          fontSize: 20,
+        }}>
+          {icon}
         </div>
-        {subtitle && <Text type="secondary" style={{ fontSize: 11 }}>{subtitle}</Text>}
+        <div style={{ flex: 1 }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {title}
+            {tooltip && <InfoCircleOutlined style={{ marginLeft: 4, fontSize: 11 }} />}
+          </Text>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <Text strong style={{ fontSize: 20, color }}>{value}</Text>
+            {percent && <Tag color={color} style={{ margin: 0 }}>{percent}</Tag>}
+          </div>
+          {subtitle && <Text type="secondary" style={{ fontSize: 11 }}>{subtitle}</Text>}
+        </div>
       </div>
-    </div>
-  </Card>
-);
+    </Card>
+  );
+
+  if (tooltip) {
+    return (
+      <Tooltip title={tooltip} overlayStyle={{ maxWidth: 450 }}>
+        {cardContent}
+      </Tooltip>
+    );
+  }
+
+  return cardContent;
+};
 
 // ============ 组件：控制面板 ============
 interface ControlPanelProps {
@@ -184,6 +219,10 @@ interface ControlPanelProps {
   onSaveAsBundle: () => void;
   onDeleteBundle: (id: string) => void;
   vendorOptionsVersion: number;
+  scenarioVersion: number;
+  onScenarioChange: () => void;
+  bundleVersion: number;
+  onBundleVersionChange: () => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -200,18 +239,232 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onSaveAsBundle,
   onDeleteBundle,
   vendorOptionsVersion,
+  scenarioVersion,
+  onScenarioChange,
+  bundleVersion,
+  onBundleVersionChange,
 }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const vendorOptions = useMemo(() => getAllVendorOptions(), [vendorOptionsVersion]);
+  
+  // 供应商组合编辑模式
+  const [bundleEditMode, setBundleEditMode] = useState(false);
+  const [editingBundle, setEditingBundle] = useState<{
+    id: string;
+    name: string;
+    description: string;
+    asr: string;
+    tts: string;
+    llm: string;
+    telecom: string;
+  } | null>(null);
+  
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mergedBundles = useMemo(() => getMergedBundles(), [bundleVersion, vendorOptionsVersion]);
+  
+  // 场景预设编辑模式
+  const [scenarioEditMode, setScenarioEditMode] = useState(false);
+  const [editingScenario, setEditingScenario] = useState<{ id: string; name: string; weight: number } | null>(null);
+  
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const scenarios = useMemo(() => getMergedScenarioPresets(), [scenarioVersion]);
+  
+  // 根据供应商名称查找ID
+  const findVendorIdByName = (type: 'asr' | 'tts' | 'llm' | 'telecom', name: string): string => {
+    const allVendors = getAllVendors();
+    const vendors = allVendors[type];
+    for (const [id, vendor] of Object.entries(vendors)) {
+      if (type === 'telecom') {
+        // telecom 使用 pricePerMin 作为标识
+        continue;
+      }
+      if ((vendor as any).name === name) {
+        return id;
+      }
+    }
+    // 返回第一个作为默认
+    return Object.keys(vendors)[0] || '';
+  };
+  
+  // 根据线路价格查找ID
+  const findTelecomIdByPrice = (pricePerMin: number): string => {
+    const allVendors = getAllVendors();
+    for (const [id, telecom] of Object.entries(allVendors.telecom)) {
+      if (telecom.pricePerMin === pricePerMin) {
+        return id;
+      }
+    }
+    return Object.keys(allVendors.telecom)[0] || 'us-local';
+  };
+  
+  // 供应商组合编辑处理
+  const handleBundleEdit = (bundle: VendorConfig) => {
+    // 根据供应商名称查找对应的ID
+    const asrId = findVendorIdByName('asr', bundle.asrVendor);
+    const ttsId = findVendorIdByName('tts', bundle.ttsVendor);
+    const llmId = findVendorIdByName('llm', bundle.llmModel);
+    const telecomId = findTelecomIdByPrice(bundle.telPricePerMin);
+    
+    setEditingBundle({
+      id: bundle.id,
+      name: bundle.name,
+      description: bundle.description,
+      asr: asrId,
+      tts: ttsId,
+      llm: llmId,
+      telecom: telecomId,
+    });
+  };
+  
+  const handleBundleSave = () => {
+    if (editingBundle) {
+      // 根据选择的供应商ID构建新的配置
+      const newConfig = buildVendorConfig(
+        editingBundle.asr,
+        editingBundle.tts,
+        editingBundle.llm,
+        editingBundle.telecom,
+        0
+      );
+      
+      updateBundlePreset(editingBundle.id, {
+        name: editingBundle.name,
+        description: editingBundle.description,
+        // 更新供应商相关配置
+        asrPricePerMin: newConfig.asrPricePerMin,
+        asrBillingStep: newConfig.asrBillingStep,
+        asrVendor: newConfig.asrVendor,
+        ttsPricePer1kChar: newConfig.ttsPricePer1kChar,
+        ttsVendorCharRatio: newConfig.ttsVendorCharRatio,
+        ttsCharPerSec: newConfig.ttsCharPerSec,
+        ttsBillingStep: newConfig.ttsBillingStep,
+        ttsVendor: newConfig.ttsVendor,
+        llmInputPricePer1k: newConfig.llmInputPricePer1k,
+        llmOutputPricePer1k: newConfig.llmOutputPricePer1k,
+        llmReasonPricePer1k: newConfig.llmReasonPricePer1k,
+        llmSysPromptTokens: newConfig.llmSysPromptTokens,
+        llmContextTokens: newConfig.llmContextTokens,
+        llmToolTokens: newConfig.llmToolTokens,
+        llmCharsPerToken: newConfig.llmCharsPerToken,
+        llmModel: newConfig.llmModel,
+        telPricePerMin: newConfig.telPricePerMin,
+        telBillingStep: newConfig.telBillingStep,
+      });
+      setEditingBundle(null);
+      onBundleVersionChange();
+    }
+  };
+  
+  const handleBundleDelete = (id: string) => {
+    deleteBundlePreset(id);
+    setEditingBundle(null);
+    // 如果删除的是当前选中的组合，切换到默认组合
+    if (selectedBundle === id) {
+      const remaining = getMergedBundles();
+      if (remaining.length > 0) {
+        onBundleChange(remaining[0].id);
+      }
+    }
+    onBundleVersionChange();
+  };
+  
+  const handleExportBundles = () => {
+    const code = exportBundlesAsCode();
+    navigator.clipboard.writeText(code).then(() => {
+      message.success('供应商组合代码已复制到剪贴板，可粘贴到 vendorPresets.ts 中');
+    }).catch(() => {
+      Modal.info({
+        title: '供应商组合代码',
+        width: 900,
+        content: (
+          <pre style={{ maxHeight: 400, overflow: 'auto', fontSize: 10, background: '#f5f5f5', padding: 12, borderRadius: 8 }}>
+            {code}
+          </pre>
+        ),
+      });
+    });
+  };
+  
+  const handleResetBundles = () => {
+    Modal.confirm({
+      title: '重置供应商组合',
+      content: '确定要重置所有供应商组合到默认状态吗？这将删除所有自定义修改和自定义组合。',
+      okText: '重置',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: () => {
+        resetBundlePresets();
+        onBundleVersionChange();
+        // 切换到默认组合
+        onBundleChange('balanced-gpt4mini');
+        message.success('供应商组合已重置');
+      },
+    });
+  };
 
-  const handleScenarioClick = (scenario: typeof SCENARIO_PRESETS[0]) => {
-    onBehaviorChange({
-      T: scenario.T,
-      r_b: scenario.r_b,
-      r_u: scenario.r_u,
-      q: scenario.q,
-      ttsCacheHitRate: scenario.ttsCacheHitRate ?? 0.3,
-      vadAccuracy: scenario.vadAccuracy ?? 1.0,
+  const handleScenarioClick = (scenario: ScenarioPreset) => {
+    if (scenarioEditMode) {
+      // 编辑模式下点击进入编辑
+      setEditingScenario({ id: scenario.id, name: scenario.name, weight: scenario.weight ?? 1 });
+    } else {
+      onBehaviorChange({
+        T: scenario.T,
+        r_b: scenario.r_b,
+        r_u: scenario.r_u,
+        q: scenario.q,
+        ttsCacheHitRate: scenario.ttsCacheHitRate ?? 0.3,
+        vadAccuracy: scenario.vadAccuracy ?? 1.0,
+      });
+    }
+  };
+  
+  const handleScenarioSave = () => {
+    if (editingScenario) {
+      updateScenarioPreset(editingScenario.id, {
+        name: editingScenario.name,
+        weight: editingScenario.weight,
+      });
+      setEditingScenario(null);
+      onScenarioChange();
+    }
+  };
+  
+  const handleScenarioDelete = (id: string) => {
+    deleteScenarioPreset(id);
+    setEditingScenario(null);
+    onScenarioChange();
+  };
+  
+  const handleExportScenarios = () => {
+    const code = exportScenariosAsCode();
+    navigator.clipboard.writeText(code).then(() => {
+      message.success('场景配置代码已复制到剪贴板，可粘贴到 vendorPresets.ts 中');
+    }).catch(() => {
+      // 如果复制失败，显示代码
+      Modal.info({
+        title: '场景配置代码',
+        width: 800,
+        content: (
+          <pre style={{ maxHeight: 400, overflow: 'auto', fontSize: 11, background: '#f5f5f5', padding: 12, borderRadius: 8 }}>
+            {code}
+          </pre>
+        ),
+      });
+    });
+  };
+  
+  const handleResetScenarios = () => {
+    Modal.confirm({
+      title: '重置场景预设',
+      content: '确定要重置所有场景预设到默认状态吗？这将删除所有自定义修改。',
+      okText: '重置',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: () => {
+        resetScenarioPresets();
+        onScenarioChange();
+        message.success('场景预设已重置');
+      },
     });
   };
 
@@ -222,6 +475,21 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         title={<><SettingOutlined /> 供应商组合</>} 
         size="small"
         style={{ borderRadius: 12 }}
+        extra={
+          !useCustomConfig && (
+            <Tooltip title={bundleEditMode ? '退出编辑模式' : '编辑供应商组合'}>
+              <Button
+                type={bundleEditMode ? 'primary' : 'text'}
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setBundleEditMode(!bundleEditMode);
+                  setEditingBundle(null);
+                }}
+              />
+            </Tooltip>
+          )
+        }
       >
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <div>
@@ -229,43 +497,219 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               <Text type="secondary">使用预设组合</Text>
               <Switch 
                 checked={!useCustomConfig} 
-                onChange={(checked) => onUseCustomConfigChange(!checked)}
+                onChange={(checked) => {
+                  onUseCustomConfigChange(!checked);
+                  if (!checked) {
+                    setBundleEditMode(false);
+                    setEditingBundle(null);
+                  }
+                }}
                 checkedChildren="预设"
                 unCheckedChildren="自定义"
               />
             </div>
             
             {!useCustomConfig ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Select
-                  value={selectedBundle}
-                  onChange={onBundleChange}
-                  style={{ flex: 1 }}
-                  options={vendorOptions.bundles}
-                  optionRender={(option) => (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div>{option.label}</div>
-                        <Text type="secondary" style={{ fontSize: 11 }}>{option.data.description}</Text>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Select
+                    value={selectedBundle}
+                    onChange={(v) => {
+                      onBundleChange(v);
+                      if (bundleEditMode) {
+                        const bundle = mergedBundles.find(b => b.id === v);
+                        if (bundle) {
+                          handleBundleEdit(bundle);
+                        }
+                      }
+                    }}
+                    style={{ flex: 1 }}
+                    options={mergedBundles.map(b => ({
+                      value: b.id,
+                      label: b.name,
+                      description: b.description,
+                      isCustom: isCustomBundle(b.id),
+                      hasOverride: hasBundleOverride(b.id),
+                    }))}
+                    optionRender={(option) => (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div>{option.label}</div>
+                          <Text type="secondary" style={{ fontSize: 11 }}>{option.data.description}</Text>
+                        </div>
+                        <Space size={4}>
+                          {option.data.hasOverride && !option.data.isCustom && (
+                            <Tag color="orange" style={{ margin: 0, fontSize: 10 }}>已修改</Tag>
+                          )}
+                          {option.data.isCustom && (
+                            <Tag color="blue" style={{ margin: 0, fontSize: 10 }}>自定义</Tag>
+                          )}
+                        </Space>
                       </div>
-                      {option.data.isCustom && (
-                        <Tag color="blue" style={{ marginLeft: 8 }}>自定义</Tag>
-                      )}
-                    </div>
+                    )}
+                  />
+                  {bundleEditMode && (
+                    <Tooltip title="编辑当前组合">
+                      <Button 
+                        icon={<EditOutlined />}
+                        onClick={() => {
+                          const bundle = mergedBundles.find(b => b.id === selectedBundle);
+                          if (bundle) {
+                            handleBundleEdit(bundle);
+                          }
+                        }}
+                      />
+                    </Tooltip>
                   )}
-                />
-                {isCustomBundle(selectedBundle) && (
-                  <Popconfirm
-                    title="删除预设组合"
-                    description="确定要删除这个自定义预设组合吗？"
-                    onConfirm={() => onDeleteBundle(selectedBundle)}
-                    okText="删除"
-                    cancelText="取消"
-                    okButtonProps={{ danger: true }}
-                  >
-                    <Button danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
+                </div>
+                
+                {/* 编辑模式下显示编辑表单 */}
+                {bundleEditMode && editingBundle && (
+                  <div style={{ 
+                    padding: 12, 
+                    background: '#fff7e6', 
+                    borderRadius: 8,
+                    border: '1px solid #ffd591',
+                  }}>
+                    <Space direction="vertical" style={{ width: '100%' }} size="small">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Text type="secondary" style={{ width: 50 }}>名称:</Text>
+                        <Input
+                          size="small"
+                          value={editingBundle.name}
+                          onChange={(e) => setEditingBundle({ ...editingBundle, name: e.target.value })}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Text type="secondary" style={{ width: 50 }}>描述:</Text>
+                        <Input
+                          size="small"
+                          value={editingBundle.description}
+                          onChange={(e) => setEditingBundle({ ...editingBundle, description: e.target.value })}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                      <Divider style={{ margin: '8px 0' }} />
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11 }}>ASR 供应商</Text>
+                        <Select
+                          size="small"
+                          value={editingBundle.asr}
+                          onChange={(v) => setEditingBundle({ ...editingBundle, asr: v })}
+                          style={{ width: '100%' }}
+                          options={vendorOptions.asr}
+                          showSearch
+                          optionFilterProp="label"
+                        />
+                      </div>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11 }}>TTS 供应商</Text>
+                        <Select
+                          size="small"
+                          value={editingBundle.tts}
+                          onChange={(v) => setEditingBundle({ ...editingBundle, tts: v })}
+                          style={{ width: '100%' }}
+                          options={vendorOptions.tts}
+                          showSearch
+                          optionFilterProp="label"
+                        />
+                      </div>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11 }}>LLM 模型</Text>
+                        <Select
+                          size="small"
+                          value={editingBundle.llm}
+                          onChange={(v) => setEditingBundle({ ...editingBundle, llm: v })}
+                          style={{ width: '100%' }}
+                          options={vendorOptions.llm}
+                          showSearch
+                          optionFilterProp="label"
+                        />
+                      </div>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11 }}>线路区域</Text>
+                        <Select
+                          size="small"
+                          value={editingBundle.telecom}
+                          onChange={(v) => setEditingBundle({ ...editingBundle, telecom: v })}
+                          style={{ width: '100%' }}
+                          options={vendorOptions.telecom}
+                          showSearch
+                          optionFilterProp="label"
+                        />
+                      </div>
+                      <Divider style={{ margin: '8px 0' }} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Button size="small" type="primary" onClick={handleBundleSave}>
+                          保存
+                        </Button>
+                        <Button size="small" onClick={() => setEditingBundle(null)}>
+                          取消
+                        </Button>
+                        <Popconfirm
+                          title="删除供应商组合"
+                          description="确定要删除这个供应商组合吗？"
+                          onConfirm={() => handleBundleDelete(editingBundle.id)}
+                          okText="删除"
+                          cancelText="取消"
+                          okButtonProps={{ danger: true }}
+                        >
+                          <Button size="small" danger>
+                            删除
+                          </Button>
+                        </Popconfirm>
+                      </div>
+                    </Space>
+                  </div>
                 )}
+                
+                {/* 编辑模式下显示操作按钮 */}
+                {bundleEditMode && !editingBundle && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Tooltip title="导出当前配置为代码">
+                      <Button size="small" icon={<ExportOutlined />} onClick={handleExportBundles}>
+                        导出代码
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title="重置所有组合到默认状态">
+                      <Button size="small" icon={<ReloadOutlined />} onClick={handleResetBundles}>
+                        重置
+                      </Button>
+                    </Tooltip>
+                  </div>
+                )}
+                
+                {/* 显示预设组合详情 */}
+                {!bundleEditMode && (() => {
+                  const bundle = mergedBundles.find(b => b.id === selectedBundle);
+                  if (!bundle) return null;
+                  return (
+                    <div style={{ 
+                      background: '#f5f5f5', 
+                      padding: '8px 12px', 
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text type="secondary">ASR</Text>
+                        <Text>{bundle.asrVendor}</Text>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text type="secondary">TTS</Text>
+                        <Text>{bundle.ttsVendor}</Text>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text type="secondary">LLM</Text>
+                        <Text>{bundle.llmModel}</Text>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Text type="secondary">线路</Text>
+                        <Text>${bundle.telPricePerMin}/min</Text>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -496,20 +940,113 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         title={<><ThunderboltOutlined /> 场景预设</>} 
         size="small"
         style={{ borderRadius: 12 }}
+        extra={
+          <Tooltip title={scenarioEditMode ? '退出编辑模式' : '编辑场景预设'}>
+            <Button
+              type={scenarioEditMode ? 'primary' : 'text'}
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => {
+                setScenarioEditMode(!scenarioEditMode);
+                setEditingScenario(null);
+              }}
+            />
+          </Tooltip>
+        }
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {SCENARIO_PRESETS.map((scenario) => (
-            <Tooltip key={scenario.id} title={scenario.description}>
+          {scenarios.map((scenario) => (
+            <Tooltip 
+              key={scenario.id} 
+              title={scenarioEditMode ? '点击编辑' : scenario.description}
+            >
               <Button
                 size="small"
                 onClick={() => handleScenarioClick(scenario)}
-                style={{ borderRadius: 16 }}
+                style={{ 
+                  borderRadius: 16,
+                  borderStyle: isCustomScenario(scenario.id) ? 'dashed' : 'solid',
+                }}
+                danger={scenarioEditMode}
               >
                 {scenario.name}
               </Button>
             </Tooltip>
           ))}
         </div>
+        
+        {/* 编辑模式下显示编辑表单 */}
+        {scenarioEditMode && editingScenario && (
+          <div style={{ 
+            marginTop: 12, 
+            padding: 12, 
+            background: '#fafafa', 
+            borderRadius: 8,
+            border: '1px solid #d9d9d9',
+          }}>
+            <Space direction="vertical" style={{ width: '100%' }} size="small">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text type="secondary" style={{ width: 60 }}>名称:</Text>
+                <Input
+                  size="small"
+                  value={editingScenario.name}
+                  onChange={(e) => setEditingScenario({ ...editingScenario, name: e.target.value })}
+                  style={{ flex: 1 }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text type="secondary" style={{ width: 60 }}>权重:</Text>
+                <InputNumber
+                  size="small"
+                  min={1}
+                  max={100}
+                  value={editingScenario.weight}
+                  onChange={(v) => setEditingScenario({ ...editingScenario, weight: v ?? 1 })}
+                  style={{ width: 80 }}
+                />
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  (占比: {((editingScenario.weight / scenarios.reduce((sum, s) => sum + (s.weight ?? 1), 0)) * 100).toFixed(1)}%)
+                </Text>
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <Button size="small" type="primary" onClick={handleScenarioSave}>
+                  保存
+                </Button>
+                <Button size="small" onClick={() => setEditingScenario(null)}>
+                  取消
+                </Button>
+                <Popconfirm
+                  title="删除场景"
+                  description="确定要删除这个场景吗？"
+                  onConfirm={() => handleScenarioDelete(editingScenario.id)}
+                  okText="删除"
+                  cancelText="取消"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button size="small" danger>
+                    删除
+                  </Button>
+                </Popconfirm>
+              </div>
+            </Space>
+          </div>
+        )}
+        
+        {/* 编辑模式下显示操作按钮 */}
+        {scenarioEditMode && !editingScenario && (
+          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+            <Tooltip title="导出当前配置为代码，可粘贴到源码中永久保存">
+              <Button size="small" icon={<ExportOutlined />} onClick={handleExportScenarios}>
+                导出代码
+              </Button>
+            </Tooltip>
+            <Tooltip title="重置所有场景到默认状态">
+              <Button size="small" icon={<ReloadOutlined />} onClick={handleResetScenarios}>
+                重置
+              </Button>
+            </Tooltip>
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -663,18 +1200,37 @@ const CostCharts: React.FC<CostChartsProps> = ({ cost, vendorConfig, behavior })
 
       {/* 时长敏感性分析 */}
       <Card title="时长敏感性分析" size="small" style={{ borderRadius: 12 }}>
-        <ResponsiveContainer width="100%" height={280}>
-          <AreaChart data={sensitivityData}>
+        <ResponsiveContainer width="100%" height={320}>
+          <ComposedChart data={sensitivityData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="T" />
             <YAxis tickFormatter={(v) => `$${v.toFixed(2)}`} />
-            <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
+            <RechartsTooltip 
+              formatter={(value: number, name: string) => [formatCurrency(value), name]}
+              labelFormatter={(label) => `通话时长: ${label}`}
+            />
             <Legend content={renderLegend} />
             <Area type="monotone" dataKey="asr" stackId="1" stroke={COST_COLORS.asr} fill={COST_COLORS.asr} name="ASR" />
             <Area type="monotone" dataKey="llm" stackId="1" stroke={COST_COLORS.llm} fill={COST_COLORS.llm} name="LLM" />
             <Area type="monotone" dataKey="tts" stackId="1" stroke={COST_COLORS.tts} fill={COST_COLORS.tts} name="TTS" />
             <Area type="monotone" dataKey="tel" stackId="1" stroke={COST_COLORS.tel} fill={COST_COLORS.tel} name="线路" />
-          </AreaChart>
+            {/* 总成本线 + 标签 */}
+            <Line 
+              type="monotone" 
+              dataKey="total" 
+              stroke="#333" 
+              strokeWidth={2}
+              dot={{ fill: '#333', r: 4 }}
+              name="总计"
+            >
+              <LabelList 
+                dataKey="total" 
+                position="top" 
+                formatter={(value: number) => `$${value.toFixed(3)}`}
+                style={{ fontSize: 11, fontWeight: 500, fill: '#333' }}
+              />
+            </Line>
+          </ComposedChart>
         </ResponsiveContainer>
       </Card>
     </div>
@@ -686,15 +1242,15 @@ interface VendorComparisonProps {
   behavior: CallBehavior;
   selectedBundles: string[];
   onSelectedBundlesChange: (bundles: string[]) => void;
+  bundleVersion: number;
 }
 
 const VendorComparison: React.FC<VendorComparisonProps> = ({
   behavior,
   selectedBundles,
   onSelectedBundlesChange,
+  bundleVersion,
 }) => {
-  const vendorOptions = getVendorOptions();
-  
   // 图例隐藏状态
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
@@ -747,10 +1303,14 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
     );
   };
 
+  // 获取合并后的组合列表（依赖 bundleVersion 以响应更新）
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const allBundles = useMemo(() => getMergedBundles(), [bundleVersion]);
+  
   // 计算所有选中组合的成本
   const comparisonData = useMemo(() => {
     return selectedBundles.map((bundleId) => {
-      const bundle = VENDOR_BUNDLES.find((b) => b.id === bundleId);
+      const bundle = allBundles.find((b) => b.id === bundleId);
       if (!bundle) return null;
       const cost = computeCost(behavior, bundle);
       return {
@@ -764,7 +1324,7 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
       name: string;
       config: VendorConfig;
     } & CostBreakdown>;
-  }, [behavior, selectedBundles]);
+  }, [behavior, selectedBundles, allBundles]);
 
   // 对比柱状图数据（考虑隐藏项）
   const barChartData = comparisonData.map((d) => ({
@@ -831,6 +1391,12 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
     },
   ];
 
+  // 构建选择器选项
+  const bundleOptions = allBundles.map(b => ({
+    value: b.id,
+    label: b.name,
+  }));
+  
   return (
     <Card 
       title={<><BarChartOutlined /> 供应商组合对比</>}
@@ -843,7 +1409,7 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
           onChange={onSelectedBundlesChange}
           style={{ width: 300 }}
           placeholder="添加对比组合"
-          options={vendorOptions.bundles}
+          options={bundleOptions}
           maxTagCount={2}
         />
       }
@@ -1038,32 +1604,73 @@ const CostDetails: React.FC<CostDetailsProps> = ({ cost, vendorConfig, behavior 
       </Panel>
 
       <Panel header="📐 成本公式说明" key="formula">
-        <div style={{ fontFamily: 'monospace', fontSize: 13, lineHeight: 2 }}>
-          <Paragraph>
-            <Text strong>总成本公式：</Text>
-            <br />
-            <Text code>C_total = C_tel + C_ASR + C_TTS + C_LLM + C_fixed</Text>
-          </Paragraph>
-          <Paragraph>
-            <Text strong>线路成本：</Text>
-            <br />
-            <Text code>C_tel = CEILING(T, b_tel) / 60 × p_tel_min</Text>
-          </Paragraph>
-          <Paragraph>
-            <Text strong>ASR成本：</Text>
-            <br />
-            <Text code>C_ASR = CEILING(T × r_u, b_asr) / 60 × p_asr_min</Text>
-          </Paragraph>
-          <Paragraph>
-            <Text strong>TTS成本：</Text>
-            <br />
-            <Text code>C_TTS = T × r_b × v_char/s × k_vendor × p_tts_char / 1000</Text>
-          </Paragraph>
-          <Paragraph>
-            <Text strong>LLM成本：</Text>
-            <br />
-            <Text code>C_LLM = (p_in × N_in + p_out × N_out + p_reason × N_reason) / 1000</Text>
-          </Paragraph>
+        <div style={{ fontSize: 13, lineHeight: 1.8 }}>
+          {/* 总成本公式 */}
+          <div style={{ marginBottom: 16, padding: 12, background: '#f6ffed', borderRadius: 8, border: '1px solid #b7eb8f' }}>
+            <Text strong style={{ color: '#52c41a' }}>📊 总成本公式</Text>
+            <div style={{ marginTop: 8, fontFamily: 'monospace', background: '#fff', padding: 8, borderRadius: 4 }}>
+              总成本 = 线路成本 + ASR成本 + TTS成本 + LLM成本 + 固定成本
+            </div>
+          </div>
+
+          {/* 线路成本 */}
+          <div style={{ marginBottom: 16, padding: 12, background: '#f9f0ff', borderRadius: 8, border: '1px solid #d3adf7' }}>
+            <Text strong style={{ color: '#722ed1' }}>📞 线路成本（电话通话费用）</Text>
+            <div style={{ marginTop: 8, fontFamily: 'monospace', background: '#fff', padding: 8, borderRadius: 4 }}>
+              线路成本 = 向上取整(通话时长, 计费步长) ÷ 60 × 每分钟单价
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+              <Text type="secondary">💡 说明：通话时长按计费步长（如6秒）向上取整后，按分钟计费</Text>
+            </div>
+          </div>
+
+          {/* ASR成本 */}
+          <div style={{ marginBottom: 16, padding: 12, background: '#e6fffb', borderRadius: 8, border: '1px solid #87e8de' }}>
+            <Text strong style={{ color: '#13c2c2' }}>🎤 ASR成本（语音识别费用）</Text>
+            <div style={{ marginTop: 8, fontFamily: 'monospace', background: '#fff', padding: 8, borderRadius: 4 }}>
+              ASR成本 = 向上取整(通话时长 × 用户说话占比 × VAD准确率, 计费步长) ÷ 60 × 每分钟单价
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+              <Text type="secondary">💡 说明：只对用户说话部分计费，VAD准确率影响实际识别时长</Text>
+            </div>
+          </div>
+
+          {/* TTS成本 */}
+          <div style={{ marginBottom: 16, padding: 12, background: '#fff7e6', borderRadius: 8, border: '1px solid #ffd591' }}>
+            <Text strong style={{ color: '#fa8c16' }}>🔊 TTS成本（语音合成费用）</Text>
+            <div style={{ marginTop: 8, fontFamily: 'monospace', background: '#fff', padding: 8, borderRadius: 4 }}>
+              TTS成本 = 通话时长 × 机器人说话占比 × 每秒字符数 × 供应商字符比例 × (1 - 缓存命中率) × 每千字符单价 ÷ 1000
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+              <Text type="secondary">💡 说明：缓存命中的内容不需要重新合成，可节省费用</Text>
+            </div>
+          </div>
+
+          {/* LLM成本 */}
+          <div style={{ marginBottom: 16, padding: 12, background: '#e6f7ff', borderRadius: 8, border: '1px solid #91d5ff' }}>
+            <Text strong style={{ color: '#1890ff' }}>🤖 LLM成本（大模型推理费用）</Text>
+            <div style={{ marginTop: 8, fontFamily: 'monospace', background: '#fff', padding: 8, borderRadius: 4 }}>
+              LLM成本 = (输入单价 × 输入Token数 + 输出单价 × 输出Token数 + 推理单价 × 推理Token数) ÷ 1000
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+              <Text type="secondary">💡 说明：Token数 = 系统提示词 + 上下文 + 工具定义 + 用户输入/模型输出</Text>
+            </div>
+          </div>
+
+          {/* 参数说明 */}
+          <div style={{ padding: 12, background: '#fafafa', borderRadius: 8, border: '1px solid #d9d9d9' }}>
+            <Text strong>📋 关键参数说明</Text>
+            <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', fontSize: 12 }}>
+              <div><Text type="secondary">通话时长：</Text>单次通话总秒数</div>
+              <div><Text type="secondary">用户说话占比：</Text>用户说话时间 / 总时长</div>
+              <div><Text type="secondary">机器人说话占比：</Text>机器人说话时间 / 总时长</div>
+              <div><Text type="secondary">VAD准确率：</Text>语音活动检测准确度</div>
+              <div><Text type="secondary">缓存命中率：</Text>TTS内容命中缓存的比例</div>
+              <div><Text type="secondary">计费步长：</Text>最小计费单位（如6秒）</div>
+              <div><Text type="secondary">供应商字符比例：</Text>实际调用供应商的字符占比</div>
+              <div><Text type="secondary">每秒字符数：</Text>语音合成的平均字符速度</div>
+            </div>
+          </div>
         </div>
       </Panel>
     </Collapse>
@@ -1414,6 +2021,12 @@ const AICostSimulatorPage: React.FC = () => {
   // 供应商管理模态框
   const [vendorManagerVisible, setVendorManagerVisible] = useState(false);
   const [vendorOptionsVersion, setVendorOptionsVersion] = useState(0);
+  
+  // 场景预设版本（用于触发重新渲染）
+  const [scenarioVersion, setScenarioVersion] = useState(0);
+  
+  // 供应商组合版本（用于触发重新渲染）
+  const [bundleVersion, setBundleVersion] = useState(0);
 
   // 保存预设组合模态框
   const [saveBundleModalVisible, setSaveBundleModalVisible] = useState(false);
@@ -1460,6 +2073,10 @@ const AICostSimulatorPage: React.FC = () => {
     message.success('预设组合已删除');
   };
 
+  // 获取合并后的供应商组合
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mergedBundlesList = useMemo(() => getMergedBundles(), [bundleVersion, vendorOptionsVersion]);
+  
   // 计算当前供应商配置
   const currentVendorConfig = useMemo(() => {
     let config: VendorConfig;
@@ -1472,22 +2089,26 @@ const AICostSimulatorPage: React.FC = () => {
         fixedCost  // 使用用户设置的固定成本
       );
     } else {
-      // 从所有预设组合中查找（包括自定义预设）
-      config = getBundleById(selectedBundle) || VENDOR_BUNDLES[0];
+      // 从合并后的预设组合中查找
+      config = mergedBundlesList.find(b => b.id === selectedBundle) || VENDOR_BUNDLES[0];
     }
     // 覆盖固定成本为用户设置的值
     return { ...config, fixedCostPerCall: fixedCost };
-  }, [useCustomConfig, customConfig, selectedBundle, vendorOptionsVersion, fixedCost]);
+  }, [useCustomConfig, customConfig, selectedBundle, mergedBundlesList, fixedCost]);
 
   // 计算成本
   const cost = useMemo(() => {
     return computeCost(behavior, currentVendorConfig);
   }, [behavior, currentVendorConfig]);
 
+  // 获取合并后的场景预设
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mergedScenarios = useMemo(() => getMergedScenarioPresets(), [scenarioVersion]);
+  
   // 计算场景加权平均成本
   const weightedCost = useMemo(() => {
-    return computeWeightedAverageCost(SCENARIO_PRESETS, currentVendorConfig);
-  }, [currentVendorConfig]);
+    return computeWeightedAverageCost(mergedScenarios, currentVendorConfig);
+  }, [mergedScenarios, currentVendorConfig]);
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
@@ -1530,6 +2151,10 @@ const AICostSimulatorPage: React.FC = () => {
               onSaveAsBundle={handleSaveAsBundle}
               onDeleteBundle={handleDeleteBundle}
               vendorOptionsVersion={vendorOptionsVersion}
+              scenarioVersion={scenarioVersion}
+              onScenarioChange={() => setScenarioVersion(v => v + 1)}
+              bundleVersion={bundleVersion}
+              onBundleVersionChange={() => setBundleVersion(v => v + 1)}
             />
           </Col>
 
@@ -1590,9 +2215,33 @@ const AICostSimulatorPage: React.FC = () => {
                   <KpiCard
                     title="场景加权平均成本"
                     value={formatCurrency(weightedCost.avgCost.total)}
-                    subtitle="基于6种典型场景"
+                    subtitle={`基于${mergedScenarios.length}种典型场景`}
                     icon={<BarChartOutlined />}
                     color="#eb2f96"
+                    tooltip={
+                      <div style={{ fontSize: 12 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 8 }}>📐 计算公式</div>
+                        <div style={{ marginBottom: 8, fontFamily: 'monospace', background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: 4 }}>
+                          加权平均成本 = Σ(场景成本 × 权重) / Σ权重
+                        </div>
+                        <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 12 }}>📊 场景权重分布</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
+                          {mergedScenarios.map(s => {
+                            const totalWeight = mergedScenarios.reduce((sum, p) => sum + (p.weight ?? 1), 0);
+                            const pct = ((s.weight ?? 1) / totalWeight * 100).toFixed(0);
+                            return (
+                              <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>{s.name}:</span>
+                                <span style={{ fontWeight: 500 }}>{pct}%</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div style={{ marginTop: 8, opacity: 0.8, fontSize: 11 }}>
+                          💡 权重反映该场景在实际业务中的出现频率（点击编辑按钮可修改）
+                        </div>
+                      </div>
+                    }
                   />
                 </Col>
               </Row>
@@ -1605,6 +2254,7 @@ const AICostSimulatorPage: React.FC = () => {
                 behavior={behavior}
                 selectedBundles={comparisonBundles}
                 onSelectedBundlesChange={setComparisonBundles}
+                bundleVersion={bundleVersion}
               />
 
               {/* 计算详情 */}
@@ -1619,6 +2269,69 @@ const AICostSimulatorPage: React.FC = () => {
           onClose={() => setVendorManagerVisible(false)}
           onVendorsChange={() => setVendorOptionsVersion(v => v + 1)}
         />
+
+        {/* 保存预设组合模态框 */}
+        <Modal
+          title="保存为预设组合"
+          open={saveBundleModalVisible}
+          onCancel={() => {
+            setSaveBundleModalVisible(false);
+            saveBundleForm.resetFields();
+          }}
+          footer={null}
+          width={480}
+        >
+          <Form
+            form={saveBundleForm}
+            layout="vertical"
+            onFinish={handleSaveBundleConfirm}
+          >
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="当前配置"
+              description={
+                <div style={{ fontSize: 12 }}>
+                  <div>ASR: {getAllVendors().asr[customConfig.asr]?.name || customConfig.asr}</div>
+                  <div>TTS: {getAllVendors().tts[customConfig.tts]?.name || customConfig.tts}</div>
+                  <div>LLM: {getAllVendors().llm[customConfig.llm]?.name || customConfig.llm}</div>
+                  <div>线路: {getAllVendors().telecom[customConfig.telecom]?.name || customConfig.telecom}</div>
+                </div>
+              }
+            />
+            <Form.Item
+              name="name"
+              label="预设名称"
+              rules={[{ required: true, message: '请输入预设名称' }]}
+            >
+              <Input placeholder="例如：高性价比组合、企业版配置" maxLength={50} />
+            </Form.Item>
+            <Form.Item
+              name="description"
+              label="描述（可选）"
+            >
+              <Input.TextArea 
+                placeholder="简要描述这个预设组合的特点" 
+                rows={2}
+                maxLength={100}
+              />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+              <Space>
+                <Button onClick={() => {
+                  setSaveBundleModalVisible(false);
+                  saveBundleForm.resetFields();
+                }}>
+                  取消
+                </Button>
+                <Button type="primary" htmlType="submit">
+                  保存预设
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
       </Content>
     </Layout>
   );

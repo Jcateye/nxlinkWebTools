@@ -25,6 +25,7 @@ const openapi_1 = __importDefault(require("./routes/openapi"));
 const apiKeyManagement_1 = __importDefault(require("./routes/apiKeyManagement"));
 const formWebhook_1 = __importDefault(require("./routes/formWebhook"));
 const publicApi_1 = __importDefault(require("./routes/publicApi"));
+const dgConsumption_1 = __importDefault(require("./routes/dgConsumption"));
 const nodeEnv = process.env.NODE_ENV || 'development';
 const envFiles = [
     `.env.${nodeEnv}`,
@@ -81,6 +82,7 @@ app.use('/api/openapi', openapi_1.default);
 app.use('/api/openapi', publicApi_1.default);
 app.use('/internal-api/keys', apiKeyManagement_1.default);
 app.use('/api/webhook', formWebhook_1.default);
+app.use('/local/dg-consumption', dgConsumption_1.default);
 io.on('connection', (socket) => {
     logger_1.logger.info(`客户端已连接: ${socket.id}`);
     socket.on('join-test-session', (sessionId) => {

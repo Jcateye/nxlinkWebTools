@@ -294,7 +294,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         return id;
       }
     }
-    return Object.keys(allVendors.telecom)[0] || 'us-local';
+    return Object.keys(allVendors.telecom)[0] || 'free';
   };
   
   // 供应商组合编辑处理
@@ -1689,6 +1689,7 @@ const VendorManagerModal: React.FC<VendorManagerModalProps> = ({ visible, onClos
   const [asrForm] = Form.useForm();
   const [ttsForm] = Form.useForm();
   const [llmForm] = Form.useForm();
+  const [telecomForm] = Form.useForm();
   const [customVendors, setCustomVendors] = useState(loadCustomVendors());
 
   const refreshCustomVendors = () => {
@@ -1762,6 +1763,22 @@ const VendorManagerModal: React.FC<VendorManagerModalProps> = ({ visible, onClos
     refreshCustomVendors();
     llmForm.resetFields();
     message.success('LLM 模型添加成功');
+  };
+
+  const handleAddTelecom = (values: any) => {
+    const id = `custom-telecom-${Date.now()}`;
+    const config: TelecomRateConfig = {
+      name: values.name,
+      pricePerMin: values.pricePerMin,
+      billingStep: values.billingStep || 60,
+      description: values.description,
+    };
+    const customs = loadCustomVendors();
+    customs.telecom[id] = config;
+    saveCustomVendors(customs);
+    refreshCustomVendors();
+    telecomForm.resetFields();
+    message.success('线路添加成功');
   };
 
   const handleDeleteVendor = (type: 'asr' | 'tts' | 'llm' | 'telecom', id: string) => {
@@ -1874,6 +1891,40 @@ const VendorManagerModal: React.FC<VendorManagerModalProps> = ({ visible, onClos
     );
   };
 
+  const renderTelecomTable = () => {
+    const allVendors = getAllVendors();
+    const data = Object.entries(allVendors.telecom).map(([id, v]) => ({
+      key: id,
+      id,
+      ...v,
+      isCustom: !TELECOM_RATES[id],
+    }));
+
+    return (
+      <Table
+        dataSource={data}
+        size="small"
+        scroll={{ y: 300 }}
+        pagination={false}
+        columns={[
+          { title: '线路名称', dataIndex: 'name', width: 180 },
+          { title: '$/分钟', dataIndex: 'pricePerMin', width: 100, render: (v: number) => v === 0 ? '免费' : `$${v.toFixed(4)}` },
+          { title: '计费步长', dataIndex: 'billingStep', width: 100, render: (v: number) => `${v}秒` },
+          { title: '说明', dataIndex: 'description', ellipsis: true },
+          {
+            title: '操作',
+            width: 60,
+            render: (_: any, record: any) => record.isCustom ? (
+              <Popconfirm title="确定删除?" onConfirm={() => handleDeleteVendor('telecom', record.id)}>
+                <Button type="text" danger size="small" icon={<DeleteOutlined />} />
+              </Popconfirm>
+            ) : <Tag color="blue">内置</Tag>,
+          },
+        ]}
+      />
+    );
+  };
+
   const tabItems = [
     {
       key: 'asr',
@@ -1962,6 +2013,34 @@ const VendorManagerModal: React.FC<VendorManagerModalProps> = ({ visible, onClos
         </div>
       ),
     },
+    {
+      key: 'telecom',
+      label: `线路 (${Object.keys(getAllVendors().telecom).length})`,
+      children: (
+        <div>
+          <Card title="添加线路" size="small" style={{ marginBottom: 16 }}>
+            <Form form={telecomForm} layout="inline" onFinish={handleAddTelecom}>
+              <Form.Item name="name" rules={[{ required: true, message: '请输入名称' }]}>
+                <Input placeholder="线路名称（如：美国本地）" style={{ width: 180 }} />
+              </Form.Item>
+              <Form.Item name="pricePerMin" rules={[{ required: true, message: '请输入价格' }]}>
+                <InputNumber placeholder="$/分钟" min={0} step={0.001} style={{ width: 100 }} />
+              </Form.Item>
+              <Form.Item name="billingStep">
+                <InputNumber placeholder="计费步长(秒)" min={1} max={60} style={{ width: 120 }} />
+              </Form.Item>
+              <Form.Item name="description">
+                <Input placeholder="说明（可选）" style={{ width: 150 }} />
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>添加</Button>
+              </Form.Item>
+            </Form>
+          </Card>
+          {renderTelecomTable()}
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -2004,7 +2083,7 @@ const AICostSimulatorPage: React.FC = () => {
     asr: 'google-standard-nolog',
     tts: 'cartesia',
     llm: 'gpt4o-mini-0718',
-    telecom: 'us-local',
+    telecom: 'free',
     fixedCost: 0,
   });
 

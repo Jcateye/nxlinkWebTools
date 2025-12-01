@@ -846,40 +846,11 @@ export interface TelecomRateConfig {
 }
 
 export const TELECOM_RATES: Record<string, TelecomRateConfig> = {
-  'us-local': {
-    name: '美国本地',
-    pricePerMin: 0.01,
+  'free': {
+    name: '免费线路',
+    pricePerMin: 0,
     billingStep: 60,
-  },
-  'us-toll-free': {
-    name: '美国免费号',
-    pricePerMin: 0.02,
-    billingStep: 60,
-  },
-  'cn-local': {
-    name: '中国大陆',
-    pricePerMin: 0.02,
-    billingStep: 60,
-  },
-  'hk-local': {
-    name: '香港',
-    pricePerMin: 0.015,
-    billingStep: 60,
-  },
-  'eu-local': {
-    name: '欧洲本地',
-    pricePerMin: 0.02,
-    billingStep: 60,
-  },
-  'sea-local': {
-    name: '东南亚',
-    pricePerMin: 0.025,
-    billingStep: 60,
-  },
-  'custom': {
-    name: '自定义',
-    pricePerMin: 0.01,
-    billingStep: 60,
+    description: '不计算线路成本',
   },
 };
 
@@ -891,7 +862,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     id: 'ultra-budget',
     name: '极致经济型 (Deepgram + Google标准 + GPT-5-nano)',
     description: '最低成本组合，适合简单场景',
-    telPricePerMin: 0.01,
+    telPricePerMin: 0,
     telBillingStep: 60,
     asrPricePerMin: ASR_VENDORS['deepgram-nova2'].pricePerMin,
     asrBillingStep: ASR_VENDORS['deepgram-nova2'].billingStep,
@@ -916,7 +887,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     id: 'budget-gemini',
     name: '经济型 (Deepgram + Cartesia + Gemini Flash Lite)',
     description: '性价比最优组合',
-    telPricePerMin: 0.01,
+    telPricePerMin: 0,
     telBillingStep: 60,
     asrPricePerMin: ASR_VENDORS['deepgram-nova2'].pricePerMin,
     asrBillingStep: ASR_VENDORS['deepgram-nova2'].billingStep,
@@ -941,7 +912,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     id: 'balanced-gpt4mini',
     name: '均衡型 (Google ASR + Cartesia + GPT-4o-mini)',
     description: '性能与成本的平衡，适合大多数场景',
-    telPricePerMin: 0.01,
+    telPricePerMin: 0,
     telBillingStep: 60,
     asrPricePerMin: ASR_VENDORS['google-standard-nolog'].pricePerMin,
     asrBillingStep: ASR_VENDORS['google-standard-nolog'].billingStep,
@@ -966,7 +937,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     id: 'premium-11labs',
     name: '高质量 (Google ASR + 11Labs-TierB + GPT-4o)',
     description: '高品质语音和智能，适合高端场景',
-    telPricePerMin: 0.01,
+    telPricePerMin: 0,
     telBillingStep: 60,
     asrPricePerMin: ASR_VENDORS['google-standard-nolog'].pricePerMin,
     asrBillingStep: ASR_VENDORS['google-standard-nolog'].billingStep,
@@ -991,7 +962,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     id: 'bytedance-flash',
     name: '字节跳动组合 (Seed-1.6-flash)',
     description: '使用字节跳动模型，中文场景优化',
-    telPricePerMin: 0.01,
+    telPricePerMin: 0,
     telBillingStep: 60,
     asrPricePerMin: ASR_VENDORS['deepgram-nova2'].pricePerMin,
     asrBillingStep: ASR_VENDORS['deepgram-nova2'].billingStep,
@@ -1016,7 +987,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     id: 'claude-sonnet',
     name: 'Claude Sonnet 组合',
     description: '使用Claude 3.7 Sonnet，高质量对话',
-    telPricePerMin: 0.01,
+    telPricePerMin: 0,
     telBillingStep: 60,
     asrPricePerMin: ASR_VENDORS['google-standard-nolog'].pricePerMin,
     asrBillingStep: ASR_VENDORS['google-standard-nolog'].billingStep,
@@ -1143,7 +1114,7 @@ export const buildVendorConfig = (
   const asr = allVendors.asr[asrId] || ASR_VENDORS['google-standard-nolog'];
   const tts = allVendors.tts[ttsId] || TTS_VENDORS['cartesia'];
   const llm = allVendors.llm[llmId] || LLM_MODELS['gpt4o-mini-0718'];
-  const telecom = allVendors.telecom[telecomId] || TELECOM_RATES['us-local'];
+  const telecom = allVendors.telecom[telecomId] || TELECOM_RATES['free'];
   
   return {
     id: `custom-${asrId}-${ttsId}-${llmId}`,

@@ -906,7 +906,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     llmToolTokens: LLM_MODELS['gpt-5-nano'].toolTokens,
     llmCharsPerToken: LLM_MODELS['gpt-5-nano'].charsPerToken,
     llmModel: LLM_MODELS['gpt-5-nano'].name,
-    fixedCostPerCall: 0.001,
+    fixedCostPerCall: 0,
   },
   // 经济型 - Deepgram + Cartesia + Gemini Flash Lite
   {
@@ -931,7 +931,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     llmToolTokens: LLM_MODELS['gemini-2.5-flash-lite'].toolTokens,
     llmCharsPerToken: LLM_MODELS['gemini-2.5-flash-lite'].charsPerToken,
     llmModel: LLM_MODELS['gemini-2.5-flash-lite'].name,
-    fixedCostPerCall: 0.001,
+    fixedCostPerCall: 0,
   },
   // 均衡型 - Google ASR + Cartesia + GPT-4o-mini
   {
@@ -956,7 +956,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     llmToolTokens: LLM_MODELS['gpt4o-mini-0718'].toolTokens,
     llmCharsPerToken: LLM_MODELS['gpt4o-mini-0718'].charsPerToken,
     llmModel: LLM_MODELS['gpt4o-mini-0718'].name,
-    fixedCostPerCall: 0.001,
+    fixedCostPerCall: 0,
   },
   // 高质量型 - Google ASR + 11Labs TierB + GPT-4o
   {
@@ -981,7 +981,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     llmToolTokens: LLM_MODELS['gpt4o-2024-1120'].toolTokens,
     llmCharsPerToken: LLM_MODELS['gpt4o-2024-1120'].charsPerToken,
     llmModel: LLM_MODELS['gpt4o-2024-1120'].name,
-    fixedCostPerCall: 0.002,
+    fixedCostPerCall: 0,
   },
   // 字节跳动组合
   {
@@ -1006,7 +1006,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     llmToolTokens: LLM_MODELS['bytedance-seed-1.6-flash'].toolTokens,
     llmCharsPerToken: LLM_MODELS['bytedance-seed-1.6-flash'].charsPerToken,
     llmModel: LLM_MODELS['bytedance-seed-1.6-flash'].name,
-    fixedCostPerCall: 0.001,
+    fixedCostPerCall: 0,
   },
   // Claude组合
   {
@@ -1031,7 +1031,7 @@ export const VENDOR_BUNDLES: VendorConfig[] = [
     llmToolTokens: LLM_MODELS['claude-3.7-sonnet'].toolTokens,
     llmCharsPerToken: LLM_MODELS['claude-3.7-sonnet'].charsPerToken,
     llmModel: LLM_MODELS['claude-3.7-sonnet'].name,
-    fixedCostPerCall: 0.002,
+    fixedCostPerCall: 0,
   },
 ];
 
@@ -1046,6 +1046,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     r_b: 0.2,
     r_u: 0.6,
     q: 0.2,
+    ttsCacheHitRate: 0.5,   // 欢迎语等固定内容可缓存
+    vadAccuracy: 0.95,      // 留言场景VAD略有漏检
     weight: 15,
   },
   {
@@ -1056,6 +1058,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     r_b: 0.3,
     r_u: 0.1,
     q: 0.1,
+    ttsCacheHitRate: 0.8,   // 开场白高度标准化
+    vadAccuracy: 0.9,       // 短通话VAD可能不稳定
     weight: 20,
   },
   {
@@ -1066,6 +1070,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     r_b: 0.7,
     r_u: 0.1,
     q: 0.2,
+    ttsCacheHitRate: 0.6,   // 播报内容部分可缓存
+    vadAccuracy: 1.0,       // 用户说话少，VAD影响小
     weight: 25,
   },
   {
@@ -1076,6 +1082,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     r_b: 0.4,
     r_u: 0.4,
     q: 0.3,
+    ttsCacheHitRate: 0.3,   // 问答内容较动态
+    vadAccuracy: 1.0,       // 正常VAD
     weight: 20,
   },
   {
@@ -1086,6 +1094,8 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     r_b: 0.35,
     r_u: 0.45,
     q: 0.7,
+    ttsCacheHitRate: 0.1,   // 深度对话内容高度动态
+    vadAccuracy: 1.05,      // 长对话可能有少量误触发
     weight: 15,
   },
   {
@@ -1096,7 +1106,21 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     r_b: 0.4,
     r_u: 0.35,
     q: 0.5,
+    ttsCacheHitRate: 0.4,   // 常见问题回复可缓存
+    vadAccuracy: 1.0,       // 正常VAD
     weight: 5,
+  },
+  {
+    id: 'basic-marketing',
+    name: '初级营销',
+    description: '简单外呼营销，机器人主导播报，用户响应少',
+    T: 30,
+    r_b: 0.7,
+    r_u: 0.06,
+    q: 0,
+    ttsCacheHitRate: 0.7,   // 营销话术高度标准化，缓存命中率高
+    vadAccuracy: 0.9,       // 短通话VAD可能漏检部分用户响应
+    weight: 10,
   },
 ];
 
@@ -1110,12 +1134,13 @@ export const buildVendorConfig = (
   ttsId: string,
   llmId: string,
   telecomId: string,
-  fixedCost: number = 0.001
+  fixedCost: number = 0
 ): VendorConfig => {
-  const asr = ASR_VENDORS[asrId] || ASR_VENDORS['google-standard-nolog'];
-  const tts = TTS_VENDORS[ttsId] || TTS_VENDORS['cartesia'];
-  const llm = LLM_MODELS[llmId] || LLM_MODELS['gpt4o-mini-0718'];
-  const telecom = TELECOM_RATES[telecomId] || TELECOM_RATES['us-local'];
+  const allVendors = getAllVendors();
+  const asr = allVendors.asr[asrId] || ASR_VENDORS['google-standard-nolog'];
+  const tts = allVendors.tts[ttsId] || TTS_VENDORS['cartesia'];
+  const llm = allVendors.llm[llmId] || LLM_MODELS['gpt4o-mini-0718'];
+  const telecom = allVendors.telecom[telecomId] || TELECOM_RATES['us-local'];
   
   return {
     id: `custom-${asrId}-${ttsId}-${llmId}`,
@@ -1265,6 +1290,7 @@ export const getAllVendors = () => {
  */
 export const getAllVendorOptions = () => {
   const all = getAllVendors();
+  const allBundles = getAllBundles();
   return {
     asr: Object.entries(all.asr).map(([id, v]) => ({ 
       value: id, 
@@ -1294,6 +1320,86 @@ export const getAllVendorOptions = () => {
       description: v.description,
       isCustom: !TELECOM_RATES[id],
     })),
-    bundles: VENDOR_BUNDLES.map(b => ({ value: b.id, label: b.name, description: b.description })),
+    bundles: allBundles.map(b => ({ 
+      value: b.id, 
+      label: b.name, 
+      description: b.description,
+      isCustom: !VENDOR_BUNDLES.find(vb => vb.id === b.id),
+    })),
   };
+};
+
+// ============ 自定义预设组合管理 ============
+
+const CUSTOM_BUNDLES_STORAGE_KEY = 'ai_cost_simulator_custom_bundles';
+
+export interface CustomBundleStorage {
+  bundles: Record<string, VendorConfig>;
+}
+
+/**
+ * 从 localStorage 加载自定义预设组合
+ */
+export const loadCustomBundles = (): CustomBundleStorage => {
+  try {
+    const stored = localStorage.getItem(CUSTOM_BUNDLES_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('加载自定义预设组合失败:', e);
+  }
+  return { bundles: {} };
+};
+
+/**
+ * 保存自定义预设组合到 localStorage
+ */
+export const saveCustomBundles = (storage: CustomBundleStorage): void => {
+  try {
+    localStorage.setItem(CUSTOM_BUNDLES_STORAGE_KEY, JSON.stringify(storage));
+  } catch (e) {
+    console.error('保存自定义预设组合失败:', e);
+  }
+};
+
+/**
+ * 添加自定义预设组合
+ */
+export const addCustomBundle = (id: string, config: VendorConfig): void => {
+  const storage = loadCustomBundles();
+  storage.bundles[id] = config;
+  saveCustomBundles(storage);
+};
+
+/**
+ * 删除自定义预设组合
+ */
+export const removeCustomBundle = (id: string): void => {
+  const storage = loadCustomBundles();
+  delete storage.bundles[id];
+  saveCustomBundles(storage);
+};
+
+/**
+ * 获取所有预设组合（内置 + 自定义）
+ */
+export const getAllBundles = (): VendorConfig[] => {
+  const customs = loadCustomBundles();
+  return [...VENDOR_BUNDLES, ...Object.values(customs.bundles)];
+};
+
+/**
+ * 根据ID获取预设组合
+ */
+export const getBundleById = (id: string): VendorConfig | undefined => {
+  const allBundles = getAllBundles();
+  return allBundles.find(b => b.id === id);
+};
+
+/**
+ * 检查是否为自定义预设组合
+ */
+export const isCustomBundle = (id: string): boolean => {
+  return !VENDOR_BUNDLES.find(b => b.id === id);
 };

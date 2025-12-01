@@ -89,8 +89,13 @@ import {
   getVendorOptions,
   getAllVendorOptions,
   getAllVendors,
+  getAllBundles,
+  getBundleById,
   loadCustomVendors,
   saveCustomVendors,
+  addCustomBundle,
+  removeCustomBundle,
+  isCustomBundle,
   ASRVendorConfig,
   TTSVendorConfig,
   LLMModelConfig,
@@ -169,10 +174,16 @@ interface ControlPanelProps {
     tts: string;
     llm: string;
     telecom: string;
+    fixedCost: number;
   };
-  onCustomConfigChange: (config: { asr: string; tts: string; llm: string; telecom: string }) => void;
+  onCustomConfigChange: (config: { asr: string; tts: string; llm: string; telecom: string; fixedCost: number }) => void;
   useCustomConfig: boolean;
   onUseCustomConfigChange: (use: boolean) => void;
+  fixedCost: number;
+  onFixedCostChange: (cost: number) => void;
+  onSaveAsBundle: () => void;
+  onDeleteBundle: (id: string) => void;
+  vendorOptionsVersion: number;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -184,8 +195,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onCustomConfigChange,
   useCustomConfig,
   onUseCustomConfigChange,
+  fixedCost,
+  onFixedCostChange,
+  onSaveAsBundle,
+  onDeleteBundle,
+  vendorOptionsVersion,
 }) => {
-  const vendorOptions = getAllVendorOptions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const vendorOptions = useMemo(() => getAllVendorOptions(), [vendorOptionsVersion]);
 
   const handleScenarioClick = (scenario: typeof SCENARIO_PRESETS[0]) => {
     onBehaviorChange({
@@ -193,6 +210,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       r_b: scenario.r_b,
       r_u: scenario.r_u,
       q: scenario.q,
+      ttsCacheHitRate: scenario.ttsCacheHitRate ?? 0.3,
+      vadAccuracy: scenario.vadAccuracy ?? 1.0,
     });
   };
 
@@ -217,56 +236,96 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             </div>
             
             {!useCustomConfig ? (
-              <Select
-                value={selectedBundle}
-                onChange={onBundleChange}
-                style={{ width: '100%' }}
-                options={vendorOptions.bundles}
-                optionRender={(option) => (
-                  <div>
-                    <div>{option.label}</div>
-                    <Text type="secondary" style={{ fontSize: 11 }}>{option.data.description}</Text>
-                  </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Select
+                  value={selectedBundle}
+                  onChange={onBundleChange}
+                  style={{ flex: 1 }}
+                  options={vendorOptions.bundles}
+                  optionRender={(option) => (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div>{option.label}</div>
+                        <Text type="secondary" style={{ fontSize: 11 }}>{option.data.description}</Text>
+                      </div>
+                      {option.data.isCustom && (
+                        <Tag color="blue" style={{ marginLeft: 8 }}>自定义</Tag>
+                      )}
+                    </div>
+                  )}
+                />
+                {isCustomBundle(selectedBundle) && (
+                  <Popconfirm
+                    title="删除预设组合"
+                    description="确定要删除这个自定义预设组合吗？"
+                    onConfirm={() => onDeleteBundle(selectedBundle)}
+                    okText="删除"
+                    cancelText="取消"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button danger icon={<DeleteOutlined />} />
+                  </Popconfirm>
                 )}
-              />
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div>
                   <Text type="secondary" style={{ fontSize: 12 }}>ASR 供应商</Text>
                   <Select
+                    key={`asr-${vendorOptionsVersion}`}
                     value={customConfig.asr}
                     onChange={(v) => onCustomConfigChange({ ...customConfig, asr: v })}
                     style={{ width: '100%' }}
                     options={vendorOptions.asr}
+                    showSearch
+                    optionFilterProp="label"
                   />
                 </div>
                 <div>
                   <Text type="secondary" style={{ fontSize: 12 }}>TTS 供应商</Text>
                   <Select
+                    key={`tts-${vendorOptionsVersion}`}
                     value={customConfig.tts}
                     onChange={(v) => onCustomConfigChange({ ...customConfig, tts: v })}
                     style={{ width: '100%' }}
                     options={vendorOptions.tts}
+                    showSearch
+                    optionFilterProp="label"
                   />
                 </div>
                 <div>
                   <Text type="secondary" style={{ fontSize: 12 }}>LLM 模型</Text>
                   <Select
+                    key={`llm-${vendorOptionsVersion}`}
                     value={customConfig.llm}
                     onChange={(v) => onCustomConfigChange({ ...customConfig, llm: v })}
                     style={{ width: '100%' }}
                     options={vendorOptions.llm}
+                    showSearch
+                    optionFilterProp="label"
                   />
                 </div>
                 <div>
                   <Text type="secondary" style={{ fontSize: 12 }}>线路区域</Text>
                   <Select
+                    key={`telecom-${vendorOptionsVersion}`}
                     value={customConfig.telecom}
                     onChange={(v) => onCustomConfigChange({ ...customConfig, telecom: v })}
                     style={{ width: '100%' }}
                     options={vendorOptions.telecom}
+                    showSearch
+                    optionFilterProp="label"
                   />
                 </div>
+                <Divider style={{ margin: '8px 0' }} />
+                <Button 
+                  type="dashed" 
+                  icon={<PlusOutlined />}
+                  onClick={onSaveAsBundle}
+                  block
+                >
+                  保存为预设组合
+                </Button>
               </div>
             )}
           </div>
@@ -307,7 +366,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             <Slider
               min={0}
               max={0.8}
-              step={0.05}
+              step={0.01}
               value={behavior.r_b}
               onChange={(v) => onBehaviorChange({ ...behavior, r_b: v })}
             />
@@ -326,7 +385,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             <Slider
               min={0}
               max={0.8}
-              step={0.05}
+              step={0.01}
               value={behavior.r_u}
               onChange={(v) => onBehaviorChange({ ...behavior, r_u: v })}
             />
@@ -345,9 +404,53 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             <Slider
               min={0}
               max={1}
-              step={0.1}
+              step={0.01}
               value={behavior.q}
               onChange={(v) => onBehaviorChange({ ...behavior, q: v })}
+            />
+          </div>
+
+          <Divider style={{ margin: '8px 0' }} />
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text type="secondary">
+                TTS缓存命中率
+                <Tooltip title="相同TTS内容可缓存，命中缓存不调用TTS接口。如固定开场白、常见回复等">
+                  <InfoCircleOutlined style={{ marginLeft: 4 }} />
+                </Tooltip>
+              </Text>
+              <Text strong style={{ color: '#52c41a' }}>{(behavior.ttsCacheHitRate * 100).toFixed(0)}%</Text>
+            </div>
+            <Slider
+              min={0}
+              max={0.95}
+              step={0.01}
+              value={behavior.ttsCacheHitRate}
+              onChange={(v) => onBehaviorChange({ ...behavior, ttsCacheHitRate: v })}
+              marks={{ 0: '0%', 0.3: '30%', 0.6: '60%', 0.95: '95%' }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text type="secondary">
+                VAD准确率
+                <Tooltip title="VAD(语音活动检测)影响实际送入ASR的时长。<100%=漏识别，>100%=误触发（噪音等误认为语音）">
+                  <InfoCircleOutlined style={{ marginLeft: 4 }} />
+                </Tooltip>
+              </Text>
+              <Text strong style={{ color: behavior.vadAccuracy === 1 ? '#1890ff' : '#fa8c16' }}>
+                {(behavior.vadAccuracy * 100).toFixed(0)}%
+              </Text>
+            </div>
+            <Slider
+              min={0.8}
+              max={1.2}
+              step={0.01}
+              value={behavior.vadAccuracy}
+              onChange={(v) => onBehaviorChange({ ...behavior, vadAccuracy: v })}
+              marks={{ 0.8: '80%', 1.0: '100%', 1.2: '120%' }}
             />
           </div>
 
@@ -361,6 +464,30 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               </Text>
             }
           />
+
+          <Divider style={{ margin: '8px 0' }} />
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text type="secondary">
+                固定成本/通
+                <Tooltip title="每通电话的固定开销，如平台费用、基础设施成本等">
+                  <InfoCircleOutlined style={{ marginLeft: 4 }} />
+                </Tooltip>
+              </Text>
+              <InputNumber
+                value={fixedCost}
+                onChange={(v) => onFixedCostChange(v ?? 0)}
+                min={0}
+                max={1}
+                step={0.001}
+                precision={4}
+                prefix="$"
+                size="small"
+                style={{ width: 100 }}
+              />
+            </div>
+          </div>
         </Space>
       </Card>
 
@@ -396,24 +523,40 @@ interface CostChartsProps {
 }
 
 const CostCharts: React.FC<CostChartsProps> = ({ cost, vendorConfig, behavior }) => {
-  // 饼图数据
+  // 图例隐藏状态
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+
+  // 切换图例显示/隐藏
+  const handleLegendClick = (dataKey: string) => {
+    setHiddenSeries(prev => {
+      const next = new Set(prev);
+      if (next.has(dataKey)) {
+        next.delete(dataKey);
+      } else {
+        next.add(dataKey);
+      }
+      return next;
+    });
+  };
+
+  // 饼图数据（过滤隐藏项）
   const pieData = [
-    { name: '线路', value: cost.tel, color: COST_COLORS.tel },
-    { name: 'ASR', value: cost.asr, color: COST_COLORS.asr },
-    { name: 'TTS', value: cost.tts, color: COST_COLORS.tts },
-    { name: 'LLM', value: cost.llm, color: COST_COLORS.llm },
-    { name: '固定', value: cost.fixed, color: COST_COLORS.fixed },
-  ].filter(d => d.value > 0);
+    { name: '线路', value: cost.tel, color: COST_COLORS.tel, dataKey: 'tel' },
+    { name: 'ASR', value: cost.asr, color: COST_COLORS.asr, dataKey: 'asr' },
+    { name: 'TTS', value: cost.tts, color: COST_COLORS.tts, dataKey: 'tts' },
+    { name: 'LLM', value: cost.llm, color: COST_COLORS.llm, dataKey: 'llm' },
+    { name: '固定', value: cost.fixed, color: COST_COLORS.fixed, dataKey: 'fixed' },
+  ].filter(d => d.value > 0 && !hiddenSeries.has(d.dataKey));
 
   // 堆叠柱状图数据
   const barData = [
     {
       name: '当前配置',
-      tel: cost.tel,
-      asr: cost.asr,
-      tts: cost.tts,
-      llm: cost.llm,
-      fixed: cost.fixed,
+      tel: hiddenSeries.has('tel') ? 0 : cost.tel,
+      asr: hiddenSeries.has('asr') ? 0 : cost.asr,
+      tts: hiddenSeries.has('tts') ? 0 : cost.tts,
+      llm: hiddenSeries.has('llm') ? 0 : cost.llm,
+      fixed: hiddenSeries.has('fixed') ? 0 : cost.fixed,
     },
   ];
 
@@ -423,12 +566,48 @@ const CostCharts: React.FC<CostChartsProps> = ({ cost, vendorConfig, behavior })
     return {
       T: `${T}s`,
       total: c.total,
-      tel: c.tel,
-      asr: c.asr,
-      tts: c.tts,
-      llm: c.llm,
+      tel: hiddenSeries.has('tel') ? 0 : c.tel,
+      asr: hiddenSeries.has('asr') ? 0 : c.asr,
+      tts: hiddenSeries.has('tts') ? 0 : c.tts,
+      llm: hiddenSeries.has('llm') ? 0 : c.llm,
     };
   });
+
+  // 自定义图例渲染（支持点击切换）
+  const renderLegend = (props: any) => {
+    const { payload } = props;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+        {payload.map((entry: any, index: number) => {
+          const isHidden = hiddenSeries.has(entry.dataKey);
+          return (
+            <div
+              key={`legend-${index}`}
+              onClick={() => handleLegendClick(entry.dataKey)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                cursor: 'pointer',
+                opacity: isHidden ? 0.3 : 1,
+                textDecoration: isHidden ? 'line-through' : 'none',
+              }}
+            >
+              <div
+                style={{
+                  width: 12,
+                  height: 12,
+                  backgroundColor: entry.color,
+                  borderRadius: 2,
+                }}
+              />
+              <span style={{ fontSize: 12 }}>{entry.value}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -470,12 +649,12 @@ const CostCharts: React.FC<CostChartsProps> = ({ cost, vendorConfig, behavior })
                 <XAxis type="number" tickFormatter={(v) => `$${v.toFixed(3)}`} />
                 <YAxis type="category" dataKey="name" width={80} />
                 <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
-                <Legend />
-                <Bar dataKey="tel" stackId="a" fill={COST_COLORS.tel} name="线路" />
+                <Legend content={renderLegend} />
                 <Bar dataKey="asr" stackId="a" fill={COST_COLORS.asr} name="ASR" />
-                <Bar dataKey="tts" stackId="a" fill={COST_COLORS.tts} name="TTS" />
                 <Bar dataKey="llm" stackId="a" fill={COST_COLORS.llm} name="LLM" />
+                <Bar dataKey="tts" stackId="a" fill={COST_COLORS.tts} name="TTS" />
                 <Bar dataKey="fixed" stackId="a" fill={COST_COLORS.fixed} name="固定" />
+                <Bar dataKey="tel" stackId="a" fill={COST_COLORS.tel} name="线路" />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -490,11 +669,11 @@ const CostCharts: React.FC<CostChartsProps> = ({ cost, vendorConfig, behavior })
             <XAxis dataKey="T" />
             <YAxis tickFormatter={(v) => `$${v.toFixed(2)}`} />
             <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
-            <Legend />
-            <Area type="monotone" dataKey="tel" stackId="1" stroke={COST_COLORS.tel} fill={COST_COLORS.tel} name="线路" />
+            <Legend content={renderLegend} />
             <Area type="monotone" dataKey="asr" stackId="1" stroke={COST_COLORS.asr} fill={COST_COLORS.asr} name="ASR" />
-            <Area type="monotone" dataKey="tts" stackId="1" stroke={COST_COLORS.tts} fill={COST_COLORS.tts} name="TTS" />
             <Area type="monotone" dataKey="llm" stackId="1" stroke={COST_COLORS.llm} fill={COST_COLORS.llm} name="LLM" />
+            <Area type="monotone" dataKey="tts" stackId="1" stroke={COST_COLORS.tts} fill={COST_COLORS.tts} name="TTS" />
+            <Area type="monotone" dataKey="tel" stackId="1" stroke={COST_COLORS.tel} fill={COST_COLORS.tel} name="线路" />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
@@ -515,6 +694,58 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
   onSelectedBundlesChange,
 }) => {
   const vendorOptions = getVendorOptions();
+  
+  // 图例隐藏状态
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+
+  // 切换图例显示/隐藏
+  const handleLegendClick = (dataKey: string) => {
+    setHiddenSeries(prev => {
+      const next = new Set(prev);
+      if (next.has(dataKey)) {
+        next.delete(dataKey);
+      } else {
+        next.add(dataKey);
+      }
+      return next;
+    });
+  };
+
+  // 自定义图例渲染
+  const renderLegend = (props: any) => {
+    const { payload } = props;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+        {payload.map((entry: any, index: number) => {
+          const isHidden = hiddenSeries.has(entry.dataKey);
+          return (
+            <div
+              key={`legend-${index}`}
+              onClick={() => handleLegendClick(entry.dataKey)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                cursor: 'pointer',
+                opacity: isHidden ? 0.3 : 1,
+                textDecoration: isHidden ? 'line-through' : 'none',
+              }}
+            >
+              <div
+                style={{
+                  width: 12,
+                  height: 12,
+                  backgroundColor: entry.color,
+                  borderRadius: 2,
+                }}
+              />
+              <span style={{ fontSize: 12 }}>{entry.value}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   // 计算所有选中组合的成本
   const comparisonData = useMemo(() => {
@@ -535,14 +766,14 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
     } & CostBreakdown>;
   }, [behavior, selectedBundles]);
 
-  // 对比柱状图数据
+  // 对比柱状图数据（考虑隐藏项）
   const barChartData = comparisonData.map((d) => ({
     name: d.name.replace(/[（(].*[）)]/, '').trim(),
-    tel: d.tel,
-    asr: d.asr,
-    tts: d.tts,
-    llm: d.llm,
-    fixed: d.fixed,
+    tel: hiddenSeries.has('tel') ? 0 : d.tel,
+    asr: hiddenSeries.has('asr') ? 0 : d.asr,
+    tts: hiddenSeries.has('tts') ? 0 : d.tts,
+    llm: hiddenSeries.has('llm') ? 0 : d.llm,
+    fixed: hiddenSeries.has('fixed') ? 0 : d.fixed,
     total: d.total,
   }));
 
@@ -634,12 +865,12 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
               <XAxis dataKey="name" angle={-15} textAnchor="end" height={60} />
               <YAxis tickFormatter={(v) => `$${v.toFixed(3)}`} />
               <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
-              <Legend />
-              <Bar dataKey="tel" stackId="a" fill={COST_COLORS.tel} name="线路" />
+              <Legend content={renderLegend} />
               <Bar dataKey="asr" stackId="a" fill={COST_COLORS.asr} name="ASR" />
-              <Bar dataKey="tts" stackId="a" fill={COST_COLORS.tts} name="TTS" />
               <Bar dataKey="llm" stackId="a" fill={COST_COLORS.llm} name="LLM" />
+              <Bar dataKey="tts" stackId="a" fill={COST_COLORS.tts} name="TTS" />
               <Bar dataKey="fixed" stackId="a" fill={COST_COLORS.fixed} name="固定" />
+              <Bar dataKey="tel" stackId="a" fill={COST_COLORS.tel} name="线路" />
             </BarChart>
           </ResponsiveContainer>
         </>
@@ -680,6 +911,12 @@ const CostDetails: React.FC<CostDetailsProps> = ({ cost, vendorConfig, behavior 
                   <Text>{cost.details.T_u.toFixed(1)} 秒</Text>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary">实际ASR时长</Text>
+                  <Text style={{ color: cost.details.vadAccuracy !== 1 ? '#fa8c16' : undefined }}>
+                    {cost.details.T_u_actual.toFixed(1)} 秒 ({(cost.details.vadAccuracy * 100).toFixed(0)}% VAD)
+                  </Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Text type="secondary">LLM 调用次数</Text>
                   <Text>{cost.details.n_llm} 次</Text>
                 </div>
@@ -694,8 +931,14 @@ const CostDetails: React.FC<CostDetailsProps> = ({ cost, vendorConfig, behavior 
                   <Text>{cost.details.charSelf.toFixed(0)} chars</Text>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text type="secondary">厂商计费字符</Text>
+                  <Text type="secondary">厂商计费字符(全量)</Text>
                   <Text>{cost.details.charVendor.toFixed(0)} chars</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary">实际调用TTS</Text>
+                  <Text style={{ color: cost.details.ttsCacheHitRate > 0 ? '#52c41a' : undefined }}>
+                    {cost.details.charVendorActual.toFixed(0)} chars ({(cost.details.ttsCacheHitRate * 100).toFixed(0)}% 缓存)
+                  </Text>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Text type="secondary">单价</Text>
@@ -1143,6 +1386,8 @@ const AICostSimulatorPage: React.FC = () => {
     r_b: 0.4,
     r_u: 0.35,
     q: 0.3,
+    ttsCacheHitRate: 0.3,  // 默认30%缓存命中
+    vadAccuracy: 1.0,       // 默认VAD准确率100%
   });
 
   // 供应商选择状态
@@ -1153,7 +1398,11 @@ const AICostSimulatorPage: React.FC = () => {
     tts: 'cartesia',
     llm: 'gpt4o-mini-0718',
     telecom: 'us-local',
+    fixedCost: 0,
   });
+
+  // 固定成本状态（全局，适用于预设和自定义模式）
+  const [fixedCost, setFixedCost] = useState(0);
 
   // 对比组合状态
   const [comparisonBundles, setComparisonBundles] = useState<string[]>([
@@ -1166,18 +1415,69 @@ const AICostSimulatorPage: React.FC = () => {
   const [vendorManagerVisible, setVendorManagerVisible] = useState(false);
   const [vendorOptionsVersion, setVendorOptionsVersion] = useState(0);
 
+  // 保存预设组合模态框
+  const [saveBundleModalVisible, setSaveBundleModalVisible] = useState(false);
+  const [saveBundleForm] = Form.useForm();
+
+  // 保存自定义组合为预设
+  const handleSaveAsBundle = () => {
+    setSaveBundleModalVisible(true);
+  };
+
+  const handleSaveBundleConfirm = (values: { name: string; description: string }) => {
+    const config = buildVendorConfig(
+      customConfig.asr,
+      customConfig.tts,
+      customConfig.llm,
+      customConfig.telecom,
+      fixedCost
+    );
+    const bundleId = `custom-${Date.now()}`;
+    const bundleConfig: VendorConfig = {
+      ...config,
+      id: bundleId,
+      name: values.name,
+      description: values.description || '自定义预设组合',
+    };
+    addCustomBundle(bundleId, bundleConfig);
+    setVendorOptionsVersion(v => v + 1);
+    setSaveBundleModalVisible(false);
+    saveBundleForm.resetFields();
+    message.success('预设组合保存成功！');
+    // 切换到预设模式并选中新保存的组合
+    setUseCustomConfig(false);
+    setSelectedBundle(bundleId);
+  };
+
+  // 删除自定义预设组合
+  const handleDeleteBundle = (id: string) => {
+    removeCustomBundle(id);
+    setVendorOptionsVersion(v => v + 1);
+    // 如果删除的是当前选中的组合，切换到默认组合
+    if (selectedBundle === id) {
+      setSelectedBundle('balanced-gpt4mini');
+    }
+    message.success('预设组合已删除');
+  };
+
   // 计算当前供应商配置
   const currentVendorConfig = useMemo(() => {
+    let config: VendorConfig;
     if (useCustomConfig) {
-      return buildVendorConfig(
+      config = buildVendorConfig(
         customConfig.asr,
         customConfig.tts,
         customConfig.llm,
-        customConfig.telecom
+        customConfig.telecom,
+        fixedCost  // 使用用户设置的固定成本
       );
+    } else {
+      // 从所有预设组合中查找（包括自定义预设）
+      config = getBundleById(selectedBundle) || VENDOR_BUNDLES[0];
     }
-    return VENDOR_BUNDLES.find((b) => b.id === selectedBundle) || VENDOR_BUNDLES[0];
-  }, [useCustomConfig, customConfig, selectedBundle, vendorOptionsVersion]);
+    // 覆盖固定成本为用户设置的值
+    return { ...config, fixedCostPerCall: fixedCost };
+  }, [useCustomConfig, customConfig, selectedBundle, vendorOptionsVersion, fixedCost]);
 
   // 计算成本
   const cost = useMemo(() => {
@@ -1225,6 +1525,11 @@ const AICostSimulatorPage: React.FC = () => {
               onCustomConfigChange={setCustomConfig}
               useCustomConfig={useCustomConfig}
               onUseCustomConfigChange={setUseCustomConfig}
+              fixedCost={fixedCost}
+              onFixedCostChange={setFixedCost}
+              onSaveAsBundle={handleSaveAsBundle}
+              onDeleteBundle={handleDeleteBundle}
+              vendorOptionsVersion={vendorOptionsVersion}
             />
           </Col>
 

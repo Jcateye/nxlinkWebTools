@@ -149,43 +149,43 @@ interface KpiCardProps {
 
 const KpiCard: React.FC<KpiCardProps> = ({ title, value, subtitle, icon, color, percent, tooltip }) => {
   const cardContent = (
-    <Card 
-      size="small" 
-      style={{ 
-        background: `linear-gradient(135deg, ${color}08 0%, ${color}15 100%)`,
-        borderColor: `${color}30`,
-        borderRadius: 12,
+  <Card 
+    size="small" 
+    style={{ 
+      background: `linear-gradient(135deg, ${color}08 0%, ${color}15 100%)`,
+      borderColor: `${color}30`,
+      borderRadius: 12,
         cursor: tooltip ? 'help' : 'default',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ 
-          width: 48, 
-          height: 48, 
-          borderRadius: 12, 
-          background: `${color}20`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: color,
-          fontSize: 20,
-        }}>
-          {icon}
-        </div>
-        <div style={{ flex: 1 }}>
+    }}
+  >
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ 
+        width: 48, 
+        height: 48, 
+        borderRadius: 12, 
+        background: `${color}20`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: color,
+        fontSize: 20,
+      }}>
+        {icon}
+      </div>
+      <div style={{ flex: 1 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
             {title}
             {tooltip && <InfoCircleOutlined style={{ marginLeft: 4, fontSize: 11 }} />}
           </Text>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <Text strong style={{ fontSize: 20, color }}>{value}</Text>
-            {percent && <Tag color={color} style={{ margin: 0 }}>{percent}</Tag>}
-          </div>
-          {subtitle && <Text type="secondary" style={{ fontSize: 11 }}>{subtitle}</Text>}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <Text strong style={{ fontSize: 20, color }}>{value}</Text>
+          {percent && <Tag color={color} style={{ margin: 0 }}>{percent}</Tag>}
         </div>
+        {subtitle && <Text type="secondary" style={{ fontSize: 11 }}>{subtitle}</Text>}
       </div>
-    </Card>
-  );
+    </div>
+  </Card>
+);
 
   if (tooltip) {
     return (
@@ -407,11 +407,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       // 编辑模式下点击进入编辑
       setEditingScenario({ id: scenario.id, name: scenario.name, weight: scenario.weight ?? 1 });
     } else {
-      onBehaviorChange({
-        T: scenario.T,
-        r_b: scenario.r_b,
-        r_u: scenario.r_u,
-        q: scenario.q,
+    onBehaviorChange({
+      T: scenario.T,
+      r_b: scenario.r_b,
+      r_u: scenario.r_u,
+      q: scenario.q,
         ttsCacheHitRate: scenario.ttsCacheHitRate ?? 0.3,
         vadAccuracy: scenario.vadAccuracy ?? 1.0,
       });
@@ -512,8 +512,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             {!useCustomConfig ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <Select
-                    value={selectedBundle}
+              <Select
+                value={selectedBundle}
                     onChange={(v) => {
                       onBundleChange(v);
                       if (bundleEditMode) {
@@ -531,11 +531,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                       isCustom: isCustomBundle(b.id),
                       hasOverride: hasBundleOverride(b.id),
                     }))}
-                    optionRender={(option) => (
+                optionRender={(option) => (
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div>{option.label}</div>
-                          <Text type="secondary" style={{ fontSize: 11 }}>{option.data.description}</Text>
+                  <div>
+                    <div>{option.label}</div>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{option.data.description}</Text>
                         </div>
                         <Space size={4}>
                           {option.data.hasOverride && !option.data.isCustom && (
@@ -545,9 +545,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                             <Tag color="blue" style={{ margin: 0, fontSize: 10 }}>自定义</Tag>
                           )}
                         </Space>
-                      </div>
-                    )}
-                  />
+                  </div>
+                )}
+              />
                   {bundleEditMode && (
                     <Tooltip title="编辑当前组合">
                       <Button 
@@ -789,11 +789,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               <Text strong>{behavior.T} 秒</Text>
             </div>
             <Slider
-              min={5}
+              min={1}
               max={300}
               value={behavior.T}
               onChange={(v) => onBehaviorChange({ ...behavior, T: v })}
-              marks={{ 5: '5s', 60: '1min', 120: '2min', 180: '3min', 300: '5min' }}
+              marks={{ 1: '1s', 60: '1min', 120: '2min', 180: '3min', 300: '5min' }}
             />
           </div>
 
@@ -839,7 +839,32 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <Text type="secondary">
                 复杂度系数 q
-                <Tooltip title="对话越复杂，LLM token消耗越多">
+                <Tooltip 
+                  title={
+                    <div style={{ fontSize: 12 }}>
+                      <div style={{ fontWeight: 600, marginBottom: 8 }}>🧠 复杂度系数说明</div>
+                      <div style={{ marginBottom: 8 }}>
+                        复杂度系数 q (0-1) 影响 LLM 成本计算，通过三个函数：
+                      </div>
+                      <div style={{ marginBottom: 4 }}>
+                        <b>α(q) = 0.3 + 0.5×q</b><br/>
+                        机器人历史对话回流到输入的占比
+                      </div>
+                      <div style={{ marginBottom: 4 }}>
+                        <b>β(q) = 1.0 + 0.5×q</b><br/>
+                        输出内容膨胀系数
+                      </div>
+                      <div style={{ marginBottom: 4 }}>
+                        <b>γ(q) = 0.3×q</b><br/>
+                        推理Token占比（支持o1等模型）
+                      </div>
+                      <div style={{ marginTop: 8, opacity: 0.8 }}>
+                        💡 q=0 简单播报 | q=0.3 简单问答 | q=0.5 客服咨询 | q=0.7 深度沟通
+                      </div>
+                    </div>
+                  }
+                  overlayStyle={{ maxWidth: 350 }}
+                >
                   <InfoCircleOutlined style={{ marginLeft: 4 }} />
                 </Tooltip>
               </Text>
@@ -895,6 +920,28 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               value={behavior.vadAccuracy}
               onChange={(v) => onBehaviorChange({ ...behavior, vadAccuracy: v })}
               marks={{ 0.8: '80%', 1.0: '100%', 1.2: '120%' }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text type="secondary">
+                LLM调用间隔
+                <Tooltip title="每隔多少秒调用一次LLM。间隔越短，调用次数越多，成本越高。实际调用次数还受复杂度系数影响。">
+                  <InfoCircleOutlined style={{ marginLeft: 4 }} />
+                </Tooltip>
+              </Text>
+              <Text strong style={{ color: '#1890ff' }}>
+                {behavior.llmCallInterval || 20}秒/次
+              </Text>
+            </div>
+            <Slider
+              min={5}
+              max={60}
+              step={5}
+              value={behavior.llmCallInterval || 20}
+              onChange={(v) => onBehaviorChange({ ...behavior, llmCallInterval: v })}
+              marks={{ 5: '5s', 20: '20s', 40: '40s', 60: '60s' }}
             />
           </div>
 
@@ -1098,7 +1145,7 @@ const CostCharts: React.FC<CostChartsProps> = ({ cost, vendorConfig, behavior })
   ];
 
   // 时长敏感性分析数据
-  const sensitivityData = [30, 60, 90, 120, 150, 180, 240, 300].map((T) => {
+  const sensitivityData = [1, 5, 10, 30, 60, 90, 120, 180, 240, 300].map((T) => {
     const c = computeCost({ ...behavior, T }, vendorConfig);
     return {
       T: `${T}s`,
@@ -1306,7 +1353,7 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
   // 获取合并后的组合列表（依赖 bundleVersion 以响应更新）
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const allBundles = useMemo(() => getMergedBundles(), [bundleVersion]);
-  
+
   // 计算所有选中组合的成本
   const comparisonData = useMemo(() => {
     return selectedBundles.map((bundleId) => {
@@ -1396,7 +1443,7 @@ const VendorComparison: React.FC<VendorComparisonProps> = ({
     value: b.id,
     label: b.name,
   }));
-  
+
   return (
     <Card 
       title={<><BarChartOutlined /> 供应商组合对比</>}
@@ -1649,11 +1696,51 @@ const CostDetails: React.FC<CostDetailsProps> = ({ cost, vendorConfig, behavior 
           {/* LLM成本 */}
           <div style={{ marginBottom: 16, padding: 12, background: '#e6f7ff', borderRadius: 8, border: '1px solid #91d5ff' }}>
             <Text strong style={{ color: '#1890ff' }}>🤖 LLM成本（大模型推理费用）</Text>
-            <div style={{ marginTop: 8, fontFamily: 'monospace', background: '#fff', padding: 8, borderRadius: 4 }}>
-              LLM成本 = (输入单价 × 输入Token数 + 输出单价 × 输出Token数 + 推理单价 × 推理Token数) ÷ 1000
+            <div style={{ marginTop: 8, fontFamily: 'monospace', background: '#fff', padding: 8, borderRadius: 4, fontSize: 12 }}>
+              <div>LLM调用次数 = max(3, 通话时长 ÷ 调用间隔) + floor(复杂度 × 5)</div>
+              <div style={{ marginTop: 4 }}>输入Token = 调用次数 × (系统提示词 + 上下文 + 工具) + (用户字符 + α(q) × 机器人字符) ÷ 字符Token比</div>
+              <div style={{ marginTop: 4 }}>输出Token = β(q) × 机器人字符 ÷ 字符Token比</div>
+              <div style={{ marginTop: 4 }}>推理Token = γ(q) × 输入Token</div>
+              <div style={{ marginTop: 4 }}>LLM成本 = (输入单价 × 输入Token + 输出单价 × 输出Token + 推理单价 × 推理Token) ÷ 1000</div>
             </div>
             <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
-              <Text type="secondary">💡 说明：Token数 = 系统提示词 + 上下文 + 工具定义 + 用户输入/模型输出</Text>
+              <Text type="secondary">💡 复杂度系数 q 通过三个函数影响Token计算</Text>
+            </div>
+          </div>
+
+          {/* 复杂度系数详解 */}
+          <div style={{ marginBottom: 16, padding: 12, background: '#fff0f6', borderRadius: 8, border: '1px solid #ffadd2' }}>
+            <Text strong style={{ color: '#eb2f96' }}>🧠 复杂度系数 q 详解</Text>
+            <div style={{ marginTop: 8, fontSize: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ background: '#fff', padding: 8, borderRadius: 4 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>α(q) = 0.3 + 0.5×q</div>
+                  <div style={{ color: '#666' }}>历史对话回流占比</div>
+                  <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+                    q=0→30% | q=0.5→55% | q=1→80%
+                  </div>
+                </div>
+                <div style={{ background: '#fff', padding: 8, borderRadius: 4 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>β(q) = 1.0 + 0.5×q</div>
+                  <div style={{ color: '#666' }}>输出内容膨胀系数</div>
+                  <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+                    q=0→1.0倍 | q=0.5→1.25倍 | q=1→1.5倍
+                  </div>
+                </div>
+                <div style={{ background: '#fff', padding: 8, borderRadius: 4 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>γ(q) = 0.3×q</div>
+                  <div style={{ color: '#666' }}>推理Token占比</div>
+                  <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+                    q=0→0% | q=0.5→15% | q=1→30%
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginTop: 8, padding: 8, background: '#fff', borderRadius: 4 }}>
+                <Text type="secondary">
+                  <b>场景参考：</b>
+                  简单播报 q=0 | 简单问答 q=0.3 | 客服咨询 q=0.5 | 深度沟通 q=0.7 | 复杂推理 q=1.0
+                </Text>
+              </div>
             </div>
           </div>
 
@@ -1666,8 +1753,8 @@ const CostDetails: React.FC<CostDetailsProps> = ({ cost, vendorConfig, behavior 
               <div><Text type="secondary">机器人说话占比：</Text>机器人说话时间 / 总时长</div>
               <div><Text type="secondary">VAD准确率：</Text>语音活动检测准确度</div>
               <div><Text type="secondary">缓存命中率：</Text>TTS内容命中缓存的比例</div>
-              <div><Text type="secondary">计费步长：</Text>最小计费单位（如6秒）</div>
-              <div><Text type="secondary">供应商字符比例：</Text>实际调用供应商的字符占比</div>
+              <div><Text type="secondary">LLM调用间隔：</Text>每隔多少秒调用一次LLM</div>
+              <div><Text type="secondary">复杂度系数：</Text>影响LLM的Token消耗</div>
               <div><Text type="secondary">每秒字符数：</Text>语音合成的平均字符速度</div>
             </div>
           </div>
@@ -2074,6 +2161,7 @@ const AICostSimulatorPage: React.FC = () => {
     q: 0.3,
     ttsCacheHitRate: 0.3,  // 默认30%缓存命中
     vadAccuracy: 1.0,       // 默认VAD准确率100%
+    llmCallInterval: 20,    // 默认每20秒调用一次LLM
   });
 
   // 供应商选择状态
@@ -2155,7 +2243,7 @@ const AICostSimulatorPage: React.FC = () => {
   // 获取合并后的供应商组合
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mergedBundlesList = useMemo(() => getMergedBundles(), [bundleVersion, vendorOptionsVersion]);
-  
+
   // 计算当前供应商配置
   const currentVendorConfig = useMemo(() => {
     let config: VendorConfig;
@@ -2183,7 +2271,7 @@ const AICostSimulatorPage: React.FC = () => {
   // 获取合并后的场景预设
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mergedScenarios = useMemo(() => getMergedScenarioPresets(), [scenarioVersion]);
-  
+
   // 计算场景加权平均成本
   const weightedCost = useMemo(() => {
     return computeWeightedAverageCost(mergedScenarios, currentVendorConfig);

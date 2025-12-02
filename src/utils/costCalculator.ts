@@ -60,6 +60,7 @@ export interface CallBehavior {
   n_llm?: number;         // LLM调用次数（可选，默认根据时长估算）
   ttsCacheHitRate: number; // TTS缓存命中率（0-1），命中部分不调用TTS接口
   vadAccuracy: number;     // VAD准确率（0.8-1.2），影响实际送入ASR的时长
+  llmCallInterval?: number; // LLM调用间隔（秒），默认20秒一次
 }
 
 /** 成本计算结果 */
@@ -136,13 +137,16 @@ const gammaQ = (q: number): number => 0.3 * q;
 /**
  * 估算LLM调用次数
  * 短通话3-5次，长通话10-15次
+ * @param T 通话时长（秒）
+ * @param q 复杂度系数
+ * @param interval LLM调用间隔（秒），默认20秒
  */
-const estimateLLMCalls = (T: number, q: number): number => {
-  // 基础：每20秒一次调用
-  const baseCalls = Math.max(3, Math.ceil(T / 20));
+const estimateLLMCalls = (T: number, q: number, interval: number = 20): number => {
+  // 基础：每 interval 秒一次调用
+  const baseCalls = Math.max(3, Math.ceil(T / interval));
   // 复杂度加成
   const complexityBonus = Math.floor(q * 5);
-  return Math.min(baseCalls + complexityBonus, 20);
+  return Math.min(baseCalls + complexityBonus, 30);
 };
 
 // ============ 核心计算函数 ============
@@ -285,10 +289,10 @@ export const computeCost = (
   behavior: CallBehavior,
   config: VendorConfig
 ): CostBreakdown => {
-  const { T, r_b, r_u, q, n_llm: customNLLM, ttsCacheHitRate, vadAccuracy } = behavior;
+  const { T, r_b, r_u, q, n_llm: customNLLM, ttsCacheHitRate, vadAccuracy, llmCallInterval = 20 } = behavior;
   
   // 估算LLM调用次数
-  const n_llm = customNLLM ?? estimateLLMCalls(T, q);
+  const n_llm = customNLLM ?? estimateLLMCalls(T, q, llmCallInterval);
   
   // 计算各组件成本（传入新参数）
   const telResult = computeTelCost(T, config);

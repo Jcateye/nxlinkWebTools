@@ -154,6 +154,47 @@ app.use('/internal-api', createProxyMiddleware({
   }
 }));
 
+// is_login 接口代理 - 必须放在通用 /api 代理之前
+app.use('/api/admin/saas_plat/user/is_login', createProxyMiddleware({
+  target: 'https://nxlink.nxcloud.com',
+  changeOrigin: true,
+  secure: false,
+  pathRewrite: {
+    '^/api': ''  // 移除 /api 前缀
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    // 删除 Content-Type 头（这是关键！）
+    proxyReq.removeHeader('Content-Type');
+    proxyReq.removeHeader('content-type');
+    
+    // 设置必要的请求头
+    proxyReq.setHeader('Host', 'nxlink.nxcloud.com');
+    proxyReq.setHeader('Origin', 'https://nxlink.nxcloud.com');
+    proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36');
+    proxyReq.setHeader('Accept', 'application/json, text/plain, */*');
+    
+    // 保留原始的认证头
+    if (req.headers.authorization) {
+      proxyReq.setHeader('Authorization', req.headers.authorization);
+    }
+    if (req.headers['system_id']) {
+      proxyReq.setHeader('system_id', req.headers['system_id']);
+    }
+    
+    console.log(`[${new Date().toLocaleTimeString()}] 🔄 代理请求(is_login): ${req.method} ${req.url}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, system_id';
+    console.log(`[${new Date().toLocaleTimeString()}] ✅ 代理响应(is_login): ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`[${new Date().toLocaleTimeString()}] ❌ 代理错误(is_login):`, err.message);
+    res.status(502).json({ error: 'is_login API 代理出错', message: err.message });
+  }
+}));
+
 // 香港数据中心代理 - 直接访问根路径，因为/hk会被重定向
 app.use('/api/hk', createProxyMiddleware({
   target: 'https://nxlink.nxcloud.com',  // 不要加 /hk

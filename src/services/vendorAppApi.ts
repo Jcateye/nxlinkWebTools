@@ -469,9 +469,35 @@ export const deleteSceneVendorApp = async (id: number): Promise<boolean> => {
   try {
     console.log('[deleteSceneVendorApp] 删除场景供应商应用', id);
     
+    // 从localStorage获取tenantId和nxCloudUserID
+    const sessionId = localStorage.getItem('sessionId');
+    let tenantId = '1'; // 默认值
+    let nxCloudUserID = '';
+    if (sessionId) {
+      const storageKey = `tagUserParams_${sessionId}`;
+      const userParams = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (userParams.tenantId) {
+        tenantId = userParams.tenantId;
+      }
+      if (userParams.nxCloudUserID) {
+        nxCloudUserID = userParams.nxCloudUserID;
+      }
+    }
+    
+    // 构建删除请求数据
+    const deleteData = {
+      delete_original_voice: false,
+      id: id,
+      tenantId: parseInt(tenantId) || 1,
+      nxCloudUserID: parseInt(nxCloudUserID) || 0
+    };
+    
+    console.log('[deleteSceneVendorApp] 发送的删除数据:', deleteData);
+    
     const flowManagerApi = getFlowManagerApi();
-    const response = await flowManagerApi.delete<ApiResponse<any>>(
-      `/admin/nx_flow_manager/mgrPlatform/sceneInfo/${id}`
+    const response = await flowManagerApi.post<ApiResponse<any>>(
+      `/admin/nx_flow_manager/mgrPlatform/sceneInfo/delete`,
+      deleteData
     );
     
     if (response.data.code !== 0) {

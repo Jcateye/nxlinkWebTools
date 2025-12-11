@@ -33,7 +33,9 @@ import {
     SettingOutlined,
     CheckOutlined,
     StopOutlined,
-    CloudSyncOutlined
+    CloudSyncOutlined,
+    ToolOutlined,
+    GlobalOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import VendorSyncModal from '../components/vendor/VendorSyncModal';
@@ -77,7 +79,7 @@ import { getUniqueLanguages, ttsConfig, getLanguageDescByLocale } from '../confi
 import TokenManager from '../components/bill/TokenManager';
 import DataCenterSelector from '../components/DataCenterSelector';
 import ElevenLabsParamsConverter from '../components/ElevenLabsParamsConverter';
-import { updateJsonByKeys, safeJsonParse, extractJsonKeys } from '../utils/jsonHelper';
+import { updateJsonByKeys, safeJsonParse, extractJsonKeys, compactifyJsonString } from '../utils/jsonHelper';
 
 // 供应商应用类型常量
 const VENDOR_APP_TYPES = {
@@ -94,6 +96,56 @@ const STATUS_MAP = {
   0: { text: '禁用', color: 'red' },
   1: { text: '启用', color: 'green' }
 };
+
+// 并行批处理工具函数 - 提升批量操作性能
+const BATCH_CONCURRENCY = 5; // 每批并行执行的数量
+
+interface BatchResult<T> {
+  success: number;
+  failed: number;
+  errors: string[];
+  results: T[];
+}
+
+async function processBatchInParallel<T, R>(
+  items: T[],
+  processor: (item: T, index: number) => Promise<R>,
+  onProgress?: (completed: number, total: number, success: number, failed: number) => void,
+  concurrency: number = BATCH_CONCURRENCY
+): Promise<BatchResult<R>> {
+  const results: R[] = [];
+  const errors: string[] = [];
+  let success = 0;
+  let failed = 0;
+  let completed = 0;
+  const total = items.length;
+
+  // 分批处理
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchPromises = batch.map(async (item, batchIndex) => {
+      const globalIndex = i + batchIndex;
+      try {
+        const result = await processor(item, globalIndex);
+        success++;
+        results.push(result);
+        return { success: true, result };
+      } catch (error: any) {
+        failed++;
+        errors.push(error.message || '操作失败');
+        return { success: false, error };
+      } finally {
+        completed++;
+        onProgress?.(completed, total, success, failed);
+      }
+    });
+
+    // 等待当前批次完成
+    await Promise.all(batchPromises);
+  }
+
+  return { success, failed, errors, results };
+}
 
 const VendorAppManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('TTS');
@@ -123,6 +175,8 @@ const VendorAppManagementPage: React.FC = () => {
     const [batchEditLoading, setBatchEditLoading] = useState(false);
     const [batchEnableLoading, setBatchEnableLoading] = useState(false);
     const [batchDisableLoading, setBatchDisableLoading] = useState(false);
+    const [batchFixJsonLoading, setBatchFixJsonLoading] = useState(false);
+    const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
 
     // 批量编辑厂商参数相关状态
     const [batchVendorParamsEditMode, setBatchVendorParamsEditMode] = useState<'full' | 'partial'>('full');
@@ -139,6 +193,11 @@ const VendorAppManagementPage: React.FC = () => {
 
     // 批量同步相关状态
     const [syncModalVisible, setSyncModalVisible] = useState(false);
+
+    // 按国家批量新增相关状态
+    const [batchCreateByCountryModalVisible, setBatchCreateByCountryModalVisible] = useState(false);
+    const [batchCreateByCountryForm] = Form.useForm();
+    const [batchCreateByCountryLoading, setBatchCreateByCountryLoading] = useState(false);
 
     const [idInput, setIdInput] = useState('');
   const [exportModalVisible, setExportModalVisible] = useState(false);
@@ -480,6 +539,9 @@ const VendorAppManagementPage: React.FC = () => {
         
         const updatedVendorParams = updateJsonByKeys(originalVendorParams, parsedUpdates);
         submitData.vendor_params = updatedVendorParams;
+      } else if (vendorParamsEditMode === 'full' && submitData.vendor_params) {
+        // 完整编辑模式下，压缩 JSON 字符串（移除换行和多余空格）
+        submitData.vendor_params = compactifyJsonString(submitData.vendor_params);
       }
 
       if (editingRecord) {
@@ -508,7 +570,7 @@ const VendorAppManagementPage: React.FC = () => {
 
   // 检测重复组合并计算（带缓存和控制台输出）
   const duplicateAnalysis = React.useMemo(() => {
-    const emptyResult = { ids: new Set<number>(), groups: [] };
+    const emptyResult = { ids: new Set<number>(), groups: [], idsToSelect: [] as number[] };
     // 只有在开启高亮且有数据时才计算
     if (!highlightDuplicates || !sceneVendorApps.length) return emptyResult;
 
@@ -526,40 +588,92 @@ const VendorAppManagementPage: React.FC = () => {
     });
 
     const groups: any[] = [];
+    const idsToSelect: number[] = []; // 每组重复项中除了第一个（ID最小）以外的其他项
+    
     Object.entries(combinationCount).forEach(([key, ids]) => {
       if (ids.length > 1) {
         ids.forEach(id => duplicateIds.add(id));
+        
+        // 对 ID 进行排序，保留最小的，选中其他的
+        const sortedIds = [...ids].sort((a, b) => a - b);
+        const keepId = sortedIds[0]; // 保留最小 ID
+        const selectIds = sortedIds.slice(1); // 选中其他 ID（待删除）
+        idsToSelect.push(...selectIds);
         
         const [vendor, language, timbre, model] = key.split('|');
         groups.push({
             '数量': ids.length,
             'ID列表': ids.join(', '),
+            '保留ID': keepId,
+            '选中删除': selectIds.join(', '),
             '厂商': vendor,
             '语言': language,
             '音色': timbre || '-',
             '模型': model || '-',
             // 辅助字段
-            _ids: ids 
+            _ids: ids,
+            _keepId: keepId,
+            _selectIds: selectIds
         });
       }
     });
 
     // 输出到控制台
     if (groups.length > 0) {
-        console.group(`Found ${groups.length} duplicate groups`);
+        console.group(`Found ${groups.length} duplicate groups (共 ${idsToSelect.length} 条待删除)`);
         console.table(groups);
         console.groupEnd();
         // 保存到全局变量方便调试
         (window as any).duplicateGroups = groups;
         console.log('%c[提示] 重复项详情已保存至 window.duplicateGroups', 'color: #1890ff; font-weight: bold;');
+        console.log(`%c[提示] 每组保留ID最小的记录，已自动选中 ${idsToSelect.length} 条待删除记录`, 'color: #fa8c16; font-weight: bold;');
     } else {
         (window as any).duplicateGroups = [];
     }
 
-    return { ids: duplicateIds, groups };
+    return { ids: duplicateIds, groups, idsToSelect };
   }, [sceneVendorApps, highlightDuplicates]); // 仅在数据或开关变化时重新计算
 
+  // 处理高亮重复项开关变化
+  const handleHighlightDuplicatesChange = (checked: boolean) => {
+    setHighlightDuplicates(checked);
+    
+    if (checked) {
+      // 开启时，自动选中每组重复项中需要删除的记录
+      // 由于 duplicateAnalysis 依赖 highlightDuplicates，需要手动计算一次
+      const combinationCount: Record<string, number[]> = {};
+      
+      sceneVendorApps.forEach(item => {
+        const combinationKey = `${item.vendor || ''}|${item.language || ''}|${item.timbre || ''}|${item.model || ''}`;
+        if (!combinationCount[combinationKey]) {
+          combinationCount[combinationKey] = [];
+        }
+        combinationCount[combinationKey].push(item.id);
+      });
 
+      const idsToSelect: number[] = [];
+      Object.values(combinationCount).forEach(ids => {
+        if (ids.length > 1) {
+          const sortedIds = [...ids].sort((a, b) => a - b);
+          idsToSelect.push(...sortedIds.slice(1)); // 除了最小 ID 以外的都选中
+        }
+      });
+
+      if (idsToSelect.length > 0) {
+        setSelectedRowKeys(idsToSelect);
+        // 同时更新 selectedRows
+        const rowsToSelect = sceneVendorApps.filter(item => idsToSelect.includes(item.id));
+        setSelectedRows(rowsToSelect);
+        message.success(`已自动选中 ${idsToSelect.length} 条重复记录（每组保留ID最小的一条）`);
+      } else {
+        message.info('未发现重复项');
+      }
+    } else {
+      // 关闭时，清空选中
+      setSelectedRowKeys([]);
+      setSelectedRows([]);
+    }
+  };
 
   // 批量同步
   const handleBatchSync = () => {
@@ -583,17 +697,42 @@ const VendorAppManagementPage: React.FC = () => {
     setBatchVendorParamsPartialUpdates({});
   };
 
+    // 批量编辑提交（并行优化）
     const handleBatchSubmit = async (values: any) => {
     setBatchEditLoading(true);
     setProgressVisible(true);
     setProgress(0);
     setProgressStatus({ success: 0, failed: 0, total: selectedRows.length });
 
-    const results = { success: 0, failed: 0, errors: [] as string[] };
+    // 预处理：如果是完整编辑模式，先压缩一次 vendor_params
+    const compactedVendorParams = (batchVendorParamsEditMode === 'full' && values.vendor_params !== undefined)
+      ? compactifyJsonString(values.vendor_params)
+      : undefined;
 
-    for (let i = 0; i < selectedRows.length; i++) {
-      const record = selectedRows[i];
-      try {
+    // 预处理：解析部分更新的值
+    let parsedUpdates: Record<string, any> = {};
+    if (batchVendorParamsEditMode === 'partial' && Object.keys(batchVendorParamsPartialUpdates).length > 0) {
+      for (const [key, value] of Object.entries(batchVendorParamsPartialUpdates)) {
+        if (typeof value === 'string' && value.trim()) {
+          try {
+            const trimmedValue = value.trim();
+            if (trimmedValue.startsWith('[') || trimmedValue.startsWith('{')) {
+              parsedUpdates[key] = JSON.parse(trimmedValue);
+            } else {
+              parsedUpdates[key] = value;
+            }
+          } catch (e) {
+            parsedUpdates[key] = value;
+          }
+        } else {
+          parsedUpdates[key] = value;
+        }
+      }
+    }
+
+    const results = await processBatchInParallel(
+      selectedRows,
+      async (record) => {
         const updateData = { ...record, remark: record.remark || undefined };
         if (values.rating !== undefined) updateData.rating = values.rating;
         if (values.language !== undefined) updateData.language = values.language;
@@ -603,48 +742,22 @@ const VendorAppManagementPage: React.FC = () => {
 
         // 处理厂商参数更新
         if (activeTab === 'ASR' || activeTab === 'LLM' || activeTab === 'TTS') {
-          if (batchVendorParamsEditMode === 'full' && values.vendor_params !== undefined) {
-            updateData.vendor_params = values.vendor_params;
-          } else if (batchVendorParamsEditMode === 'partial' && Object.keys(batchVendorParamsPartialUpdates).length > 0) {
+          if (compactedVendorParams !== undefined) {
+            updateData.vendor_params = compactedVendorParams;
+          } else if (Object.keys(parsedUpdates).length > 0) {
             const originalVendorParams = record.vendor_params || '{}';
-            
-            // 将用户输入的字符串值解析为实际的 JSON 类型（数组、对象等）
-            const parsedUpdates: Record<string, any> = {};
-            for (const [key, value] of Object.entries(batchVendorParamsPartialUpdates)) {
-              // 如果值是字符串，尝试解析为 JSON
-              if (typeof value === 'string' && value.trim()) {
-                try {
-                  // 检查是否是 JSON 格式（以 [ 或 { 开头）
-                  const trimmedValue = value.trim();
-                  if (trimmedValue.startsWith('[') || trimmedValue.startsWith('{')) {
-                    parsedUpdates[key] = JSON.parse(trimmedValue);
-                  } else {
-                    parsedUpdates[key] = value;
-                  }
-                } catch (e) {
-                  // 解析失败，当做普通字符串
-                  parsedUpdates[key] = value;
-                }
-              } else {
-                parsedUpdates[key] = value;
-              }
-            }
-            
-            const updatedVendorParams = updateJsonByKeys(originalVendorParams, parsedUpdates);
-            updateData.vendor_params = updatedVendorParams;
+            updateData.vendor_params = updateJsonByKeys(originalVendorParams, parsedUpdates);
           }
         }
         
         await updateSceneVendorApp(record.id, updateData, record);
-        results.success++;
-      } catch (error: any) {
-        results.failed++;
-        results.errors.push(`记录ID ${record.id}: ${error.message || '更新失败'}`);
+        return record.id;
+      },
+      (completed, total, success, failed) => {
+        setProgress((completed / total) * 100);
+        setProgressStatus({ success, failed, total });
       }
-      const currentProgress = ((i + 1) / selectedRows.length) * 100;
-      setProgress(currentProgress);
-      setProgressStatus(prev => ({ ...prev, success: results.success, failed: results.failed }));
-    }
+    );
 
     setBatchEditLoading(false);
     setBatchEditModalVisible(false);
@@ -663,7 +776,7 @@ const VendorAppManagementPage: React.FC = () => {
     }, 1000);
   };
 
-    // 批量启用
+    // 批量启用（并行优化）
     const handleBatchEnable = () => {
       if (selectedRowKeys.length === 0) {
         message.warning('请先选择要启用的记录');
@@ -681,24 +794,19 @@ const VendorAppManagementPage: React.FC = () => {
           setProgress(0);
           setProgressStatus({ success: 0, failed: 0, total: selectedRows.length });
 
-          const results = { success: 0, failed: 0, errors: [] as string[] };
-
-          for (let i = 0; i < selectedRows.length; i++) {
-            const record = selectedRows[i];
-            try {
+          const results = await processBatchInParallel(
+            selectedRows,
+            async (record) => {
               await updateSceneVendorAppStatus(record.id, 1, record);
-              results.success++;
-            } catch (error: any) {
-              results.failed++;
-              results.errors.push(`记录ID ${record.id}: ${error.message || '启用失败'}`);
+              return record.id;
+            },
+            (completed, total, success, failed) => {
+              setProgress((completed / total) * 100);
+              setProgressStatus({ success, failed, total });
             }
-            const currentProgress = ((i + 1) / selectedRows.length) * 100;
-            setProgress(currentProgress);
-            setProgressStatus(prev => ({ ...prev, success: results.success, failed: results.failed }));
-          }
+          );
 
           setBatchEnableLoading(false);
-          // 延迟关闭进度条，让用户看到最终结果
           setTimeout(() => {
             setProgressVisible(false);
             if (results.failed === 0) {
@@ -710,12 +818,12 @@ const VendorAppManagementPage: React.FC = () => {
             setSelectedRowKeys([]);
             setSelectedRows([]);
             fetchSceneVendorApps(searchParams);
-          }, 1000);
+          }, 500);
         }
       });
     };
 
-    // 批量禁用
+    // 批量禁用（并行优化）
     const handleBatchDisable = () => {
       if (selectedRowKeys.length === 0) {
         message.warning('请先选择要禁用的记录');
@@ -734,24 +842,19 @@ const VendorAppManagementPage: React.FC = () => {
           setProgress(0);
           setProgressStatus({ success: 0, failed: 0, total: selectedRows.length });
 
-          const results = { success: 0, failed: 0, errors: [] as string[] };
-          
-          for (let i = 0; i < selectedRows.length; i++) {
-            const record = selectedRows[i];
-            try {
+          const results = await processBatchInParallel(
+            selectedRows,
+            async (record) => {
               await updateSceneVendorAppStatus(record.id, 0, record);
-              results.success++;
-            } catch (error: any) {
-              results.failed++;
-              results.errors.push(`记录ID ${record.id}: ${error.message || '禁用失败'}`);
+              return record.id;
+            },
+            (completed, total, success, failed) => {
+              setProgress((completed / total) * 100);
+              setProgressStatus({ success, failed, total });
             }
-            const currentProgress = ((i + 1) / selectedRows.length) * 100;
-            setProgress(currentProgress);
-            setProgressStatus(prev => ({ ...prev, success: results.success, failed: results.failed }));
-          }
+          );
 
           setBatchDisableLoading(false);
-          // 延迟关闭进度条
           setTimeout(() => {
             setProgressVisible(false);
             if (results.failed === 0) {
@@ -763,9 +866,201 @@ const VendorAppManagementPage: React.FC = () => {
             setSelectedRowKeys([]);
             setSelectedRows([]);
             fetchSceneVendorApps(searchParams);
-          }, 1000);
+          }, 500);
         }
       });
+    };
+
+    // 批量修复 JSON 格式（并行优化）
+    const handleBatchFixJson = () => {
+      if (selectedRowKeys.length === 0) {
+        message.warning('请先选择要修复的记录');
+        return;
+      }
+
+      Modal.confirm({
+        title: `确定要修复 ${selectedRowKeys.length} 条记录的 JSON 格式吗？`,
+        content: '此操作将压缩厂商参数中的 JSON 格式（移除换行和多余空格），不会改变任何具体值。',
+        okText: '确定修复',
+        cancelText: '取消',
+        onOk: async () => {
+          setBatchFixJsonLoading(true);
+          setProgressVisible(true);
+          setProgress(0);
+          setProgressStatus({ success: 0, failed: 0, total: selectedRows.length });
+
+          let skipped = 0;
+          const results = await processBatchInParallel(
+            selectedRows,
+            async (record) => {
+              // 检查是否有 vendor_params
+              if (!record.vendor_params) {
+                skipped++;
+                return { skipped: true };
+              }
+              // 压缩 JSON 格式
+              const compactedParams = compactifyJsonString(record.vendor_params);
+              // 检查是否有变化（避免不必要的更新）
+              if (compactedParams === record.vendor_params) {
+                skipped++;
+                return { skipped: true };
+              }
+              // 更新记录
+              const updateData = { ...record, vendor_params: compactedParams };
+              await updateSceneVendorApp(record.id, updateData, record);
+              return { skipped: false, id: record.id };
+            },
+            (completed, total, success, failed) => {
+              setProgress((completed / total) * 100);
+              setProgressStatus({ success: success - skipped, failed, total });
+            }
+          );
+
+          // 实际成功数 = 总成功数 - 跳过数
+          const actualSuccess = results.success - skipped;
+
+          setBatchFixJsonLoading(false);
+          setTimeout(() => {
+            setProgressVisible(false);
+            if (results.failed === 0) {
+              message.success(`JSON 格式修复完成！修复 ${actualSuccess} 条，跳过 ${skipped} 条（无需修复）`);
+            } else {
+              message.warning(`JSON 格式修复部分完成：${actualSuccess} 条成功，${results.failed} 条失败，${skipped} 条跳过`);
+            }
+            if (results.errors.length > 0) console.error('批量修复错误详情:', results.errors);
+            setSelectedRowKeys([]);
+            setSelectedRows([]);
+            fetchSceneVendorApps(searchParams);
+          }, 500);
+        }
+      });
+    };
+
+    // 批量删除（并行优化）
+    const handleBatchDelete = () => {
+      if (selectedRowKeys.length === 0) {
+        message.warning('请先选择要删除的记录');
+        return;
+      }
+
+      Modal.confirm({
+        title: `确定要批量删除 ${selectedRowKeys.length} 条记录吗？`,
+        content: (
+          <div>
+            <p style={{ color: '#ff4d4f', fontWeight: 'bold' }}>⚠️ 此操作不可恢复！</p>
+            <p>将永久删除所有选中的供应商应用记录。</p>
+          </div>
+        ),
+        okText: '确定删除',
+        cancelText: '取消',
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          setBatchDeleteLoading(true);
+          setProgressVisible(true);
+          setProgress(0);
+          setProgressStatus({ success: 0, failed: 0, total: selectedRows.length });
+
+          const results = await processBatchInParallel(
+            selectedRows,
+            async (record) => {
+              await deleteSceneVendorApp(record.id);
+              return record.id;
+            },
+            (completed, total, success, failed) => {
+              setProgress((completed / total) * 100);
+              setProgressStatus({ success, failed, total });
+            }
+          );
+
+          setBatchDeleteLoading(false);
+          setTimeout(() => {
+            setProgressVisible(false);
+            if (results.failed === 0) {
+              message.success(`批量删除成功！共删除 ${results.success} 条记录`);
+            } else {
+              message.warning(`批量删除部分成功：${results.success} 条成功，${results.failed} 条失败`);
+            }
+            if (results.errors.length > 0) console.error('批量删除错误详情:', results.errors);
+            setSelectedRowKeys([]);
+            setSelectedRows([]);
+            fetchSceneVendorApps(searchParams);
+          }, 500);
+        }
+      });
+    };
+
+    // 按国家批量新增
+    const handleBatchCreateByCountry = () => {
+      if (activeTab !== 'TTS' && activeTab !== 'ASR') {
+        message.warning('按国家批量新增仅支持 TTS 和 ASR 类型');
+        return;
+      }
+      batchCreateByCountryForm.resetFields();
+      setBatchCreateByCountryModalVisible(true);
+    };
+
+    // 按国家批量新增提交（并行优化）
+    const handleBatchCreateByCountrySubmit = async (values: any) => {
+      const { languages, ...otherValues } = values;
+      
+      if (!languages || languages.length === 0) {
+        message.error('请至少选择一个国家/地区');
+        return;
+      }
+
+      setBatchCreateByCountryLoading(true);
+      setProgressVisible(true);
+      setProgress(0);
+      setProgressStatus({ success: 0, failed: 0, total: languages.length });
+
+      // 压缩 JSON 格式（只做一次）
+      const compactedVendorParams = otherValues.vendor_params ? compactifyJsonString(otherValues.vendor_params) : undefined;
+
+      const results = await processBatchInParallel(
+        languages,
+        async (language: string) => {
+          // 构建创建数据
+          const createData = {
+            ...otherValues,
+            language,
+            vendor_params: compactedVendorParams,
+          };
+          // 删除显示用的字段
+          delete createData.vendorDisplay;
+          await createSceneVendorApp(createData);
+          return language;
+        },
+        (completed, total, success, failed) => {
+          setProgress((completed / total) * 100);
+          setProgressStatus({ success, failed, total });
+        }
+      );
+
+      setBatchCreateByCountryLoading(false);
+      
+      setTimeout(() => {
+        setProgressVisible(false);
+        if (results.failed === 0) {
+          message.success(`按国家批量新增成功！共创建 ${results.success} 条记录`);
+          setBatchCreateByCountryModalVisible(false);
+        } else {
+          message.warning(`按国家批量新增部分成功：${results.success} 条成功，${results.failed} 条失败`);
+        }
+        if (results.errors.length > 0) {
+          console.error('批量新增错误详情:', results.errors);
+          Modal.error({
+            title: '部分创建失败',
+            content: (
+              <div style={{ maxHeight: 300, overflow: 'auto' }}>
+                {results.errors.map((err, idx) => (
+                  <div key={idx} style={{ marginBottom: 4 }}>{err}</div>
+                ))}
+              </div>
+            ),
+          });
+        }
+        fetchSceneVendorApps(searchParams);
+      }, 1000);
     };
 
     const rowSelection = {
@@ -1287,7 +1582,7 @@ const VendorAppManagementPage: React.FC = () => {
                   <span style={{ marginRight: 8, fontWeight: '500' }}>重复项高亮：</span>
                   <Switch
                     checked={highlightDuplicates}
-                    onChange={setHighlightDuplicates}
+                    onChange={handleHighlightDuplicatesChange}
                     checkedChildren="开"
                     unCheckedChildren="关"
                     size="small"
@@ -1328,6 +1623,16 @@ const VendorAppManagementPage: React.FC = () => {
               >
                 新建
               </Button>
+              {(activeTab === 'TTS' || activeTab === 'ASR') && (
+                <Button 
+                  type="primary" 
+                  icon={<GlobalOutlined />}
+                  onClick={handleBatchCreateByCountry}
+                  style={{ backgroundColor: '#13c2c2', borderColor: '#13c2c2' }}
+                >
+                  按国家批量新增
+                </Button>
+              )}
             </Space>
             <Space style={{ marginLeft: 24 }}>
               <Button 
@@ -1366,6 +1671,26 @@ const VendorAppManagementPage: React.FC = () => {
                 style={{ color: '#ff4d4f', borderColor: '#ff4d4f' }}
               >
                 批量禁用 ({selectedRowKeys.length})
+              </Button>
+              <Button 
+                type="default" 
+                icon={<ToolOutlined />}
+                onClick={handleBatchFixJson}
+                disabled={selectedRowKeys.length === 0}
+                loading={batchFixJsonLoading}
+                style={{ color: '#fa8c16', borderColor: '#fa8c16' }}
+              >
+                修复JSON格式 ({selectedRowKeys.length})
+              </Button>
+              <Button 
+                type="default" 
+                icon={<DeleteOutlined />}
+                onClick={handleBatchDelete}
+                disabled={selectedRowKeys.length === 0}
+                loading={batchDeleteLoading}
+                danger
+              >
+                批量删除 ({selectedRowKeys.length})
               </Button>
             </Space>
           </Col>
@@ -2084,6 +2409,230 @@ const VendorAppManagementPage: React.FC = () => {
         activeTab={activeTab}
         serviceType={SERVICE_TYPE_MAP[activeTab as keyof typeof SERVICE_TYPE_MAP]}
       />
+
+      {/* 按国家批量新增模态框 */}
+      <Modal
+        title={`按国家批量新增 (${activeTab})`}
+        open={batchCreateByCountryModalVisible}
+        onCancel={() => setBatchCreateByCountryModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setBatchCreateByCountryModalVisible(false)}>
+            取消
+          </Button>,
+          <Button 
+            key="submit" 
+            type="primary" 
+            loading={batchCreateByCountryLoading}
+            onClick={() => batchCreateByCountryForm.submit()}
+          >
+            批量创建
+          </Button>
+        ]}
+        width={800}
+        destroyOnClose
+      >
+        <Alert
+          message="功能说明"
+          description="选择多个国家/地区，将为每个选中的国家/地区创建一条记录，其他字段值保持一致。"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Form
+          form={batchCreateByCountryForm}
+          layout="vertical"
+          onFinish={handleBatchCreateByCountrySubmit}
+          initialValues={{
+            type: activeTab === 'TTS' ? 2 : (activeTab === 'ASR' ? 1 : 3),
+            status: 1,
+            is_clone: false,
+            shared: true,
+          }}
+        >
+          <Form.Item
+            label="选择国家/地区（可多选）"
+            name="languages"
+            rules={[{ required: true, message: '请至少选择一个国家/地区' }]}
+          >
+            <Select
+              mode="multiple"
+              placeholder="请选择国家/地区（支持搜索）"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) => {
+                if (!option) return false;
+                const children = Array.isArray(option.children) ? option.children.join('') : String(option.children || '');
+                const value = String(option.value || '');
+                return children.toLowerCase().includes(input.toLowerCase()) ||
+                       value.toLowerCase().includes(input.toLowerCase());
+              }}
+              style={{ width: '100%' }}
+              maxTagCount="responsive"
+            >
+              {languageOptions.map(option => (
+                <Option key={option.locale} value={option.locale}>
+                  {option.language_desc} ({option.locale})
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="类型"
+                name="type"
+                rules={[{ required: true, message: '请选择类型' }]}
+              >
+                <Select disabled>
+                  <Option value={1}>ASR</Option>
+                  <Option value={2}>TTS</Option>
+                  <Option value={3}>LLM</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="供应商"
+                name="vendor"
+                rules={[{ required: true, message: '请选择供应商' }]}
+              >
+                <Select 
+                  placeholder="请选择供应商"
+                  showSearch
+                  optionFilterProp="children"
+                >
+                  {getCurrentVendorConfig(activeTab).map(vendor => (
+                    <Option key={vendor.value} value={vendor.value}>
+                      {vendor.codeName}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {activeTab === 'TTS' && (
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="是否克隆"
+                  name="is_clone"
+                  rules={[{ required: true, message: '请选择是否克隆' }]}
+                >
+                  <Select placeholder="请选择">
+                    <Option value={false}>否</Option>
+                    <Option value={true}>是</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="是否公开"
+                  name="shared"
+                  rules={[{ required: true, message: '请选择是否公开' }]}
+                >
+                  <Select placeholder="请选择">
+                    <Option value={true}>是</Option>
+                    <Option value={false}>否</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
+
+          <Row gutter={16}>
+            {activeTab === 'TTS' && (
+              <Col span={12}>
+                <Form.Item
+                  label="音色"
+                  name="timbre"
+                  rules={[{ required: true, message: '请输入音色' }]}
+                >
+                  <Input placeholder="请输入音色" />
+                </Form.Item>
+              </Col>
+            )}
+            <Col span={activeTab === 'TTS' ? 12 : 24}>
+              <Form.Item
+                label="模型"
+                name="model"
+              >
+                <Input placeholder="请输入模型" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="供应商应用"
+                name="vendor_app_id"
+                rules={[{ required: true, message: '请选择供应商应用' }]}
+              >
+                <Select placeholder="请选择供应商应用" showSearch optionFilterProp="children">
+                  {Object.values(vendorAppMapping).map(app => (
+                    <Option key={app.id} value={app.id}>
+                      {app.name} (ID: {app.id})
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="评级"
+                name="rating"
+              >
+                <Select placeholder="请选择评级" allowClear>
+                  <Option value="Pro">Pro</Option>
+                  <Option value="Standard">Standard</Option>
+                  <Option value="Basic">Basic</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="状态"
+                name="status"
+                valuePropName="checked"
+                getValueFromEvent={(checked) => checked ? 1 : 0}
+                getValueProps={(value) => ({ checked: value === 1 })}
+              >
+                <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="代码"
+                name="code"
+              >
+                <Input placeholder="请输入代码" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            label="厂商参数 (JSON格式)"
+            name="vendor_params"
+          >
+            <Input.TextArea
+              placeholder="请输入厂商参数（JSON格式）"
+              rows={4}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="备注"
+            name="remark"
+          >
+            <Input.TextArea placeholder="请输入备注" rows={2} />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* 导出ID模态框 */}
       <Modal
